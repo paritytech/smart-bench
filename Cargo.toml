@@ -1,0 +1,10 @@
+[workspace]
+members = [".", "macro"]
+
+[package]
+name = "smart-bench"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+subxt = { git = "https://github.com/paritytech/subxt", branch = "master" }

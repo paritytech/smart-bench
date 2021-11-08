@@ -1,0 +1,9 @@
+[package]
+name = "smart-bench-macro"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+subxt-codegen = { git = "https://github.com/paritytech/subxt", branch = "master" }
+contract-metadata = "0.4.0"
+ink_metadata = "3.0.0-rc6"
