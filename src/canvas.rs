@@ -10,7 +10,7 @@ type ContractAccount = <api::DefaultConfig as subxt::Config>::AccountId;
 type Hash = <api::DefaultConfig as subxt::Config>::Hash;
 type Signer = PairSigner<api::DefaultConfig, sr25519::Pair>;
 
-#[subxt::subxt(runtime_metadata_path = "metadata/contracts_runtime.scale")]
+#[subxt::subxt(runtime_metadata_path = "metadata/canvas.scale")]
 pub mod api {}
 
 async fn api() -> color_eyre::Result<api::RuntimeApi<api::DefaultConfig>> {
