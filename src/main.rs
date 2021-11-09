@@ -5,7 +5,10 @@ use subxt::PairSigner;
 #[subxt::subxt(runtime_metadata_path = "metadata/contracts_runtime.scale")]
 pub mod api {}
 
+type Balance = u128;
+type Gas = u64;
 type ContractAccount = <api::DefaultConfig as subxt::Config>::AccountId;
+type Hash = <api::DefaultConfig as subxt::Config>::Hash;
 type Signer = PairSigner<api::DefaultConfig, sr25519::Pair>;
 
 #[async_std::main]
@@ -23,8 +26,8 @@ async fn api() -> color_eyre::Result<api::RuntimeApi<api::DefaultConfig>> {
 }
 
 async fn instantiate_with_code(
-    endowment: u128,
-    gas_limit: u64,
+    endowment: Balance,
+    gas_limit: Gas,
     code: Vec<u8>,
     data: Vec<u8>,
     salt: Vec<u8>,
@@ -46,6 +49,21 @@ async fn instantiate_with_code(
     Ok(instantiated.1)
 }
 
-fn call() -> color_eyre::Result<()> {
-    todo!()
+async fn call(
+    contract: ContractAccount,
+    value: Balance,
+    gas_limit: Gas,
+    data: Vec<u8>,
+    signer: &Signer,
+) -> color_eyre::Result<Hash> {
+    let api = api().await?;
+
+    let tx_hash = api
+        .tx()
+        .contracts()
+        .call(contract.into(), value, gas_limit, data)
+        .sign_and_submit(signer)
+        .await?;
+
+    Ok(tx_hash)
 }
