@@ -4,7 +4,22 @@ use subxt::PairSigner;
 
 use super::*;
 
-smart_bench_macro::contract!("/home/andrew/code/paritytech/ink/examples/erc20");
+type Balance = u128;
+type Gas = u64;
+type ContractAccount = <api::DefaultConfig as subxt::Config>::AccountId;
+type Hash = <api::DefaultConfig as subxt::Config>::Hash;
+type Signer = PairSigner<api::DefaultConfig, sr25519::Pair>;
+
+#[subxt::subxt(runtime_metadata_path = "metadata/contracts_runtime.scale")]
+pub mod api {}
+
+async fn api() -> color_eyre::Result<api::RuntimeApi<api::DefaultConfig>> {
+    Ok(subxt::ClientBuilder::new()
+        // .set_url()
+        .build()
+        .await?
+        .to_runtime_api::<api::RuntimeApi<api::DefaultConfig>>())
+}
 
 pub async fn instantiate_with_code(
     endowment: Balance,
@@ -24,7 +39,7 @@ pub async fn instantiate_with_code(
         .await?;
 
     let instantiated = result
-        .find_event::<canvas::contracts::events::Instantiated>()?
+        .find_event::<api::contracts::events::Instantiated>()?
         .ok_or(eyre::eyre!("Failed to find Instantiated event"))?;
 
     Ok(instantiated.1)
