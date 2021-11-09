@@ -471,18 +471,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 
 [[package]]
-name = "contract-metadata"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41bcb639a34f769a0fe68b0b88b398707aa5ce26cdee2fb868b9def65f0b8ba9"
-dependencies = [
- "semver 1.0.4",
- "serde",
- "serde_json",
- "url",
-]
-
-[[package]]
 name = "convert_case"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2130,7 +2118,7 @@ version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0dfe2087c51c460008730de8b57e6a320782fbfb312e1f4d520e6c6fae155ee"
 dependencies = [
- "semver 0.11.0",
+ "semver",
 ]
 
 [[package]]
@@ -2276,15 +2264,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "semver"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "568a8e6258aa33c13358f81fd834adb854c6f7c9468520910a9b1e8fac068012"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "semver-parser"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2406,10 +2385,11 @@ dependencies = [
 name = "smart-bench-macro"
 version = "0.1.0"
 dependencies = [
- "contract-metadata",
  "ink_metadata",
  "proc-macro-error 1.0.4",
+ "proc-macro2",
  "quote",
+ "serde_json",
  "subxt-codegen",
  "syn",
 ]
@@ -3278,7 +3258,6 @@ dependencies = [
  "idna",
  "matches",
  "percent-encoding",
- "serde",
 ]
 
 [[package]]
