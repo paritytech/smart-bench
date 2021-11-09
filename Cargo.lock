@@ -2385,6 +2385,7 @@ dependencies = [
 name = "smart-bench-macro"
 version = "0.1.0"
 dependencies = [
+ "heck",
  "ink_metadata",
  "proc-macro-error 1.0.4",
  "proc-macro2",

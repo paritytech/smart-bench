@@ -1,6 +1,8 @@
 extern crate proc_macro;
 
+use heck::CamelCase;
 use proc_macro::TokenStream;
+use ink_metadata::Selector;
 use proc_macro_error::{abort_call_site, proc_macro_error};
 use serde::Deserialize;
 use subxt_codegen::TypeGenerator;
@@ -78,26 +80,21 @@ fn generate_constructors(
     metadata: &ink_metadata::InkProject,
     type_gen: &TypeGenerator,
 ) -> Vec<proc_macro2::TokenStream> {
+    let trait_path = syn::parse_quote!(crate::InkConstructor);
     metadata
         .spec()
         .constructors()
         .iter()
         .map(|constructor| {
-            let name = &constructor
+            let name = constructor
                 .name()
                 .last()
-                .expect("Message should have a name");
-            let fn_ident = quote::format_ident!("{}", name);
-            let args = constructor.args.iter().map(|arg| {
-                let name = quote::format_ident!("{}", arg.name());
-                let ty = type_gen.resolve_type_path(arg.ty().ty().id(), &[]);
-                quote::quote!( #name: #ty )
-            });
-            quote::quote! (
-                pub fn #fn_ident(#( #args ), *) -> ::std::vec::Vec<u8> {
-                    todo!()
-                }
-            )
+                .expect("Constructor should have a name");
+            let args = constructor.args().iter().map(|arg| {
+                (arg.name().as_str(), arg.ty().ty().id())
+            }).collect::<Vec<_>>();
+            generate_message_impl(type_gen, name, args, constructor.selector(), &trait_path)
+
         })
         .collect()
 }
@@ -106,23 +103,57 @@ fn generate_messages(
     metadata: &ink_metadata::InkProject,
     type_gen: &TypeGenerator,
 ) -> Vec<proc_macro2::TokenStream> {
+    let trait_path = syn::parse_quote!(crate::InkMessage);
     metadata
         .spec()
         .messages()
         .iter()
         .map(|message| {
-            let name = &message.name().last().expect("Message should have a name");
-            let fn_ident = quote::format_ident!("{}", name);
+            let name = message.name().last().expect("Message should have a name");
             let args = message.args().iter().map(|arg| {
-                let name = quote::format_ident!("{}", arg.name());
-                let ty = type_gen.resolve_type_path(arg.ty().ty().id(), &[]);
-                quote::quote!( #name: #ty )
-            });
-            quote::quote! (
-                pub fn #fn_ident(#( #args ), *) -> ::std::vec::Vec<u8> {
-                    todo!()
-                }
-            )
+                (arg.name().as_str(), arg.ty().ty().id())
+            }).collect::<Vec<_>>();
+
+            generate_message_impl(type_gen, name, args, message.selector(), &trait_path)
         })
         .collect()
+}
+
+fn generate_message_impl(type_gen: &TypeGenerator, name: &str, args: Vec<(&str, u32)>, selector: &Selector, impl_trait: &syn::Path) -> proc_macro2::TokenStream {
+    let struct_ident = quote::format_ident!("{}", name.to_camel_case());
+    let fn_ident = quote::format_ident!("{}", name);
+    let (args, arg_names): (Vec<_>, Vec<_>) =args.iter().map(|(name, type_id)| {
+        let name = quote::format_ident!("{}", name);
+        let ty = type_gen.resolve_type_path(*type_id, &[]);
+        (quote::quote!( #name: #ty ), name)
+    }).unzip();
+    let selector_bytes = hex_lits(selector);
+    quote::quote! (
+        #[derive(::codec::Encode)]
+        pub struct #struct_ident {
+            #( #args ), *
+        }
+
+        impl #impl_trait for #struct_ident {
+            const SELECTOR: [u8; 4] = [ #( #selector_bytes ),* ];
+        }
+
+        pub fn #fn_ident(#( #args ), *) -> #struct_ident {
+            #struct_ident {
+                #( #arg_names ), *
+            }
+        }
+    )
+}
+
+/// Returns the 4 bytes that make up the selector as hex encoded bytes.
+fn hex_lits(selector: &ink_metadata::Selector) -> [syn::LitInt; 4] {
+    let hex_lits =
+        selector.to_bytes().iter().map(|byte|
+            syn::LitInt::new(
+                &format!("0x{:02X}_u8", byte),
+                proc_macro2::Span::call_site()
+            )
+        ).collect::<Vec<_>>();
+    hex_lits.try_into().expect("Invalid selector bytes length")
 }

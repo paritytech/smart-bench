@@ -7,6 +7,7 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
+heck = "0.3.3"
 subxt-codegen = { git = "https://github.com/paritytech/subxt", branch = "aj-export-typegen" }
 ink_metadata = "3.0.0-rc6"
 proc-macro2 = "1.0.32"
