@@ -5,6 +5,8 @@ use subxt::PairSigner;
 #[subxt::subxt(runtime_metadata_path = "metadata/contracts_runtime.scale")]
 pub mod api {}
 
+smart_bench_macro::contract!("/home/andrew/code/paritytech/ink/examples/erc20");
+
 type Balance = u128;
 type Gas = u64;
 type ContractAccount = <api::DefaultConfig as subxt::Config>::AccountId;

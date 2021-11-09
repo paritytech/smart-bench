@@ -3,7 +3,13 @@ name = "smart-bench-macro"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+proc-macro = true
+
 [dependencies]
 subxt-codegen = { git = "https://github.com/paritytech/subxt", branch = "master" }
 contract-metadata = "0.4.0"
 ink_metadata = "3.0.0-rc6"
+proc-macro-error = { version = "1", default-features = false }
+syn = "1.0.81"
+quote = "1.0.10"

@@ -2396,6 +2396,7 @@ dependencies = [
  "async-std",
  "color-eyre",
  "parity-scale-codec",
+ "smart-bench-macro",
  "sp-core",
  "sp-keyring",
  "subxt",
@@ -2407,7 +2408,10 @@ version = "0.1.0"
 dependencies = [
  "contract-metadata",
  "ink_metadata",
+ "proc-macro-error 1.0.4",
+ "quote",
  "subxt-codegen",
+ "syn",
 ]
 
 [[package]]
