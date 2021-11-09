@@ -2391,7 +2391,7 @@ dependencies = [
  "quote",
  "serde",
  "serde_json",
- "subxt-codegen",
+ "subxt-codegen 0.1.0 (git+https://github.com/paritytech/subxt?branch=aj-export-typegen)",
  "syn",
 ]
 
@@ -2853,6 +2853,24 @@ dependencies = [
 [[package]]
 name = "subxt-codegen"
 version = "0.1.0"
+source = "git+https://github.com/paritytech/subxt?branch=aj-export-typegen#69f08e8f49393aac08e611ec1571bfe8dfe83b12"
+dependencies = [
+ "async-trait",
+ "darling",
+ "frame-metadata",
+ "heck",
+ "parity-scale-codec",
+ "proc-macro-crate 0.1.5",
+ "proc-macro-error 1.0.4",
+ "proc-macro2",
+ "quote",
+ "scale-info",
+ "syn",
+]
+
+[[package]]
+name = "subxt-codegen"
+version = "0.1.0"
 source = "git+https://github.com/paritytech/subxt?branch=master#06b26b4dfaa83cdfddd50ed61bbbc579723f7918"
 dependencies = [
  "async-trait",
@@ -2883,7 +2901,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "scale-info",
- "subxt-codegen",
+ "subxt-codegen 0.1.0 (git+https://github.com/paritytech/subxt?branch=master)",
  "syn",
 ]
 
