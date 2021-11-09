@@ -2389,6 +2389,7 @@ dependencies = [
  "proc-macro-error 1.0.4",
  "proc-macro2",
  "quote",
+ "serde",
  "serde_json",
  "subxt-codegen",
  "syn",

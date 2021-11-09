@@ -11,6 +11,7 @@ subxt-codegen = { git = "https://github.com/paritytech/subxt", branch = "master"
 ink_metadata = "3.0.0-rc6"
 proc-macro2 = "1.0.32"
 proc-macro-error = { version = "1", default-features = false }
+serde = "1.0.130"
 serde_json = "1.0.69"
 syn = "1.0.81"
 quote = "1.0.10"
