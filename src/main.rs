@@ -1,7 +1,7 @@
 mod canvas;
 
 use sp_keyring::AccountKeyring;
-use subxt::{PairSigner, Signer};
+use subxt::PairSigner;
 
 /// Trait implemented by [`smart_bench_macro::contract`] for all contract constructors.
 pub trait InkConstructor: codec::Encode {
@@ -24,7 +24,7 @@ async fn main() -> color_eyre::Result<()> {
     let code =
         std::fs::read("/home/andrew/code/paritytech/ink/examples/erc20/target/ink/erc20.wasm")?;
 
-    let instance_count = 3;
+    let instance_count = 30;
     let contract_accounts = erc20_instantiate(&mut alice, code, instance_count).await?;
 
     println!("Instantiated {} erc20 contracts", contract_accounts.len());
