@@ -22,6 +22,7 @@ async fn api() -> color_eyre::Result<api::RuntimeApi<api::DefaultConfig>> {
         .to_runtime_api::<api::RuntimeApi<api::DefaultConfig>>())
 }
 
+/// Submit extrinsic to instantiate a contract with the given code.
 pub async fn instantiate_with_code<C: InkConstructor>(
     endowment: Balance,
     gas_limit: Gas,
@@ -49,6 +50,7 @@ pub async fn instantiate_with_code<C: InkConstructor>(
     Ok(instantiated.1)
 }
 
+/// Submit extrinsic to call a contract.
 pub async fn call<M: InkMessage>(
     contract: ContractAccount,
     value: Balance,

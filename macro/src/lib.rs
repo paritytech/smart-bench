@@ -1,8 +1,8 @@
 extern crate proc_macro;
 
 use heck::CamelCase;
-use proc_macro::TokenStream;
 use ink_metadata::Selector;
+use proc_macro::TokenStream;
 use proc_macro_error::{abort_call_site, proc_macro_error};
 use serde::Deserialize;
 use subxt_codegen::TypeGenerator;
@@ -46,10 +46,18 @@ struct Contract {
 }
 
 fn generate_contract_mod(metadata: ContractMetadata) -> proc_macro2::TokenStream {
+    let type_substitutes = [(
+        "ink_env::types::AccountId",
+        syn::parse_quote!(::sp_core::crypto::AccountId32),
+    )]
+    .iter()
+    .map(|(path, substitute): &(&str, syn::TypePath)| (path.to_string(), substitute.clone()))
+    .collect();
+
     let type_generator = TypeGenerator::new(
         metadata.v1.registry(),
         "contract_types",
-        Default::default(),
+        type_substitutes,
         Default::default(),
     );
     let types_mod = type_generator.generate_types_mod();
@@ -90,11 +98,12 @@ fn generate_constructors(
                 .name()
                 .last()
                 .expect("Constructor should have a name");
-            let args = constructor.args().iter().map(|arg| {
-                (arg.name().as_str(), arg.ty().ty().id())
-            }).collect::<Vec<_>>();
+            let args = constructor
+                .args()
+                .iter()
+                .map(|arg| (arg.name().as_str(), arg.ty().ty().id()))
+                .collect::<Vec<_>>();
             generate_message_impl(type_gen, name, args, constructor.selector(), &trait_path)
-
         })
         .collect()
 }
@@ -110,23 +119,34 @@ fn generate_messages(
         .iter()
         .map(|message| {
             let name = message.name().last().expect("Message should have a name");
-            let args = message.args().iter().map(|arg| {
-                (arg.name().as_str(), arg.ty().ty().id())
-            }).collect::<Vec<_>>();
+            let args = message
+                .args()
+                .iter()
+                .map(|arg| (arg.name().as_str(), arg.ty().ty().id()))
+                .collect::<Vec<_>>();
 
             generate_message_impl(type_gen, name, args, message.selector(), &trait_path)
         })
         .collect()
 }
 
-fn generate_message_impl(type_gen: &TypeGenerator, name: &str, args: Vec<(&str, u32)>, selector: &Selector, impl_trait: &syn::Path) -> proc_macro2::TokenStream {
+fn generate_message_impl(
+    type_gen: &TypeGenerator,
+    name: &str,
+    args: Vec<(&str, u32)>,
+    selector: &Selector,
+    impl_trait: &syn::Path,
+) -> proc_macro2::TokenStream {
     let struct_ident = quote::format_ident!("{}", name.to_camel_case());
     let fn_ident = quote::format_ident!("{}", name);
-    let (args, arg_names): (Vec<_>, Vec<_>) =args.iter().map(|(name, type_id)| {
-        let name = quote::format_ident!("{}", name);
-        let ty = type_gen.resolve_type_path(*type_id, &[]);
-        (quote::quote!( #name: #ty ), name)
-    }).unzip();
+    let (args, arg_names): (Vec<_>, Vec<_>) = args
+        .iter()
+        .map(|(name, type_id)| {
+            let name = quote::format_ident!("{}", name);
+            let ty = type_gen.resolve_type_path(*type_id, &[]);
+            (quote::quote!( #name: #ty ), name)
+        })
+        .unzip();
     let selector_bytes = hex_lits(selector);
     quote::quote! (
         #[derive(::codec::Encode)]
@@ -148,12 +168,15 @@ fn generate_message_impl(type_gen: &TypeGenerator, name: &str, args: Vec<(&str, 
 
 /// Returns the 4 bytes that make up the selector as hex encoded bytes.
 fn hex_lits(selector: &ink_metadata::Selector) -> [syn::LitInt; 4] {
-    let hex_lits =
-        selector.to_bytes().iter().map(|byte|
+    let hex_lits = selector
+        .to_bytes()
+        .iter()
+        .map(|byte| {
             syn::LitInt::new(
                 &format!("0x{:02X}_u8", byte),
-                proc_macro2::Span::call_site()
+                proc_macro2::Span::call_site(),
             )
-        ).collect::<Vec<_>>();
+        })
+        .collect::<Vec<_>>();
     hex_lits.try_into().expect("Invalid selector bytes length")
 }
