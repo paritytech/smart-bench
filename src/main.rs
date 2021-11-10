@@ -33,7 +33,7 @@ async fn main() -> color_eyre::Result<()> {
 
     let _block_subscription = canvas::BlocksSubscription::new().await?;
 
-    let tx_hashes = erc20_transfer(&mut alice,&bob, 1, contract_accounts, 3).await?;
+    let tx_hashes = erc20_transfer(&mut alice, &bob, 1, contract_accounts, 30).await?;
 
     println!("Submitted {} erc20 transfer calls", tx_hashes.len());
 
@@ -88,7 +88,7 @@ async fn erc20_transfer(
 
     for contract in contracts {
         for _ in 0..transfer_count {
-            let tx_hash = canvas::call(contract, 0, gas_limit, &transfer, &signer).await?;
+            let tx_hash = canvas::call(contract.clone(), 0, gas_limit, &transfer, &signer).await?;
             tx_hashes.push(tx_hash);
             signer.increment_nonce();
         }
