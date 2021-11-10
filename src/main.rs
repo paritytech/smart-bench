@@ -1,7 +1,7 @@
 mod canvas;
 
 use sp_keyring::AccountKeyring;
-use subxt::PairSigner;
+use subxt::{PairSigner, Signer};
 
 /// Trait implemented by [`smart_bench_macro::contract`] for all contract constructors.
 pub trait InkConstructor: codec::Encode {
@@ -17,18 +17,19 @@ smart_bench_macro::contract!("/home/andrew/code/paritytech/ink/examples/erc20");
 
 #[async_std::main]
 async fn main() -> color_eyre::Result<()> {
-    let alice = PairSigner::new(AccountKeyring::Alice.pair());
+    let mut alice = PairSigner::new(AccountKeyring::Alice.pair());
+    alice.set_nonce(0);
     let bob = AccountKeyring::Bob.to_account_id();
 
     let code =
         std::fs::read("/home/andrew/code/paritytech/ink/examples/erc20/target/ink/erc20.wasm")?;
 
-    let instance_count = 5;
-    let contract_accounts = erc20_instantiate(&alice, code, instance_count).await?;
+    let instance_count = 3;
+    let contract_accounts = erc20_instantiate(&mut alice, code, instance_count).await?;
 
     println!("Instantiated {} erc20 contracts", contract_accounts.len());
 
-    let tx_hashes = erc20_transfer(&alice,&bob, 1, contract_accounts).await?;
+    let tx_hashes = erc20_transfer(&mut alice,&bob, 1, contract_accounts).await?;
 
     println!("Submitted {} erc20 transfer calls", tx_hashes.len());
 
@@ -36,7 +37,7 @@ async fn main() -> color_eyre::Result<()> {
 }
 
 async fn erc20_instantiate(
-    signer: &canvas::Signer,
+    signer: &mut canvas::Signer,
     code: Vec<u8>,
     count: u32,
 ) -> color_eyre::Result<Vec<canvas::AccountId>> {
@@ -61,13 +62,14 @@ async fn erc20_instantiate(
         )
         .await?;
         accounts.push(contract);
+        signer.increment_nonce();
     }
 
     Ok(accounts)
 }
 
 async fn erc20_transfer(
-    source: &canvas::Signer,
+    signer: &mut canvas::Signer,
     dest: &canvas::AccountId,
     amount: canvas::Balance,
     contracts: Vec<canvas::AccountId>,
@@ -78,8 +80,9 @@ async fn erc20_transfer(
     let mut tx_hashes = Vec::new();
 
     for contract in contracts {
-        let tx_hash = canvas::call(contract, 0, gas_limit, &transfer, &source).await?;
+        let tx_hash = canvas::call(contract, 0, gas_limit, &transfer, &signer).await?;
         tx_hashes.push(tx_hash);
+        signer.increment_nonce();
     }
 
     Ok(tx_hashes)
