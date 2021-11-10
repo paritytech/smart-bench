@@ -9,6 +9,7 @@ edition = "2021"
 [dependencies]
 smart-bench-macro = { version = "0.1.0", path = "./macro" }
 async-std = { version = "1.9.0", features = ["attributes", "tokio1"] }
+jsonrpsee-types = "0.3.0"
 color-eyre = "0.5.11"
 codec = { package = "parity-scale-codec", version = "2", default-features = false }
 subxt = { git = "https://github.com/paritytech/subxt", branch = "master" }

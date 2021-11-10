@@ -9,6 +9,7 @@ pub type Balance = u128;
 pub type Gas = u64;
 pub type AccountId = <api::DefaultConfig as subxt::Config>::AccountId;
 pub type Hash = <api::DefaultConfig as subxt::Config>::Hash;
+pub type Header = <api::DefaultConfig as subxt::Config>::Header;
 pub type Signer = PairSigner<api::DefaultConfig, sr25519::Pair>;
 
 #[subxt::subxt(runtime_metadata_path = "metadata/canvas.scale")]
@@ -71,4 +72,27 @@ pub async fn call<M: InkMessage>(
         .await?;
 
     Ok(tx_hash)
+}
+
+pub struct BlocksSubscription {
+    task: async_std::task::JoinHandle<()>,
+}
+
+impl BlocksSubscription {
+    pub async fn new() -> color_eyre::Result<Self> {
+        let client: subxt::Client<api::DefaultConfig> = subxt::ClientBuilder::new()
+            .build()
+            .await?;
+        let mut blocks_sub: jsonrpsee_types::Subscription<Header> = client.rpc().subscribe_blocks().await?;
+
+        let task = async_std::task::spawn(async move {
+            while let Ok(Some(block_header)) = blocks_sub.next().await {
+                if let Ok(Some(block)) = client.rpc().block(Some(block_header.hash())).await {
+                    println!("Block {}, Extrinsics {}", block_header.number, block.block.extrinsics.len());
+                }
+            }
+        });
+
+        Ok(Self { task })
+    }
 }

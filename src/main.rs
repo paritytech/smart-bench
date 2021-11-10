@@ -17,6 +17,8 @@ smart_bench_macro::contract!("/home/andrew/code/paritytech/ink/examples/erc20");
 
 #[async_std::main]
 async fn main() -> color_eyre::Result<()> {
+    color_eyre::install()?;
+
     let mut alice = PairSigner::new(AccountKeyring::Alice.pair());
     alice.set_nonce(0);
     let bob = AccountKeyring::Bob.to_account_id();
@@ -24,14 +26,18 @@ async fn main() -> color_eyre::Result<()> {
     let code =
         std::fs::read("/home/andrew/code/paritytech/ink/examples/erc20/target/ink/erc20.wasm")?;
 
-    let instance_count = 30;
+    let instance_count = 5;
     let contract_accounts = erc20_instantiate(&mut alice, code, instance_count).await?;
 
     println!("Instantiated {} erc20 contracts", contract_accounts.len());
 
+    let _block_subscription = canvas::BlocksSubscription::new().await?;
+
     let tx_hashes = erc20_transfer(&mut alice,&bob, 1, contract_accounts).await?;
 
     println!("Submitted {} erc20 transfer calls", tx_hashes.len());
+
+    async_std::task::sleep(std::time::Duration::from_secs(10)).await;
 
     Ok(())
 }
