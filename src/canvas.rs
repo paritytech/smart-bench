@@ -80,15 +80,18 @@ pub struct BlocksSubscription {
 
 impl BlocksSubscription {
     pub async fn new() -> color_eyre::Result<Self> {
-        let client: subxt::Client<api::DefaultConfig> = subxt::ClientBuilder::new()
-            .build()
-            .await?;
-        let mut blocks_sub: jsonrpsee_types::Subscription<Header> = client.rpc().subscribe_blocks().await?;
+        let client: subxt::Client<api::DefaultConfig> = subxt::ClientBuilder::new().build().await?;
+        let mut blocks_sub: jsonrpsee_types::Subscription<Header> =
+            client.rpc().subscribe_blocks().await?;
 
         let task = async_std::task::spawn(async move {
             while let Ok(Some(block_header)) = blocks_sub.next().await {
                 if let Ok(Some(block)) = client.rpc().block(Some(block_header.hash())).await {
-                    println!("Block {}, Extrinsics {}", block_header.number, block.block.extrinsics.len());
+                    println!(
+                        "Block {}, Extrinsics {}",
+                        block_header.number,
+                        block.block.extrinsics.len()
+                    );
                 }
             }
         });
