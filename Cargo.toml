@@ -18,3 +18,4 @@ subxt = { git = "https://github.com/paritytech/subxt", branch = "master" }
 # substrate
 sp-core = { package = "sp-core", git = "https://github.com/paritytech/substrate/", branch = "master" }
 sp-keyring = { package = "sp-keyring", git = "https://github.com/paritytech/substrate/", branch = "master" }
+sp-runtime = { package = "sp-runtime", git = "https://github.com/paritytech/substrate/", branch = "master" }

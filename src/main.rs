@@ -43,13 +43,21 @@ async fn main() -> color_eyre::Result<()> {
 
     println!("Instantiated {} erc20 contracts", contract_accounts.len());
 
-    let _block_subscription = canvas::BlocksSubscription::new().await?;
+    let block_subscription = canvas::BlocksSubscription::new().await?;
 
     let tx_hashes = erc20_transfer(&mut alice, &bob, 1, contract_accounts, opts.call_count).await?;
 
     println!("Submitted {} erc20 transfer calls", tx_hashes.len());
 
-    async_std::task::sleep(std::time::Duration::from_secs(30)).await;
+    let result = block_subscription.wait_for_txs(&tx_hashes).await?;
+
+    for block in result.blocks {
+        println!(
+            "Block {}, Extrinsics {}",
+            block.block_number,
+            block.extrinsics.len()
+        );
+    }
 
     Ok(())
 }
