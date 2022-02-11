@@ -25,8 +25,9 @@ async fn api() -> color_eyre::Result<api::RuntimeApi<DefaultConfig, DefaultExtra
 
 /// Submit extrinsic to instantiate a contract with the given code.
 pub async fn instantiate_with_code<C: InkConstructor>(
-    endowment: Balance,
+    value: Balance,
     gas_limit: Gas,
+    storage_deposit_limit: Option<Balance>,
     code: Vec<u8>,
     constructor: &C,
     salt: Vec<u8>,
@@ -40,7 +41,7 @@ pub async fn instantiate_with_code<C: InkConstructor>(
     let result = api
         .tx()
         .contracts()
-        .instantiate_with_code(endowment, gas_limit, code, data, salt)
+        .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt)
         .sign_and_submit_then_watch(signer)
         .await?
         .wait_for_finalized()
@@ -52,7 +53,7 @@ pub async fn instantiate_with_code<C: InkConstructor>(
         .find_first_event::<api::contracts::events::Instantiated>()?
         .ok_or(eyre::eyre!("Failed to find Instantiated event"))?;
 
-    Ok(instantiated.1)
+    Ok(instantiated.contract)
 }
 
 /// Submit extrinsic to call a contract.
@@ -60,6 +61,7 @@ pub async fn call<M: InkMessage>(
     contract: AccountId,
     value: Balance,
     gas_limit: Gas,
+    storage_deposit_limit: Option<Balance>,
     message: &M,
     signer: &Signer,
 ) -> color_eyre::Result<Hash> {
@@ -71,7 +73,13 @@ pub async fn call<M: InkMessage>(
     let tx_hash = api
         .tx()
         .contracts()
-        .call(contract.into(), value, gas_limit, data)
+        .call(
+            contract.into(),
+            value,
+            gas_limit,
+            storage_deposit_limit,
+            data,
+        )
         .sign_and_submit(signer)
         .await?;
 
