@@ -1,6 +1,6 @@
 extern crate proc_macro;
 
-use heck::CamelCase;
+use heck::ToUpperCamelCase as _;
 use ink_metadata::Selector;
 use proc_macro::TokenStream;
 use proc_macro_error::{abort_call_site, proc_macro_error};
@@ -35,7 +35,7 @@ pub fn contract(input: TokenStream) -> TokenStream {
 #[derive(Deserialize)]
 struct ContractMetadata {
     contract: Contract,
-    #[serde(rename = "V1")]
+    #[serde(rename = "V3")]
     pub v1: ink_metadata::InkProject,
 }
 
@@ -94,14 +94,11 @@ fn generate_constructors(
         .constructors()
         .iter()
         .map(|constructor| {
-            let name = constructor
-                .name()
-                .last()
-                .expect("Constructor should have a name");
+            let name = constructor.label();
             let args = constructor
                 .args()
                 .iter()
-                .map(|arg| (arg.name().as_str(), arg.ty().ty().id()))
+                .map(|arg| (arg.label().as_str(), arg.ty().ty().id()))
                 .collect::<Vec<_>>();
             generate_message_impl(type_gen, name, args, constructor.selector(), &trait_path)
         })
@@ -118,11 +115,11 @@ fn generate_messages(
         .messages()
         .iter()
         .map(|message| {
-            let name = message.name().last().expect("Message should have a name");
+            let name = message.label();
             let args = message
                 .args()
                 .iter()
-                .map(|arg| (arg.name().as_str(), arg.ty().ty().id()))
+                .map(|arg| (arg.label().as_str(), arg.ty().ty().id()))
                 .collect::<Vec<_>>();
 
             generate_message_impl(type_gen, name, args, message.selector(), &trait_path)
@@ -137,7 +134,7 @@ fn generate_message_impl(
     selector: &Selector,
     impl_trait: &syn::Path,
 ) -> proc_macro2::TokenStream {
-    let struct_ident = quote::format_ident!("{}", name.to_camel_case());
+    let struct_ident = quote::format_ident!("{}", name.to_upper_camel_case());
     let fn_ident = quote::format_ident!("{}", name);
     let (args, arg_names): (Vec<_>, Vec<_>) = args
         .iter()
