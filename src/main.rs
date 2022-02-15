@@ -111,8 +111,15 @@ async fn erc20_transfer(
 
     for contract in contracts {
         for _ in 0..transfer_count {
-            let tx_hash =
-                canvas::call(contract.clone(), 0, gas_limit, storage_deposit_limit, &transfer, &signer).await?;
+            let tx_hash = canvas::call(
+                contract.clone(),
+                0,
+                gas_limit,
+                storage_deposit_limit,
+                &transfer,
+                &signer,
+            )
+            .await?;
             tx_hashes.push(tx_hash);
             signer.increment_nonce();
         }
