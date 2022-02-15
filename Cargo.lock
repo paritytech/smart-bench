@@ -3074,7 +3074,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "subxt"
 version = "0.17.0"
-source = "git+https://github.com/paritytech/subxt?branch=jsdw-module-error#99ea75bfe4e961428e3f9fb912ec13a21f9deb9d"
+source = "git+https://github.com/paritytech/subxt?branch=master#cb9177aaa91158df1e99d6d136b9a6d2eb3a96ad"
 dependencies = [
  "async-trait",
  "bitvec",
@@ -3100,7 +3100,7 @@ dependencies = [
 [[package]]
 name = "subxt-codegen"
 version = "0.17.0"
-source = "git+https://github.com/paritytech/subxt?branch=jsdw-module-error#99ea75bfe4e961428e3f9fb912ec13a21f9deb9d"
+source = "git+https://github.com/paritytech/subxt?branch=master#cb9177aaa91158df1e99d6d136b9a6d2eb3a96ad"
 dependencies = [
  "async-trait",
  "darling",
@@ -3118,7 +3118,7 @@ dependencies = [
 [[package]]
 name = "subxt-macro"
 version = "0.17.0"
-source = "git+https://github.com/paritytech/subxt?branch=jsdw-module-error#99ea75bfe4e961428e3f9fb912ec13a21f9deb9d"
+source = "git+https://github.com/paritytech/subxt?branch=master#cb9177aaa91158df1e99d6d136b9a6d2eb3a96ad"
 dependencies = [
  "async-trait",
  "darling",
