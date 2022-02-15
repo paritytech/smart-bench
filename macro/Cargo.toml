@@ -8,7 +8,7 @@ proc-macro = true
 
 [dependencies]
 heck = "0.4.0"
-subxt-codegen = { git = "https://github.com/paritytech/subxt", branch = "aj/export-type-gen" }
+subxt-codegen = { git = "https://github.com/paritytech/subxt", branch = "jsdw-module-error" }
 ink_metadata = "3.0.0-rc8"
 proc-macro2 = "1.0.36"
 proc-macro-error = { version = "1.0.4", default-features = false }
