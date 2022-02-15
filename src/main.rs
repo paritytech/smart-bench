@@ -117,7 +117,7 @@ async fn erc20_transfer(
                 gas_limit,
                 storage_deposit_limit,
                 &transfer,
-                &signer,
+                signer,
             )
             .await?;
             tx_hashes.push(tx_hash);

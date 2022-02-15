@@ -36,7 +36,7 @@ pub async fn instantiate_with_code<C: InkConstructor>(
     let api = api().await?;
 
     let mut data = C::SELECTOR.to_vec();
-    <C as Encode>::encode_to(&constructor, &mut data);
+    <C as Encode>::encode_to(constructor, &mut data);
 
     let result = api
         .tx()
@@ -51,7 +51,7 @@ pub async fn instantiate_with_code<C: InkConstructor>(
 
     let instantiated = result
         .find_first_event::<api::contracts::events::Instantiated>()?
-        .ok_or(eyre::eyre!("Failed to find Instantiated event"))?;
+        .ok_or_else(|| eyre::eyre!("Failed to find Instantiated event"))?;
 
     Ok(instantiated.contract)
 }
@@ -68,7 +68,7 @@ pub async fn call<M: InkMessage>(
     let api = api().await?;
 
     let mut data = M::SELECTOR.to_vec();
-    <M as Encode>::encode_to(&message, &mut data);
+    <M as Encode>::encode_to(message, &mut data);
 
     let tx_hash = api
         .tx()
@@ -135,7 +135,7 @@ impl BlocksSubscription {
                         .block
                         .extrinsics
                         .iter()
-                        .map(|xt| BlakeTwo256::hash_of(xt))
+                        .map(BlakeTwo256::hash_of)
                         .collect();
                     let block_extrinsics = BlockExtrinsics {
                         block_number: block_header.number,
