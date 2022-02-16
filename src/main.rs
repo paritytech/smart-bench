@@ -2,7 +2,7 @@ mod canvas;
 
 use sp_keyring::AccountKeyring;
 use structopt::StructOpt;
-use subxt::PairSigner;
+use subxt::{PairSigner, Signer as _};
 
 #[derive(Debug, StructOpt)]
 pub struct Opts {
@@ -33,19 +33,36 @@ async fn main() -> color_eyre::Result<()> {
     let opts = Opts::from_args();
 
     let mut alice = PairSigner::new(AccountKeyring::Alice.pair());
-    alice.set_nonce(0);
+
+    let client = subxt::ClientBuilder::new().build().await?;
+
+    let alice_nonce = client
+        .fetch_nonce::<canvas::api::DefaultAccountData>(alice.account_id())
+        .await?;
+    alice.set_nonce(alice_nonce);
+
     let bob = AccountKeyring::Bob.to_account_id();
 
     let code =
         std::fs::read("/home/andrew/code/paritytech/ink/examples/erc20/target/ink/erc20.wasm")?;
 
-    let contract_accounts = erc20_instantiate(&mut alice, code, opts.instance_count).await?;
+    let api = canvas::ContractsApi::new(client);
+
+    let contract_accounts = erc20_instantiate(&api, &mut alice, code, opts.instance_count).await?;
 
     println!("Instantiated {} erc20 contracts", contract_accounts.len());
 
     let block_subscription = canvas::BlocksSubscription::new().await?;
 
-    let tx_hashes = erc20_transfer(&mut alice, &bob, 1, contract_accounts, opts.call_count).await?;
+    let tx_hashes = erc20_transfer(
+        &api,
+        &mut alice,
+        &bob,
+        1,
+        contract_accounts,
+        opts.call_count,
+    )
+    .await?;
 
     println!("Submitted {} erc20 transfer calls", tx_hashes.len());
 
@@ -63,6 +80,7 @@ async fn main() -> color_eyre::Result<()> {
 }
 
 async fn erc20_instantiate(
+    api: &canvas::ContractsApi,
     signer: &mut canvas::Signer,
     code: Vec<u8>,
     count: u32,
@@ -79,16 +97,17 @@ async fn erc20_instantiate(
         let salt = i.to_le_bytes().to_vec();
         let code = code.clone(); // subxt codegen generates constructor args by value atm
 
-        let contract = canvas::instantiate_with_code(
-            value,
-            gas_limit,
-            storage_deposit_limit,
-            code.clone(),
-            &constructor,
-            salt,
-            signer,
-        )
-        .await?;
+        let contract = api
+            .instantiate_with_code(
+                value,
+                gas_limit,
+                storage_deposit_limit,
+                code.clone(),
+                &constructor,
+                salt,
+                signer,
+            )
+            .await?;
         accounts.push(contract);
         signer.increment_nonce();
     }
@@ -97,6 +116,7 @@ async fn erc20_instantiate(
 }
 
 async fn erc20_transfer(
+    api: &canvas::ContractsApi,
     signer: &mut canvas::Signer,
     dest: &canvas::AccountId,
     amount: canvas::Balance,
@@ -111,15 +131,16 @@ async fn erc20_transfer(
 
     for contract in contracts {
         for _ in 0..transfer_count {
-            let tx_hash = canvas::call(
-                contract.clone(),
-                0,
-                gas_limit,
-                storage_deposit_limit,
-                &transfer,
-                signer,
-            )
-            .await?;
+            let tx_hash = api
+                .call(
+                    contract.clone(),
+                    0,
+                    gas_limit,
+                    storage_deposit_limit,
+                    &transfer,
+                    signer,
+                )
+                .await?;
             tx_hashes.push(tx_hash);
             signer.increment_nonce();
         }

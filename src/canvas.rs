@@ -15,75 +15,79 @@ pub type Signer = PairSigner<DefaultConfig, DefaultExtra<DefaultConfig>, sr25519
 #[subxt::subxt(runtime_metadata_path = "metadata/canvas.scale")]
 pub mod api {}
 
-async fn api() -> color_eyre::Result<api::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>> {
-    Ok(subxt::ClientBuilder::new()
-        // .set_url()
-        .build()
-        .await?
-        .to_runtime_api::<api::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>>())
+pub struct ContractsApi {
+    api: api::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>,
 }
 
-/// Submit extrinsic to instantiate a contract with the given code.
-pub async fn instantiate_with_code<C: InkConstructor>(
-    value: Balance,
-    gas_limit: Gas,
-    storage_deposit_limit: Option<Balance>,
-    code: Vec<u8>,
-    constructor: &C,
-    salt: Vec<u8>,
-    signer: &Signer,
-) -> color_eyre::Result<AccountId> {
-    let api = api().await?;
+impl ContractsApi {
+    pub fn new(client: subxt::Client<DefaultConfig>) -> Self {
+        let api =
+            client.to_runtime_api::<api::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>>();
+        Self { api }
+    }
 
-    let mut data = C::SELECTOR.to_vec();
-    <C as Encode>::encode_to(constructor, &mut data);
+    /// Submit extrinsic to instantiate a contract with the given code.
+    pub async fn instantiate_with_code<C: InkConstructor>(
+        &self,
+        value: Balance,
+        gas_limit: Gas,
+        storage_deposit_limit: Option<Balance>,
+        code: Vec<u8>,
+        constructor: &C,
+        salt: Vec<u8>,
+        signer: &Signer,
+    ) -> color_eyre::Result<AccountId> {
+        let mut data = C::SELECTOR.to_vec();
+        <C as Encode>::encode_to(constructor, &mut data);
 
-    let result = api
-        .tx()
-        .contracts()
-        .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt)
-        .sign_and_submit_then_watch(signer)
-        .await?
-        .wait_for_finalized()
-        .await?
-        .wait_for_success()
-        .await?;
+        let result = self
+            .api
+            .tx()
+            .contracts()
+            .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt)
+            .sign_and_submit_then_watch(signer)
+            .await?
+            .wait_for_finalized()
+            .await?
+            .wait_for_success()
+            .await?;
 
-    let instantiated = result
-        .find_first_event::<api::contracts::events::Instantiated>()?
-        .ok_or_else(|| eyre::eyre!("Failed to find Instantiated event"))?;
+        let instantiated = result
+            .find_first_event::<api::contracts::events::Instantiated>()?
+            .ok_or_else(|| eyre::eyre!("Failed to find Instantiated event"))?;
 
-    Ok(instantiated.contract)
-}
+        Ok(instantiated.contract)
+    }
 
-/// Submit extrinsic to call a contract.
-pub async fn call<M: InkMessage>(
-    contract: AccountId,
-    value: Balance,
-    gas_limit: Gas,
-    storage_deposit_limit: Option<Balance>,
-    message: &M,
-    signer: &Signer,
-) -> color_eyre::Result<Hash> {
-    let api = api().await?;
+    /// Submit extrinsic to call a contract.
+    pub async fn call<M: InkMessage>(
+        &self,
+        contract: AccountId,
+        value: Balance,
+        gas_limit: Gas,
+        storage_deposit_limit: Option<Balance>,
+        message: &M,
+        signer: &Signer,
+    ) -> color_eyre::Result<Hash> {
+        let mut data = M::SELECTOR.to_vec();
+        <M as Encode>::encode_to(message, &mut data);
 
-    let mut data = M::SELECTOR.to_vec();
-    <M as Encode>::encode_to(message, &mut data);
+        let tx_hash = self
+            .api
+            .tx()
+            .contracts()
+            .call(
+                contract.into(),
+                value,
+                gas_limit,
+                storage_deposit_limit,
+                data,
+            )
+            .sign_and_submit(signer)
+            .await?;
 
-    let tx_hash = api
-        .tx()
-        .contracts()
-        .call(
-            contract.into(),
-            value,
-            gas_limit,
-            storage_deposit_limit,
-            data,
-        )
-        .sign_and_submit(signer)
-        .await?;
-
-    Ok(tx_hash)
+        Ok(tx_hash)
+    }
 }
 
 pub struct BlocksSubscription {
