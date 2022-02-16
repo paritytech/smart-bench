@@ -67,8 +67,9 @@ async fn erc20_instantiate(
     code: Vec<u8>,
     count: u32,
 ) -> color_eyre::Result<Vec<canvas::AccountId>> {
-    let endowment = 100_000_000_000_000_000;
+    let value = 100_000_000_000_000_000;
     let gas_limit = 500_000_000_000;
+    let storage_deposit_limit = None;
 
     let initial_supply = 1_000_000;
     let constructor = erc20::constructors::new(initial_supply);
@@ -79,8 +80,9 @@ async fn erc20_instantiate(
         let code = code.clone(); // subxt codegen generates constructor args by value atm
 
         let contract = canvas::instantiate_with_code(
-            endowment,
+            value,
             gas_limit,
+            storage_deposit_limit,
             code.clone(),
             &constructor,
             salt,
@@ -102,13 +104,22 @@ async fn erc20_transfer(
     transfer_count: u32,
 ) -> color_eyre::Result<Vec<canvas::Hash>> {
     let gas_limit = 500_000_000_000;
+    let storage_deposit_limit: Option<canvas::Balance> = None;
 
     let transfer = erc20::messages::transfer(dest.clone(), amount);
     let mut tx_hashes = Vec::new();
 
     for contract in contracts {
         for _ in 0..transfer_count {
-            let tx_hash = canvas::call(contract.clone(), 0, gas_limit, &transfer, &signer).await?;
+            let tx_hash = canvas::call(
+                contract.clone(),
+                0,
+                gas_limit,
+                storage_deposit_limit,
+                &transfer,
+                signer,
+            )
+            .await?;
             tx_hashes.push(tx_hash);
             signer.increment_nonce();
         }
