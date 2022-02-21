@@ -85,7 +85,7 @@ async fn erc20_instantiate(
     code: Vec<u8>,
     count: u32,
 ) -> color_eyre::Result<Vec<canvas::AccountId>> {
-    let value = 100_000_000_000_000_000;
+    let value = 0;
     let gas_limit = 500_000_000_000;
     let storage_deposit_limit = None;
 
