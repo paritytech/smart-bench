@@ -24,7 +24,7 @@ pub trait InkMessage: codec::Encode {
     const SELECTOR: [u8; 4];
 }
 
-smart_bench_macro::contract!("/home/andrew/code/paritytech/ink/examples/erc20");
+smart_bench_macro::contract!("./contracts/erc20.contract");
 
 #[async_std::main]
 async fn main() -> color_eyre::Result<()> {
