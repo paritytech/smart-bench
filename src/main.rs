@@ -50,13 +50,15 @@ async fn main() -> color_eyre::Result<()> {
     let reader = std::fs::File::open(metadata_path)?;
     let contract: contract_metadata::ContractMetadata = serde_json::from_reader(reader)?;
 
-    let code = contract.source.wasm.ok_or_else(||
-        eyre::eyre!("contract bundle missing source Wasm")
-    )?;
+    let code = contract
+        .source
+        .wasm
+        .ok_or_else(|| eyre::eyre!("contract bundle missing source Wasm"))?;
 
     let api = canvas::ContractsApi::new(client);
 
-    let contract_accounts = erc20_instantiate(&api, &mut alice, code.0, opts.instance_count).await?;
+    let contract_accounts =
+        erc20_instantiate(&api, &mut alice, code.0, opts.instance_count).await?;
 
     println!("Instantiated {} erc20 contracts", contract_accounts.len());
 
