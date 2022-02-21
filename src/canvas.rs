@@ -47,7 +47,7 @@ impl ContractsApi {
             .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt)
             .sign_and_submit_then_watch(signer)
             .await?
-            .wait_for_finalized()
+            .wait_for_in_block()
             .await?
             .wait_for_success()
             .await?;
