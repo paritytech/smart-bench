@@ -1,4 +1,5 @@
 mod canvas;
+mod contracts;
 
 use color_eyre::eyre;
 use sp_keyring::AccountKeyring;
@@ -7,9 +8,6 @@ use subxt::{PairSigner, Signer as _};
 
 #[derive(Debug, StructOpt)]
 pub struct Opts {
-    /// The number of contracts to instantiate.
-    #[structopt(long, short)]
-    instance_count: u32,
     /// The number of calls to make to each contract.
     #[structopt(long, short)]
     call_count: u32,
@@ -24,8 +22,6 @@ pub trait InkConstructor: codec::Encode {
 pub trait InkMessage: codec::Encode {
     const SELECTOR: [u8; 4];
 }
-
-smart_bench_macro::contract!("./contracts/erc20.contract");
 
 #[async_std::main]
 async fn main() -> color_eyre::Result<()> {
@@ -43,17 +39,6 @@ async fn main() -> color_eyre::Result<()> {
     alice.set_nonce(alice_nonce);
 
     let bob = AccountKeyring::Bob.to_account_id();
-
-    let root = std::env::var("CARGO_MANIFEST_DIR")?;
-    let contract_path = "contracts/erc20.contract";
-    let metadata_path: std::path::PathBuf = [&root, contract_path].iter().collect();
-    let reader = std::fs::File::open(metadata_path)?;
-    let contract: contract_metadata::ContractMetadata = serde_json::from_reader(reader)?;
-
-    let code = contract
-        .source
-        .wasm
-        .ok_or_else(|| eyre::eyre!("contract bundle missing source Wasm"))?;
 
     let api = canvas::ContractsApi::new(client);
 
