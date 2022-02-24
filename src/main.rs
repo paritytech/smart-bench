@@ -1,5 +1,6 @@
 mod canvas;
 
+use codec::Encode;
 use color_eyre::eyre;
 use sp_keyring::AccountKeyring;
 use structopt::StructOpt;
@@ -51,43 +52,86 @@ async fn main() -> color_eyre::Result<()> {
     let bob = AccountKeyring::Bob.to_account_id();
 
     // erc20
-    // let erc20 = load_contract("erc20")?;
+    let erc20_code = load_contract("erc20")?;
     let initial_supply = 1_000_000;
     let erc20_new = erc20::constructors::new(initial_supply);
 
-    let erc20_accounts =
-        exec_instantiate(&api, &mut alice, 0, code.0, &erc20_new, opts.instance_count).await?;
+    let erc20_contracts = exec_instantiate(
+        &api,
+        &mut alice,
+        0,
+        erc20_code,
+        &erc20_new,
+        opts.instance_count,
+    )
+    .await?;
 
-    println!("Instantiated {} erc20 contracts", contract_accounts.len());
+    println!("Instantiated {} erc20 contracts", erc20_contracts.len());
+
+    let erc20_calls = erc20_contracts
+        .iter()
+        .map(|contract| {
+            let transfer = erc20::messages::transfer(bob.clone(), 1000);
+            Call::new(contract.clone(), &transfer)
+        })
+        .collect::<Vec<_>>();
 
     // flipper
+    let flipper_code = load_contract("flipper")?;
     let flipper_new = flipper::constructors::new(false);
 
-    let flipper_accounts =
-        exec_instantiate(&api, &mut alice, 0, code.0, &flipper_new, opts.instance_count).await?;
+    let flipper_contracts = exec_instantiate(
+        &api,
+        &mut alice,
+        0,
+        flipper_code,
+        &flipper_new,
+        opts.instance_count,
+    )
+    .await?;
+
+    println!("Instantiated {} flipper contracts", flipper_contracts.len());
+
+    let flipper_calls = flipper_contracts
+        .iter()
+        .map(|contract| {
+            let flip = flipper::messages::flip();
+            Call::new(contract.clone(), &flip)
+        })
+        .collect::<Vec<_>>();
+
+    let all_contract_calls = vec![
+        erc20_calls.iter().collect::<Vec<_>>(),
+        flipper_calls.iter().collect::<Vec<_>>(),
+    ];
 
     let block_subscription = canvas::BlocksSubscription::new().await?;
 
     let mut tx_hashes = Vec::new();
 
-    for contract in contracts {
-        for _ in 0..call_count {
-            let tx_hash = api
-                .call(
-                    contract.clone(),
-                    0,
-                    DEFAULT_GAS_LIMIT,
-                    DEFAULT_STORAGE_DEPOSIT_LIMIT,
-                    message,
-                    signer,
-                )
-                .await?;
-            tx_hashes.push(tx_hash);
-            signer.increment_nonce();
+    for _ in 0..opts.call_count {
+        for i in 0..opts.instance_count {
+            for contract_calls in all_contract_calls {
+                let contract_call = contract_calls
+                    .get(i as usize)
+                    .ok_or_else(|| eyre::eyre!("Missing contract instance at {}", i))?;
+                let tx_hash = api
+                    .call(
+                        contract_call.contract_account.clone(),
+                        0,
+                        DEFAULT_GAS_LIMIT,
+                        DEFAULT_STORAGE_DEPOSIT_LIMIT,
+                        contract_call.call_data.clone(),
+                        &alice,
+                    )
+                    .await?;
+                alice.increment_nonce();
+                tx_hashes.push(tx_hash)
+            }
         }
     }
 
-    println!("Submitted {} erc20 transfer calls", tx_hashes.len());
+    println!("Submitted {} total contract calls", tx_hashes.len());
 
     let result = block_subscription.wait_for_txs(&tx_hashes).await?;
 
@@ -104,8 +148,8 @@ async fn main() -> color_eyre::Result<()> {
 
 fn load_contract(name: &str) -> color_eyre::Result<Vec<u8>> {
     let root = std::env::var("CARGO_MANIFEST_DIR")?;
-    let contract_path = format!(name, "contracts/{}.contract");
-    let metadata_path: std::path::PathBuf = [&root, contract_path].iter().collect();
+    let contract_path = format!("contracts/{name}.contract");
+    let metadata_path: std::path::PathBuf = [&root, &contract_path].iter().collect();
     let reader = std::fs::File::open(metadata_path)?;
     let contract: contract_metadata::ContractMetadata = serde_json::from_reader(reader)?;
     let code = contract
@@ -123,10 +167,12 @@ async fn exec_instantiate<C: InkConstructor>(
     constructor: &C,
     count: u32,
 ) -> color_eyre::Result<Vec<canvas::AccountId>> {
+    let mut data = C::SELECTOR.to_vec();
+    <C as Encode>::encode_to(constructor, &mut data);
+
     let mut accounts = Vec::new();
     for i in 0..count {
         let salt = i.to_le_bytes().to_vec();
-        let code = code.clone(); // subxt codegen generates constructor args by value atm
 
         let contract = api
             .instantiate_with_code(
@@ -134,7 +180,7 @@ async fn exec_instantiate<C: InkConstructor>(
                 DEFAULT_GAS_LIMIT,
                 DEFAULT_STORAGE_DEPOSIT_LIMIT,
                 code.clone(),
-                constructor,
+                data.clone(),
                 salt,
                 signer,
             )
@@ -146,31 +192,20 @@ async fn exec_instantiate<C: InkConstructor>(
     Ok(accounts)
 }
 
-async fn exec_calls<M: InkMessage>(
-    api: &canvas::ContractsApi,
-    signer: &mut canvas::Signer,
-    contracts: Vec<canvas::AccountId>,
-    message: &M,
-    call_count: u32,
-) -> color_eyre::Result<Vec<canvas::Hash>> {
-    let mut tx_hashes = Vec::new();
+#[derive(Clone)]
+struct Call {
+    contract_account: canvas::AccountId,
+    call_data: Vec<u8>,
+}
 
-    for contract in contracts {
-        for _ in 0..call_count {
-            let tx_hash = api
-                .call(
-                    contract.clone(),
-                    0,
-                    DEFAULT_GAS_LIMIT,
-                    DEFAULT_STORAGE_DEPOSIT_LIMIT,
-                    message,
-                    signer,
-                )
-                .await?;
-            tx_hashes.push(tx_hash);
-            signer.increment_nonce();
+impl Call {
+    fn new<M: InkMessage>(contract_account: canvas::AccountId, call: &M) -> Self {
+        let mut call_data = M::SELECTOR.to_vec();
+        <M as Encode>::encode_to(call, &mut call_data);
+
+        Self {
+            contract_account,
+            call_data,
         }
     }
-
-    Ok(tx_hashes)
 }

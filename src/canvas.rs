@@ -1,10 +1,7 @@
-use codec::Encode;
 use color_eyre::eyre;
 use sp_core::sr25519;
 use sp_runtime::traits::{BlakeTwo256, Hash as _};
 use subxt::{DefaultConfig, DefaultExtra, PairSigner};
-
-use super::*;
 
 pub type Balance = u128;
 pub type Gas = u64;
@@ -27,19 +24,16 @@ impl ContractsApi {
     }
 
     /// Submit extrinsic to instantiate a contract with the given code.
-    pub async fn instantiate_with_code<C: InkConstructor>(
+    pub async fn instantiate_with_code(
         &self,
         value: Balance,
         gas_limit: Gas,
         storage_deposit_limit: Option<Balance>,
         code: Vec<u8>,
-        constructor: &C,
+        data: Vec<u8>,
         salt: Vec<u8>,
         signer: &Signer,
     ) -> color_eyre::Result<AccountId> {
-        let mut data = C::SELECTOR.to_vec();
-        <C as Encode>::encode_to(constructor, &mut data);
-
         let result = self
             .api
             .tx()
@@ -60,18 +54,15 @@ impl ContractsApi {
     }
 
     /// Submit extrinsic to call a contract.
-    pub async fn call<M: InkMessage>(
+    pub async fn call(
         &self,
         contract: AccountId,
         value: Balance,
         gas_limit: Gas,
         storage_deposit_limit: Option<Balance>,
-        message: &M,
+        data: Vec<u8>,
         signer: &Signer,
     ) -> color_eyre::Result<Hash> {
-        let mut data = M::SELECTOR.to_vec();
-        <M as Encode>::encode_to(message, &mut data);
-
         let tx_hash = self
             .api
             .tx()
