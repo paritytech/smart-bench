@@ -1,5 +1,4 @@
 mod canvas;
-mod contracts;
 
 use color_eyre::eyre;
 use sp_keyring::AccountKeyring;
@@ -8,6 +7,9 @@ use subxt::{PairSigner, Signer as _};
 
 #[derive(Debug, StructOpt)]
 pub struct Opts {
+    /// The number of each contract to instantiate.
+    #[structopt(long, short)]
+    instance_count: u32,
     /// The number of calls to make to each contract.
     #[structopt(long, short)]
     call_count: u32,
@@ -22,6 +24,12 @@ pub trait InkConstructor: codec::Encode {
 pub trait InkMessage: codec::Encode {
     const SELECTOR: [u8; 4];
 }
+
+const DEFAULT_GAS_LIMIT: canvas::Gas = 500_000_000_000;
+const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<canvas::Balance> = None;
+
+smart_bench_macro::contract!("./contracts/erc20.contract");
+smart_bench_macro::contract!("./contracts/flipper.contract");
 
 #[async_std::main]
 async fn main() -> color_eyre::Result<()> {
@@ -38,26 +46,46 @@ async fn main() -> color_eyre::Result<()> {
         .await?;
     alice.set_nonce(alice_nonce);
 
-    let bob = AccountKeyring::Bob.to_account_id();
-
     let api = canvas::ContractsApi::new(client);
 
-    let contract_accounts =
-        erc20_instantiate(&api, &mut alice, code.0, opts.instance_count).await?;
+    let bob = AccountKeyring::Bob.to_account_id();
+
+    // erc20
+    // let erc20 = load_contract("erc20")?;
+    let initial_supply = 1_000_000;
+    let erc20_new = erc20::constructors::new(initial_supply);
+
+    let erc20_accounts =
+        exec_instantiate(&api, &mut alice, 0, code.0, &erc20_new, opts.instance_count).await?;
 
     println!("Instantiated {} erc20 contracts", contract_accounts.len());
 
+    // flipper
+    let flipper_new = flipper::constructors::new(false);
+
+    let flipper_accounts =
+        exec_instantiate(&api, &mut alice, 0, code.0, &flipper_new, opts.instance_count).await?;
+
     let block_subscription = canvas::BlocksSubscription::new().await?;
 
-    let tx_hashes = erc20_transfer(
-        &api,
-        &mut alice,
-        &bob,
-        1,
-        contract_accounts,
-        opts.call_count,
-    )
-    .await?;
+    let mut tx_hashes = Vec::new();
+
+    for contract in contracts {
+        for _ in 0..call_count {
+            let tx_hash = api
+                .call(
+                    contract.clone(),
+                    0,
+                    DEFAULT_GAS_LIMIT,
+                    DEFAULT_STORAGE_DEPOSIT_LIMIT,
+                    message,
+                    signer,
+                )
+                .await?;
+            tx_hashes.push(tx_hash);
+            signer.increment_nonce();
+        }
+    }
 
     println!("Submitted {} erc20 transfer calls", tx_hashes.len());
 
@@ -74,19 +102,27 @@ async fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
-async fn erc20_instantiate(
+fn load_contract(name: &str) -> color_eyre::Result<Vec<u8>> {
+    let root = std::env::var("CARGO_MANIFEST_DIR")?;
+    let contract_path = format!(name, "contracts/{}.contract");
+    let metadata_path: std::path::PathBuf = [&root, contract_path].iter().collect();
+    let reader = std::fs::File::open(metadata_path)?;
+    let contract: contract_metadata::ContractMetadata = serde_json::from_reader(reader)?;
+    let code = contract
+        .source
+        .wasm
+        .ok_or_else(|| eyre::eyre!("contract bundle missing source Wasm"))?;
+    Ok(code.0)
+}
+
+async fn exec_instantiate<C: InkConstructor>(
     api: &canvas::ContractsApi,
     signer: &mut canvas::Signer,
+    value: canvas::Balance,
     code: Vec<u8>,
+    constructor: &C,
     count: u32,
 ) -> color_eyre::Result<Vec<canvas::AccountId>> {
-    let value = 0;
-    let gas_limit = 500_000_000_000;
-    let storage_deposit_limit = None;
-
-    let initial_supply = 1_000_000;
-    let constructor = erc20::constructors::new(initial_supply);
-
     let mut accounts = Vec::new();
     for i in 0..count {
         let salt = i.to_le_bytes().to_vec();
@@ -95,10 +131,10 @@ async fn erc20_instantiate(
         let contract = api
             .instantiate_with_code(
                 value,
-                gas_limit,
-                storage_deposit_limit,
+                DEFAULT_GAS_LIMIT,
+                DEFAULT_STORAGE_DEPOSIT_LIMIT,
                 code.clone(),
-                &constructor,
+                constructor,
                 salt,
                 signer,
             )
@@ -110,29 +146,24 @@ async fn erc20_instantiate(
     Ok(accounts)
 }
 
-async fn erc20_transfer(
+async fn exec_calls<M: InkMessage>(
     api: &canvas::ContractsApi,
     signer: &mut canvas::Signer,
-    dest: &canvas::AccountId,
-    amount: canvas::Balance,
     contracts: Vec<canvas::AccountId>,
-    transfer_count: u32,
+    message: &M,
+    call_count: u32,
 ) -> color_eyre::Result<Vec<canvas::Hash>> {
-    let gas_limit = 500_000_000_000;
-    let storage_deposit_limit: Option<canvas::Balance> = None;
-
-    let transfer = erc20::messages::transfer(dest.clone(), amount);
     let mut tx_hashes = Vec::new();
 
     for contract in contracts {
-        for _ in 0..transfer_count {
+        for _ in 0..call_count {
             let tx_hash = api
                 .call(
                     contract.clone(),
                     0,
-                    gas_limit,
-                    storage_deposit_limit,
-                    &transfer,
+                    DEFAULT_GAS_LIMIT,
+                    DEFAULT_STORAGE_DEPOSIT_LIMIT,
+                    message,
                     signer,
                 )
                 .await?;
