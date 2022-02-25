@@ -32,6 +32,7 @@ const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<canvas::Balance> = None;
 smart_bench_macro::contract!("./contracts/erc20.contract");
 smart_bench_macro::contract!("./contracts/flipper.contract");
 smart_bench_macro::contract!("./contracts/incrementer.contract");
+smart_bench_macro::contract!("./contracts/erc721.contract");
 
 #[async_std::main]
 async fn main() -> color_eyre::Result<()> {
@@ -52,7 +53,7 @@ async fn main() -> color_eyre::Result<()> {
 
     // erc20
     let erc20_new = erc20::constructors::new(1_000_000);
-    let erc20_transfer = erc20::messages::transfer(bob.clone(), 1000);
+    let erc20_transfer = || erc20::messages::transfer(bob.clone(), 1000).into();
     let erc20_calls = prepare_contract(
         &api,
         "erc20",
@@ -65,7 +66,7 @@ async fn main() -> color_eyre::Result<()> {
 
     // flipper
     let flipper_new = flipper::constructors::new(false);
-    let flipper_flip = flipper::messages::flip();
+    let flipper_flip = || flipper::messages::flip().into();
     let flipper_calls = prepare_contract(
         &api,
         "flipper",
@@ -78,21 +79,39 @@ async fn main() -> color_eyre::Result<()> {
 
     // incrementer
     let incrementer_new = incrementer::constructors::new(0);
-    let incrementer_increment = incrementer::messages::inc(1);
+    let incrementer_increment = || incrementer::messages::inc(1).into();
     let incrementer_calls = prepare_contract(
         &api,
         "incrementer",
         incrementer_new,
         &mut alice,
         opts.instance_count,
-        &incrementer_increment,
+        incrementer_increment,
     )
     .await?;
+
+    // erc721
+    let erc721_new = erc721::constructors::new();
+    let mut token_id = 0;
+    let erc721_mint = || {
+        let mint = erc721::messages::mint(token_id);
+        token_id += 1;
+        mint.into()
+    };
+    let erc721_calls = prepare_contract(
+        &api,
+        "erc721",
+        erc721_new,
+        &mut alice,
+        opts.instance_count,
+        erc721_mint,
+    ).await?;
 
     let all_contract_calls = vec![
         erc20_calls.iter().collect::<Vec<_>>(),
         flipper_calls.iter().collect::<Vec<_>>(),
         incrementer_calls.iter().collect::<Vec<_>>(),
+        erc721_calls.iter().collect::<Vec<_>>(),
     ];
 
     let block_subscription = canvas::BlocksSubscription::new().await?;
@@ -111,7 +130,7 @@ async fn main() -> color_eyre::Result<()> {
                         0,
                         DEFAULT_GAS_LIMIT,
                         DEFAULT_STORAGE_DEPOSIT_LIMIT,
-                        contract_call.call_data.clone(),
+                        contract_call.call_data.0.clone(),
                         &alice,
                     )
                     .await?;
@@ -137,17 +156,17 @@ async fn main() -> color_eyre::Result<()> {
 }
 
 /// Upload and instantiate instances of contract, and build calls for benchmarking
-async fn prepare_contract<C, M>(
+async fn prepare_contract<C, F>(
     api: &canvas::ContractsApi,
     name: &str,
     constructor: C,
     signer: &mut canvas::Signer,
     instance_count: u32,
-    message: &M,
+    mut create_message: F,
 ) -> color_eyre::Result<Vec<Call>>
 where
     C: InkConstructor,
-    M: InkMessage,
+    F: FnMut() -> EncodedMessage,
 {
     println!("Preparing {name}");
 
@@ -168,7 +187,10 @@ where
 
     let calls = contract_accounts
         .iter()
-        .map(|contract| Call::new(contract.clone(), message))
+        .map(|contract| {
+            let message = create_message();
+            Call { contract_account: contract.clone(), call_data: message }
+        })
         .collect::<Vec<_>>();
     Ok(calls)
 }
@@ -207,19 +229,25 @@ async fn exec_instantiate<C: InkConstructor>(
 }
 
 #[derive(Clone)]
-struct Call {
-    contract_account: canvas::AccountId,
-    call_data: Vec<u8>,
-}
+struct EncodedMessage(Vec<u8>);
 
-impl Call {
-    fn new<M: InkMessage>(contract_account: canvas::AccountId, call: &M) -> Self {
+impl EncodedMessage {
+    fn new<M: InkMessage>(call: &M) -> Self {
         let mut call_data = M::SELECTOR.to_vec();
         <M as Encode>::encode_to(call, &mut call_data);
-
-        Self {
-            contract_account,
-            call_data,
-        }
+        Self(call_data)
     }
+}
+
+impl<M> From<M> for EncodedMessage where M: InkMessage
+{
+    fn from(msg: M) -> Self {
+        EncodedMessage::new(&msg)
+    }
+}
+
+#[derive(Clone)]
+struct Call {
+    contract_account: canvas::AccountId,
+    call_data: EncodedMessage,
 }
