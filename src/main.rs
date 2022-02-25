@@ -92,6 +92,7 @@ async fn main() -> color_eyre::Result<()> {
 
     let result = runner.run(opts.call_count).await?;
 
+    println!();
     for block in result.blocks {
         println!(
             "Block {}, Extrinsics {}",
