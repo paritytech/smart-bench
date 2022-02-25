@@ -149,6 +149,8 @@ where
     C: InkConstructor,
     M: InkMessage,
 {
+    println!("Preparing {name}");
+
     let root = std::env::var("CARGO_MANIFEST_DIR")?;
     let contract_path = format!("contracts/{name}.contract");
     let metadata_path: std::path::PathBuf = [&root, &contract_path].iter().collect();
