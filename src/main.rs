@@ -53,16 +53,46 @@ async fn main() -> color_eyre::Result<()> {
     // erc20
     let erc20_new = erc20::constructors::new(1_000_000);
     let erc20_transfer = erc20::messages::transfer(bob.clone(), 1000);
-    let erc20_calls = prepare_contract(&api,"erc20", erc20_new, &mut alice, opts.instance_count, &erc20_transfer).await?;
+    let erc20_calls = prepare_contract(
+        &api,
+        "erc20",
+        erc20_new,
+        &mut alice,
+        opts.instance_count,
+        &erc20_transfer,
+    )
+    .await?;
 
     // flipper
     let flipper_new = flipper::constructors::new(false);
     let flipper_flip = flipper::messages::flip();
-    let flipper_calls = prepare_contract(&api,"erc20", flipper_new, &mut alice, opts.instance_count, &flipper_flip).await?;
+    let flipper_calls = prepare_contract(
+        &api,
+        "flipper",
+        flipper_new,
+        &mut alice,
+        opts.instance_count,
+        &flipper_flip,
+    )
+    .await?;
+
+    // incrementer
+    let incrementer_new = incrementer::constructors::new(0);
+    let incrementer_increment = incrementer::messages::inc(1);
+    let incrementer_calls = prepare_contract(
+        &api,
+        "incrementer",
+        incrementer_new,
+        &mut alice,
+        opts.instance_count,
+        &incrementer_increment,
+    )
+    .await?;
 
     let all_contract_calls = vec![
         erc20_calls.iter().collect::<Vec<_>>(),
         flipper_calls.iter().collect::<Vec<_>>(),
+        incrementer_calls.iter().collect::<Vec<_>>(),
     ];
 
     let block_subscription = canvas::BlocksSubscription::new().await?;
@@ -107,7 +137,14 @@ async fn main() -> color_eyre::Result<()> {
 }
 
 /// Upload and instantiate instances of contract, and build calls for benchmarking
-async fn prepare_contract<C, M>( api: &canvas::ContractsApi, name: &str, constructor: C, signer: &mut canvas::Signer, instance_count: u32, message: &M) -> color_eyre::Result<Vec<Call>>
+async fn prepare_contract<C, M>(
+    api: &canvas::ContractsApi,
+    name: &str,
+    constructor: C,
+    signer: &mut canvas::Signer,
+    instance_count: u32,
+    message: &M,
+) -> color_eyre::Result<Vec<Call>>
 where
     C: InkConstructor,
     M: InkMessage,
@@ -122,22 +159,14 @@ where
         .wasm
         .ok_or_else(|| eyre::eyre!("contract bundle missing source Wasm"))?;
 
-    let contract_accounts = exec_instantiate(
-        &api,
-        signer,
-        0,
-        code.0,
-        &constructor,
-        instance_count,
-    ).await?;
+    let contract_accounts =
+        exec_instantiate(&api, signer, 0, code.0, &constructor, instance_count).await?;
 
     println!("Instantiated {} {name} contracts", contract_accounts.len());
 
     let calls = contract_accounts
         .iter()
-        .map(|contract| {
-            Call::new(contract.clone(), message)
-        })
+        .map(|contract| Call::new(contract.clone(), message))
         .collect::<Vec<_>>();
     Ok(calls)
 }
