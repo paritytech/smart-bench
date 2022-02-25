@@ -31,14 +31,15 @@ const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<canvas::Balance> = None;
 
 smart_bench_macro::contract!("./contracts/erc20.contract");
 smart_bench_macro::contract!("./contracts/flipper.contract");
+smart_bench_macro::contract!("./contracts/incrementer.contract");
 
 #[async_std::main]
 async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
-
     let opts = Opts::from_args();
 
     let mut alice = PairSigner::new(AccountKeyring::Alice.pair());
+    let bob = AccountKeyring::Bob.to_account_id();
 
     let client = subxt::ClientBuilder::new().build().await?;
 
@@ -49,56 +50,15 @@ async fn main() -> color_eyre::Result<()> {
 
     let api = canvas::ContractsApi::new(client);
 
-    let bob = AccountKeyring::Bob.to_account_id();
-
     // erc20
-    let erc20_code = load_contract("erc20")?;
-    let initial_supply = 1_000_000;
-    let erc20_new = erc20::constructors::new(initial_supply);
-
-    let erc20_contracts = exec_instantiate(
-        &api,
-        &mut alice,
-        0,
-        erc20_code,
-        &erc20_new,
-        opts.instance_count,
-    )
-    .await?;
-
-    println!("Instantiated {} erc20 contracts", erc20_contracts.len());
-
-    let erc20_calls = erc20_contracts
-        .iter()
-        .map(|contract| {
-            let transfer = erc20::messages::transfer(bob.clone(), 1000);
-            Call::new(contract.clone(), &transfer)
-        })
-        .collect::<Vec<_>>();
+    let erc20_new = erc20::constructors::new(1_000_000);
+    let erc20_transfer = erc20::messages::transfer(bob.clone(), 1000);
+    let erc20_calls = prepare_contract(&api,"erc20", erc20_new, &mut alice, opts.instance_count, &erc20_transfer).await?;
 
     // flipper
-    let flipper_code = load_contract("flipper")?;
     let flipper_new = flipper::constructors::new(false);
-
-    let flipper_contracts = exec_instantiate(
-        &api,
-        &mut alice,
-        0,
-        flipper_code,
-        &flipper_new,
-        opts.instance_count,
-    )
-    .await?;
-
-    println!("Instantiated {} flipper contracts", flipper_contracts.len());
-
-    let flipper_calls = flipper_contracts
-        .iter()
-        .map(|contract| {
-            let flip = flipper::messages::flip();
-            Call::new(contract.clone(), &flip)
-        })
-        .collect::<Vec<_>>();
+    let flipper_flip = flipper::messages::flip();
+    let flipper_calls = prepare_contract(&api,"erc20", flipper_new, &mut alice, opts.instance_count, &flipper_flip).await?;
 
     let all_contract_calls = vec![
         erc20_calls.iter().collect::<Vec<_>>(),
@@ -111,7 +71,7 @@ async fn main() -> color_eyre::Result<()> {
 
     for _ in 0..opts.call_count {
         for i in 0..opts.instance_count {
-            for contract_calls in all_contract_calls {
+            for contract_calls in &all_contract_calls {
                 let contract_call = contract_calls
                     .get(i as usize)
                     .ok_or_else(|| eyre::eyre!("Missing contract instance at {}", i))?;
@@ -146,7 +106,12 @@ async fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
-fn load_contract(name: &str) -> color_eyre::Result<Vec<u8>> {
+/// Upload and instantiate instances of contract, and build calls for benchmarking
+async fn prepare_contract<C, M>( api: &canvas::ContractsApi, name: &str, constructor: C, signer: &mut canvas::Signer, instance_count: u32, message: &M) -> color_eyre::Result<Vec<Call>>
+where
+    C: InkConstructor,
+    M: InkMessage,
+{
     let root = std::env::var("CARGO_MANIFEST_DIR")?;
     let contract_path = format!("contracts/{name}.contract");
     let metadata_path: std::path::PathBuf = [&root, &contract_path].iter().collect();
@@ -156,7 +121,25 @@ fn load_contract(name: &str) -> color_eyre::Result<Vec<u8>> {
         .source
         .wasm
         .ok_or_else(|| eyre::eyre!("contract bundle missing source Wasm"))?;
-    Ok(code.0)
+
+    let contract_accounts = exec_instantiate(
+        &api,
+        signer,
+        0,
+        code.0,
+        &constructor,
+        instance_count,
+    ).await?;
+
+    println!("Instantiated {} {name} contracts", contract_accounts.len());
+
+    let calls = contract_accounts
+        .iter()
+        .map(|contract| {
+            Call::new(contract.clone(), message)
+        })
+        .collect::<Vec<_>>();
+    Ok(calls)
 }
 
 async fn exec_instantiate<C: InkConstructor>(
