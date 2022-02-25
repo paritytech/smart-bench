@@ -33,6 +33,7 @@ smart_bench_macro::contract!("./contracts/erc20.contract");
 smart_bench_macro::contract!("./contracts/flipper.contract");
 smart_bench_macro::contract!("./contracts/incrementer.contract");
 smart_bench_macro::contract!("./contracts/erc721.contract");
+smart_bench_macro::contract!("./contracts/erc1155.contract");
 
 #[async_std::main]
 async fn main() -> color_eyre::Result<()> {
@@ -107,11 +108,24 @@ async fn main() -> color_eyre::Result<()> {
         erc721_mint,
     ).await?;
 
+    // erc1155
+    let erc1155_new = erc1155::constructors::new();
+    let erc1155_create = || erc1155::messages::create(1_000_000).into();
+    let erc1155_calls = prepare_contract(
+        &api,
+        "erc1155",
+        erc1155_new,
+        &mut alice,
+        opts.instance_count,
+        erc1155_create,
+    ).await?;
+
     let all_contract_calls = vec![
         erc20_calls.iter().collect::<Vec<_>>(),
         flipper_calls.iter().collect::<Vec<_>>(),
         incrementer_calls.iter().collect::<Vec<_>>(),
         erc721_calls.iter().collect::<Vec<_>>(),
+        erc1155_calls.iter().collect::<Vec<_>>(),
     ];
 
     let block_subscription = canvas::BlocksSubscription::new().await?;
