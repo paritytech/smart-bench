@@ -1,10 +1,10 @@
 extern crate proc_macro;
 
+use contract_metadata::ContractMetadata;
 use heck::ToUpperCamelCase as _;
-use ink_metadata::Selector;
+use ink_metadata::{InkProject, MetadataVersioned, Selector};
 use proc_macro::TokenStream;
 use proc_macro_error::{abort_call_site, proc_macro_error};
-use serde::Deserialize;
 use subxt_codegen::TypeGenerator;
 
 #[proc_macro]
@@ -13,39 +13,24 @@ pub fn contract(input: TokenStream) -> TokenStream {
     let contract_path = syn::parse_macro_input!(input as syn::LitStr);
 
     let root = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into());
-    let metadata_path: std::path::PathBuf = [
-        &root,
-        &contract_path.value(),
-        "target",
-        "ink",
-        "metadata.json",
-    ]
-    .iter()
-    .collect();
+    let metadata_path: std::path::PathBuf = [&root, &contract_path.value()].iter().collect();
 
     let reader = std::fs::File::open(metadata_path)
         .unwrap_or_else(|e| abort_call_site!("Failed to read metadata file: {}", e));
     let metadata: ContractMetadata = serde_json::from_reader(reader)
+        .unwrap_or_else(|e| abort_call_site!("Failed to deserialize contract metadata: {}", e));
+    let contract_name = metadata.contract.name;
+    let metadata: MetadataVersioned = serde_json::from_value(metadata.abi.into())
         .unwrap_or_else(|e| abort_call_site!("Failed to deserialize metadata file: {}", e));
-
-    let contract_mod = generate_contract_mod(metadata);
-    contract_mod.into()
+    if let MetadataVersioned::V3(ink_project) = metadata {
+        let contract_mod = generate_contract_mod(contract_name, ink_project);
+        contract_mod.into()
+    } else {
+        abort_call_site!("Invalid contract metadata version")
+    }
 }
 
-#[derive(Deserialize)]
-struct ContractMetadata {
-    contract: Contract,
-    #[serde(rename = "V3")]
-    pub v1: ink_metadata::InkProject,
-}
-
-/// Metadata about a smart contract.
-#[derive(Deserialize)]
-struct Contract {
-    name: String,
-}
-
-fn generate_contract_mod(metadata: ContractMetadata) -> proc_macro2::TokenStream {
+fn generate_contract_mod(contract_name: String, metadata: InkProject) -> proc_macro2::TokenStream {
     let type_substitutes = [(
         "ink_env::types::AccountId",
         syn::parse_quote!(::sp_core::crypto::AccountId32),
@@ -55,7 +40,7 @@ fn generate_contract_mod(metadata: ContractMetadata) -> proc_macro2::TokenStream
     .collect();
 
     let type_generator = TypeGenerator::new(
-        metadata.v1.registry(),
+        metadata.registry(),
         "contract_types",
         type_substitutes,
         Default::default(),
@@ -63,9 +48,9 @@ fn generate_contract_mod(metadata: ContractMetadata) -> proc_macro2::TokenStream
     let types_mod = type_generator.generate_types_mod();
     let types_mod_ident = types_mod.ident();
 
-    let contract_name = quote::format_ident!("{}", metadata.contract.name);
-    let constructors = generate_constructors(&metadata.v1, &type_generator);
-    let messages = generate_messages(&metadata.v1, &type_generator);
+    let contract_name = quote::format_ident!("{}", contract_name);
+    let constructors = generate_constructors(&metadata, &type_generator);
+    let messages = generate_messages(&metadata, &type_generator);
 
     quote::quote!(
         pub mod #contract_name {
@@ -115,7 +100,11 @@ fn generate_messages(
         .messages()
         .iter()
         .map(|message| {
-            let name = message.label();
+            // strip trait prefix from trait message labels
+            let name =
+                message.label().split("::").last().unwrap_or_else(|| {
+                    abort_call_site!("Invalid message label: {}", message.label())
+                });
             let args = message
                 .args()
                 .iter()

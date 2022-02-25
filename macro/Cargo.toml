@@ -10,6 +10,7 @@ proc-macro = true
 heck = "0.4.0"
 subxt-codegen = { git = "https://github.com/paritytech/subxt", branch = "master" }
 ink_metadata = "3.0.0-rc8"
+contract-metadata = "0.5.1"
 proc-macro2 = "1.0.36"
 proc-macro-error = { version = "1.0.4", default-features = false }
 serde = "1.0.136"
