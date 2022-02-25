@@ -101,8 +101,10 @@ fn generate_messages(
         .iter()
         .map(|message| {
             // strip trait prefix from trait message labels
-            let name = message.label().split("::").last()
-                .unwrap_or_else(|| abort_call_site!("Invalid message label: {}", message.label()));
+            let name =
+                message.label().split("::").last().unwrap_or_else(|| {
+                    abort_call_site!("Invalid message label: {}", message.label())
+                });
             let args = message
                 .args()
                 .iter()
