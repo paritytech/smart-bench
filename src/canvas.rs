@@ -47,7 +47,7 @@ impl ContractsApi {
             .await?;
 
         let instantiated = result
-            .find_first_event::<api::contracts::events::Instantiated>()?
+            .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| eyre::eyre!("Failed to find Instantiated event"))?;
 
         Ok(instantiated.contract)
