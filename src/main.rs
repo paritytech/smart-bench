@@ -8,6 +8,9 @@ use subxt::PairSigner;
 
 #[derive(Debug, StructOpt)]
 pub struct Opts {
+    /// the url of the substrate node for submitting the extrinsics.
+    #[structopt(name = "url", long, default_value = "ws://localhost:9944")]
+    url: String,
     /// The number of each contract to instantiate.
     #[structopt(long, short)]
     instance_count: u32,
@@ -43,7 +46,7 @@ async fn main() -> color_eyre::Result<()> {
     let alice = PairSigner::new(AccountKeyring::Alice.pair());
     let bob = AccountKeyring::Bob.to_account_id();
 
-    let mut runner = runner::BenchRunner::new(alice).await?;
+    let mut runner = runner::BenchRunner::new(alice, &opts.url).await?;
 
     // erc20
     let erc20_new = erc20::constructors::new(1_000_000);

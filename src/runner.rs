@@ -11,8 +11,8 @@ pub struct BenchRunner {
 }
 
 impl BenchRunner {
-    pub async fn new(mut signer: canvas::Signer) -> color_eyre::Result<Self> {
-        let client = subxt::ClientBuilder::new().build().await?;
+    pub async fn new(mut signer: canvas::Signer, url: &str) -> color_eyre::Result<Self> {
+        let client = subxt::ClientBuilder::new().set_url(url).build().await?;
 
         let nonce = client
             .fetch_nonce::<canvas::api::DefaultAccountData>(signer.account_id())
