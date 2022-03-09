@@ -1,21 +1,22 @@
 mod canvas;
 mod runner;
 
+use clap::Parser;
 use codec::Encode;
 use sp_keyring::AccountKeyring;
-use structopt::StructOpt;
 use subxt::PairSigner;
 
-#[derive(Debug, StructOpt)]
-pub struct Opts {
+#[derive(Debug, Parser)]
+#[clap(version)]
+pub struct Cli {
     /// the url of the substrate node for submitting the extrinsics.
-    #[structopt(name = "url", long, default_value = "ws://localhost:9944")]
+    #[clap(name = "url", long, default_value = "ws://localhost:9944")]
     url: String,
     /// The number of each contract to instantiate.
-    #[structopt(long, short)]
+    #[clap(long, short)]
     instance_count: u32,
     /// The number of calls to make to each contract.
-    #[structopt(long, short)]
+    #[clap(long, short)]
     call_count: u32,
 }
 
@@ -41,25 +42,25 @@ smart_bench_macro::contract!("./contracts/erc1155.contract");
 #[async_std::main]
 async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
-    let opts = Opts::from_args();
+    let cli = Cli::parse();
 
     let alice = PairSigner::new(AccountKeyring::Alice.pair());
     let bob = AccountKeyring::Bob.to_account_id();
 
-    let mut runner = runner::BenchRunner::new(alice, &opts.url).await?;
+    let mut runner = runner::BenchRunner::new(alice, &cli.url).await?;
 
     // erc20
     let erc20_new = erc20::constructors::new(1_000_000);
     let erc20_transfer = || erc20::messages::transfer(bob.clone(), 1000).into();
     runner
-        .prepare_contract("erc20", erc20_new, opts.instance_count, &erc20_transfer)
+        .prepare_contract("erc20", erc20_new, cli.instance_count, &erc20_transfer)
         .await?;
 
     // flipper
     let flipper_new = flipper::constructors::new(false);
     let flipper_flip = || flipper::messages::flip().into();
     runner
-        .prepare_contract("flipper", flipper_new, opts.instance_count, &flipper_flip)
+        .prepare_contract("flipper", flipper_new, cli.instance_count, &flipper_flip)
         .await?;
 
     // incrementer
@@ -69,7 +70,7 @@ async fn main() -> color_eyre::Result<()> {
         .prepare_contract(
             "incrementer",
             incrementer_new,
-            opts.instance_count,
+            cli.instance_count,
             incrementer_increment,
         )
         .await?;
@@ -83,17 +84,17 @@ async fn main() -> color_eyre::Result<()> {
         mint.into()
     };
     runner
-        .prepare_contract("erc721", erc721_new, opts.instance_count, erc721_mint)
+        .prepare_contract("erc721", erc721_new, cli.instance_count, erc721_mint)
         .await?;
 
     // erc1155
     let erc1155_new = erc1155::constructors::new();
     let erc1155_create = || erc1155::messages::create(1_000_000).into();
     runner
-        .prepare_contract("erc1155", erc1155_new, opts.instance_count, erc1155_create)
+        .prepare_contract("erc1155", erc1155_new, cli.instance_count, erc1155_create)
         .await?;
 
-    let result = runner.run(opts.call_count).await?;
+    let result = runner.run(cli.call_count).await?;
 
     println!();
     for block in result.blocks {
