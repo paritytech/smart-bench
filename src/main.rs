@@ -3,6 +3,7 @@ mod runner;
 
 use clap::Parser;
 use codec::Encode;
+use futures::{future, StreamExt};
 use sp_keyring::AccountKeyring;
 use subxt::PairSigner;
 
@@ -99,13 +100,14 @@ async fn main() -> color_eyre::Result<()> {
     let result = runner.run(cli.call_count).await?;
 
     println!();
-    for block in result.blocks {
+    result.for_each(|block| {
         println!(
             "Block {}, Extrinsics {}",
             block.block_number,
             block.extrinsics.len()
         );
-    }
+        future::ready(())
+    }).await;
 
     Ok(())
 }

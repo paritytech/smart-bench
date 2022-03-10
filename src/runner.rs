@@ -1,5 +1,4 @@
 use super::*;
-use crate::canvas::ExtrinsicsResult;
 use codec::Encode;
 use color_eyre::eyre;
 use subxt::Signer as _;
@@ -118,7 +117,7 @@ impl BenchRunner {
     pub async fn run(
         &mut self,
         call_count: u32,
-    ) -> color_eyre::Result<ExtrinsicsResult> {
+    ) -> color_eyre::Result<impl futures::Stream<Item = canvas::BlockExtrinsics>> {
         let block_subscription = canvas::BlocksSubscription::new().await?;
 
         let mut tx_hashes = Vec::new();
@@ -153,6 +152,6 @@ impl BenchRunner {
 
         println!("Submitted {} total contract calls", tx_hashes.len());
 
-        block_subscription.wait_for_txs(&tx_hashes).await
+        Ok(block_subscription.wait_for_txs(&tx_hashes))
     }
 }

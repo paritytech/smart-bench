@@ -2380,6 +2380,7 @@ dependencies = [
  "clap",
  "color-eyre",
  "contract-metadata 0.5.1 (git+https://github.com/paritytech/cargo-contract?branch=master)",
+ "futures",
  "parity-scale-codec 3.0.0",
  "serde_json",
  "smart-bench-macro",
