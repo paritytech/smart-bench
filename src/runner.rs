@@ -6,12 +6,17 @@ use subxt::Signer as _;
 
 pub struct BenchRunner {
     api: canvas::ContractsApi,
+    gas_limit: canvas::Gas,
     signer: canvas::Signer,
     calls: Vec<(String, Vec<Call>)>,
 }
 
 impl BenchRunner {
-    pub async fn new(mut signer: canvas::Signer, url: &str) -> color_eyre::Result<Self> {
+    pub async fn new(
+        mut signer: canvas::Signer,
+        gas_limit: canvas::Gas,
+        url: &str,
+    ) -> color_eyre::Result<Self> {
         let client = subxt::ClientBuilder::new().set_url(url).build().await?;
 
         let nonce = client
@@ -24,6 +29,7 @@ impl BenchRunner {
         Ok(Self {
             api,
             signer,
+            gas_limit,
             calls: Vec::new(),
         })
     }
@@ -92,7 +98,7 @@ impl BenchRunner {
                 .api
                 .instantiate_with_code(
                     value,
-                    DEFAULT_GAS_LIMIT,
+                    self.gas_limit,
                     DEFAULT_STORAGE_DEPOSIT_LIMIT,
                     code.clone(),
                     data.clone(),
@@ -109,7 +115,10 @@ impl BenchRunner {
 
     /// Call each contract instance `call_count` times. Wait for all txs to be included in a block
     /// before returning.
-    pub async fn run(&mut self, call_count: u32) -> color_eyre::Result<ExtrinsicsResult> {
+    pub async fn run(
+        &mut self,
+        call_count: u32,
+    ) -> color_eyre::Result<ExtrinsicsResult> {
         let block_subscription = canvas::BlocksSubscription::new().await?;
 
         let mut tx_hashes = Vec::new();
@@ -129,7 +138,7 @@ impl BenchRunner {
                             .call(
                                 contract_call.contract_account.clone(),
                                 0,
-                                DEFAULT_GAS_LIMIT,
+                                self.gas_limit,
                                 DEFAULT_STORAGE_DEPOSIT_LIMIT,
                                 contract_call.call_data.0.clone(),
                                 &self.signer,

@@ -87,10 +87,10 @@ pub struct BlocksSubscription {
 }
 
 impl BlocksSubscription {
-    pub async fn wait_for_txs(self, tx_hashes: &[Hash]) -> color_eyre::Result<ExtrinsicsResult> {
-        let timeout = std::time::Duration::from_secs(30);
-        let started = std::time::Instant::now();
-
+    pub async fn wait_for_txs(
+        self,
+        tx_hashes: &[Hash],
+    ) -> color_eyre::Result<ExtrinsicsResult> {
         let mut blocks = Vec::new();
         let mut remaining_hashes: std::collections::HashSet<Hash> =
             tx_hashes.iter().cloned().collect();
@@ -98,13 +98,6 @@ impl BlocksSubscription {
             if remaining_hashes.is_empty() {
                 self.task.cancel().await;
                 return Ok(ExtrinsicsResult { blocks });
-            }
-
-            if std::time::Instant::now() - started > timeout {
-                return Err(eyre::eyre!(
-                    "Timed out waiting for extrinsics. {} received",
-                    tx_hashes.len() - remaining_hashes.len()
-                ));
             }
 
             let block_xts = self.receiver.recv()?;

@@ -6,18 +6,23 @@ use codec::Encode;
 use sp_keyring::AccountKeyring;
 use subxt::PairSigner;
 
+pub const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<canvas::Balance> = None;
+
 #[derive(Debug, Parser)]
 #[clap(version)]
 pub struct Cli {
     /// the url of the substrate node for submitting the extrinsics.
     #[clap(name = "url", long, default_value = "ws://localhost:9944")]
     url: String,
-    /// The number of each contract to instantiate.
+    /// the number of each contract to instantiate.
     #[clap(long, short)]
     instance_count: u32,
-    /// The number of calls to make to each contract.
+    /// the number of calls to make to each contract.
     #[clap(long, short)]
     call_count: u32,
+    /// gas limit for all contract extrinsics.
+    #[clap(long, short, default_value = "50000000000")]
+    gas_limit: canvas::Gas,
 }
 
 /// Trait implemented by [`smart_bench_macro::contract`] for all contract constructors.
@@ -29,9 +34,6 @@ pub trait InkConstructor: codec::Encode {
 pub trait InkMessage: codec::Encode {
     const SELECTOR: [u8; 4];
 }
-
-pub const DEFAULT_GAS_LIMIT: canvas::Gas = 500_000_000_000;
-pub const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<canvas::Balance> = None;
 
 smart_bench_macro::contract!("./contracts/erc20.contract");
 smart_bench_macro::contract!("./contracts/flipper.contract");
@@ -47,7 +49,7 @@ async fn main() -> color_eyre::Result<()> {
     let alice = PairSigner::new(AccountKeyring::Alice.pair());
     let bob = AccountKeyring::Bob.to_account_id();
 
-    let mut runner = runner::BenchRunner::new(alice, &cli.url).await?;
+    let mut runner = runner::BenchRunner::new(alice, cli.gas_limit, &cli.url).await?;
 
     // erc20
     let erc20_new = erc20::constructors::new(1_000_000);
