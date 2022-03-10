@@ -41,7 +41,6 @@
 		{
 			"bin": "./bin/polkadot-collator",
 			"chain": "canvas-rococo-local",
-			"id": "200",
 			"balance": "1000000000000000000000",
 			"nodes": [
 				{
