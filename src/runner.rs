@@ -4,6 +4,7 @@ use color_eyre::eyre;
 use subxt::Signer as _;
 
 pub struct BenchRunner {
+    url: String,
     api: canvas::ContractsApi,
     gas_limit: canvas::Gas,
     signer: canvas::Signer,
@@ -26,6 +27,7 @@ impl BenchRunner {
         let api = canvas::ContractsApi::new(client);
 
         Ok(Self {
+            url: url.to_string(),
             api,
             signer,
             gas_limit,
@@ -118,7 +120,7 @@ impl BenchRunner {
         &mut self,
         call_count: u32,
     ) -> color_eyre::Result<impl futures::Stream<Item = canvas::BlockExtrinsics>> {
-        let block_subscription = canvas::BlocksSubscription::new().await?;
+        let block_subscription = canvas::BlocksSubscription::new(&self.url).await?;
 
         let mut tx_hashes = Vec::new();
         let max_instance_count = self

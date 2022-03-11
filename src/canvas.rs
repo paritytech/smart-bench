@@ -102,8 +102,9 @@ impl BlocksSubscription {
 }
 
 impl BlocksSubscription {
-    pub async fn new() -> color_eyre::Result<Self> {
-        let client: subxt::Client<DefaultConfig> = subxt::ClientBuilder::new().build().await?;
+    pub async fn new(url: &str) -> color_eyre::Result<Self> {
+        let client: subxt::Client<DefaultConfig> =
+            subxt::ClientBuilder::new().set_url(url).build().await?;
         let mut blocks_sub = client.rpc().subscribe_blocks().await?;
         let (mut sender, receiver) = futures::channel::mpsc::unbounded();
 
