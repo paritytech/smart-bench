@@ -42,7 +42,7 @@ smart_bench_macro::contract!("./contracts/incrementer.contract");
 smart_bench_macro::contract!("./contracts/erc721.contract");
 smart_bench_macro::contract!("./contracts/erc1155.contract");
 
-#[async_std::main]
+#[tokio::main]
 async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let cli = Cli::parse();
@@ -100,14 +100,16 @@ async fn main() -> color_eyre::Result<()> {
     let result = runner.run(cli.call_count).await?;
 
     println!();
-    result.for_each(|block| {
-        println!(
-            "Block {}, Extrinsics {}",
-            block.block_number,
-            block.extrinsics.len()
-        );
-        future::ready(())
-    }).await;
+    result
+        .for_each(|block| {
+            println!(
+                "Block {}, Extrinsics {}",
+                block.block_number,
+                block.extrinsics.len()
+            );
+            future::ready(())
+        })
+        .await;
 
     Ok(())
 }

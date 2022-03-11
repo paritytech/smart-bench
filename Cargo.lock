@@ -2388,6 +2388,7 @@ dependencies = [
  "sp-keyring",
  "sp-runtime",
  "subxt",
+ "tokio",
 ]
 
 [[package]]

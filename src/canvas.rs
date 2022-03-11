@@ -1,5 +1,5 @@
 use color_eyre::eyre;
-use futures::{StreamExt, SinkExt};
+use futures::{SinkExt, StreamExt};
 use sp_core::sr25519;
 use sp_runtime::traits::{BlakeTwo256, Hash as _};
 use subxt::{DefaultConfig, DefaultExtra, PairSigner};
@@ -83,7 +83,7 @@ impl ContractsApi {
 }
 
 pub struct BlocksSubscription {
-    receiver: futures::channel::mpsc::Receiver<BlockExtrinsics>,
+    receiver: futures::channel::mpsc::UnboundedReceiver<BlockExtrinsics>,
 }
 
 impl BlocksSubscription {
@@ -92,10 +92,11 @@ impl BlocksSubscription {
             tx_hashes.iter().cloned().collect();
 
         self.receiver.take_while(move |block_xts| {
+            let some_remaining_txs = !remaining_hashes.is_empty();
             for xt in &block_xts.extrinsics {
                 remaining_hashes.remove(xt);
             }
-            futures::future::ready(!remaining_hashes.is_empty())
+            futures::future::ready(some_remaining_txs)
         })
     }
 }
@@ -104,9 +105,9 @@ impl BlocksSubscription {
     pub async fn new() -> color_eyre::Result<Self> {
         let client: subxt::Client<DefaultConfig> = subxt::ClientBuilder::new().build().await?;
         let mut blocks_sub = client.rpc().subscribe_blocks().await?;
-        let (mut sender, receiver) = futures::channel::mpsc::channel(0);
+        let (mut sender, receiver) = futures::channel::mpsc::unbounded();
 
-        async_std::task::spawn(async move {
+        tokio::task::spawn(async move {
             while let Some(Ok(block_header)) = blocks_sub.next().await {
                 if let Ok(Some(block)) = client.rpc().block(Some(block_header.hash())).await {
                     let extrinsics = block

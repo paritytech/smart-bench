@@ -9,6 +9,7 @@ edition = "2021"
 [dependencies]
 smart-bench-macro = { version = "0.1.0", path = "./macro" }
 async-std = { version = "1.10.0", features = ["attributes", "tokio1"] }
+tokio = { version = "1.17.0" }
 color-eyre = "0.6.0"
 codec = { package = "parity-scale-codec", version = "3", default-features = false }
 contract-metadata = { package = "contract-metadata", git = "https://github.com/paritytech/cargo-contract", branch = "master" }
