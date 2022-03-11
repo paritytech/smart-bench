@@ -1,4 +1,5 @@
 use color_eyre::eyre;
+use futures::{SinkExt, StreamExt};
 use sp_core::sr25519;
 use sp_runtime::traits::{BlakeTwo256, Hash as _};
 use subxt::{DefaultConfig, DefaultExtra, PairSigner};
@@ -82,38 +83,21 @@ impl ContractsApi {
 }
 
 pub struct BlocksSubscription {
-    task: async_std::task::JoinHandle<()>,
-    receiver: std::sync::mpsc::Receiver<BlockExtrinsics>,
+    receiver: futures::channel::mpsc::UnboundedReceiver<BlockExtrinsics>,
 }
 
 impl BlocksSubscription {
-    pub async fn wait_for_txs(self, tx_hashes: &[Hash]) -> color_eyre::Result<ExtrinsicsResult> {
-        let timeout = std::time::Duration::from_secs(30);
-        let started = std::time::Instant::now();
-
-        let mut blocks = Vec::new();
+    pub fn wait_for_txs(self, tx_hashes: &[Hash]) -> impl futures::Stream<Item = BlockExtrinsics> {
         let mut remaining_hashes: std::collections::HashSet<Hash> =
             tx_hashes.iter().cloned().collect();
-        loop {
-            if remaining_hashes.is_empty() {
-                self.task.cancel().await;
-                return Ok(ExtrinsicsResult { blocks });
-            }
 
-            if std::time::Instant::now() - started > timeout {
-                return Err(eyre::eyre!(
-                    "Timed out waiting for extrinsics. {} received",
-                    tx_hashes.len() - remaining_hashes.len()
-                ));
-            }
-
-            let block_xts = self.receiver.recv()?;
+        self.receiver.take_while(move |block_xts| {
+            let some_remaining_txs = !remaining_hashes.is_empty();
             for xt in &block_xts.extrinsics {
                 remaining_hashes.remove(xt);
             }
-
-            blocks.push(block_xts)
-        }
+            futures::future::ready(some_remaining_txs)
+        })
     }
 }
 
@@ -121,9 +105,9 @@ impl BlocksSubscription {
     pub async fn new() -> color_eyre::Result<Self> {
         let client: subxt::Client<DefaultConfig> = subxt::ClientBuilder::new().build().await?;
         let mut blocks_sub = client.rpc().subscribe_blocks().await?;
-        let (sender, receiver) = std::sync::mpsc::channel();
+        let (mut sender, receiver) = futures::channel::mpsc::unbounded();
 
-        let task = async_std::task::spawn(async move {
+        tokio::task::spawn(async move {
             while let Some(Ok(block_header)) = blocks_sub.next().await {
                 if let Ok(Some(block)) = client.rpc().block(Some(block_header.hash())).await {
                     let extrinsics = block
@@ -137,18 +121,13 @@ impl BlocksSubscription {
                         block_hash: block_header.hash(),
                         extrinsics,
                     };
-                    sender.send(block_extrinsics).expect("Receiver hung up");
+                    sender.send(block_extrinsics).await.expect("Send failed");
                 }
             }
         });
 
-        Ok(Self { task, receiver })
+        Ok(Self { receiver })
     }
-}
-
-#[derive(Debug)]
-pub struct ExtrinsicsResult {
-    pub blocks: Vec<BlockExtrinsics>,
 }
 
 #[derive(Debug)]
