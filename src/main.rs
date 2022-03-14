@@ -15,6 +15,9 @@ pub struct Cli {
     /// the url of the substrate node for submitting the extrinsics.
     #[clap(name = "url", long, default_value = "ws://localhost:9944")]
     url: String,
+    /// the list of contracts to benchmark with.
+    #[clap(arg_enum)]
+    contracts: Vec<Contract>,
     /// the number of each contract to instantiate.
     #[clap(long, short)]
     instance_count: u32,
@@ -24,6 +27,16 @@ pub struct Cli {
     /// gas limit for all contract extrinsics.
     #[clap(long, short, default_value = "50000000000")]
     gas_limit: canvas::Gas,
+}
+
+#[derive(clap::ArgEnum, Debug, Clone)]
+enum Contract {
+    All,
+    Erc20,
+    Flipper,
+    Incrementer,
+    Erc721,
+    Erc1155,
 }
 
 /// Trait implemented by [`smart_bench_macro::contract`] for all contract constructors.
@@ -47,55 +60,72 @@ async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let cli = Cli::parse();
 
+    macro_rules! bench_contract {
+        ($contract: path) => {
+            matches!(&cli.contracts[..], &[Contract::All])
+                || cli.contracts.iter().any(|c| matches!(c, $contract))
+        };
+    }
+
     let alice = PairSigner::new(AccountKeyring::Alice.pair());
     let bob = AccountKeyring::Bob.to_account_id();
 
     let mut runner = runner::BenchRunner::new(alice, cli.gas_limit, &cli.url).await?;
 
     // erc20
-    let erc20_new = erc20::constructors::new(1_000_000);
-    let erc20_transfer = || erc20::messages::transfer(bob.clone(), 1000).into();
-    runner
-        .prepare_contract("erc20", erc20_new, cli.instance_count, &erc20_transfer)
-        .await?;
+    if bench_contract!(Contract::Erc20) {
+        let erc20_new = erc20::constructors::new(1_000_000);
+        let erc20_transfer = || erc20::messages::transfer(bob.clone(), 1000).into();
+        runner
+            .prepare_contract("erc20", erc20_new, cli.instance_count, &erc20_transfer)
+            .await?;
+    }
 
     // flipper
-    let flipper_new = flipper::constructors::new(false);
-    let flipper_flip = || flipper::messages::flip().into();
-    runner
-        .prepare_contract("flipper", flipper_new, cli.instance_count, &flipper_flip)
-        .await?;
+    if bench_contract!(Contract::Flipper) {
+        let flipper_new = flipper::constructors::new(false);
+        let flipper_flip = || flipper::messages::flip().into();
+        runner
+            .prepare_contract("flipper", flipper_new, cli.instance_count, &flipper_flip)
+            .await?;
+    }
 
     // incrementer
-    let incrementer_new = incrementer::constructors::new(0);
-    let incrementer_increment = || incrementer::messages::inc(1).into();
-    runner
-        .prepare_contract(
-            "incrementer",
-            incrementer_new,
-            cli.instance_count,
-            incrementer_increment,
-        )
-        .await?;
+    if bench_contract!(Contract::Incrementer) {
+        let incrementer_new = incrementer::constructors::new(0);
+        let incrementer_increment = || incrementer::messages::inc(1).into();
+        runner
+            .prepare_contract(
+                "incrementer",
+                incrementer_new,
+                cli.instance_count,
+                incrementer_increment,
+            )
+            .await?;
+    }
 
     // erc721
-    let erc721_new = erc721::constructors::new();
-    let mut token_id = 0;
-    let erc721_mint = || {
-        let mint = erc721::messages::mint(token_id);
-        token_id += 1;
-        mint.into()
-    };
-    runner
-        .prepare_contract("erc721", erc721_new, cli.instance_count, erc721_mint)
-        .await?;
+    if bench_contract!(Contract::Erc721) {
+        let erc721_new = erc721::constructors::new();
+        let mut token_id = 0;
+        let erc721_mint = || {
+            let mint = erc721::messages::mint(token_id);
+            token_id += 1;
+            mint.into()
+        };
+        runner
+            .prepare_contract("erc721", erc721_new, cli.instance_count, erc721_mint)
+            .await?;
+    }
 
     // erc1155
-    let erc1155_new = erc1155::constructors::new();
-    let erc1155_create = || erc1155::messages::create(1_000_000).into();
-    runner
-        .prepare_contract("erc1155", erc1155_new, cli.instance_count, erc1155_create)
-        .await?;
+    if bench_contract!(Contract::Erc1155) {
+        let erc1155_new = erc1155::constructors::new();
+        let erc1155_create = || erc1155::messages::create(1_000_000).into();
+        runner
+            .prepare_contract("erc1155", erc1155_new, cli.instance_count, erc1155_create)
+            .await?;
+    }
 
     let result = runner.run(cli.call_count).await?;
 
