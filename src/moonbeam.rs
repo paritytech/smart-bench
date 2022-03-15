@@ -87,10 +87,11 @@ impl MoonbeamApi {
         Self { api }
     }
 
-    pub async fn create(
+    pub async fn create2(
         &self,
         from: H160,
         data: Vec<u8>,
+        salt: H256,
         value: U256,
         gas_limit: u64,
         nonce: Option<U256>,
@@ -103,9 +104,10 @@ impl MoonbeamApi {
             .api
             .tx()
             .evm()
-            .create(
+            .create2(
                 from,
                 data,
+                salt,
                 value,
                 gas_limit,
                 max_fee_per_gas,
@@ -122,8 +124,42 @@ impl MoonbeamApi {
 
         let created = result
             .find_first::<api::evm::events::Created>()?
-            .ok_or_else(|| eyre::eyre!("Failed to find Instantiated event"))?;
+            .ok_or_else(|| eyre::eyre!("Failed to find Created event"))?;
 
         Ok(AccountId20(created.0 .0))
+    }
+
+    pub async fn call(
+        &self,
+        source: H160,
+        target: H160,
+        input: Vec<u8>,
+        value: U256,
+        gas_limit: u64,
+        nonce: Option<U256>,
+        signer: &Signer,
+    ) -> color_eyre::Result<H256> {
+        let max_fee_per_gas = U256::max_value();
+        let max_priority_fee_per_gas = None;
+        let access_list = Vec::new();
+        let tx_hash = self
+            .api
+            .tx()
+            .evm()
+            .call(
+                source,
+                target,
+                input,
+                value,
+                gas_limit,
+                max_fee_per_gas,
+                nonce,
+                max_priority_fee_per_gas,
+                access_list,
+            )
+            .sign_and_submit(signer)
+            .await?;
+
+        Ok(tx_hash)
     }
 }
