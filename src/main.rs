@@ -1,3 +1,4 @@
+mod blocks;
 mod canvas;
 mod moonbeam;
 mod runner;
