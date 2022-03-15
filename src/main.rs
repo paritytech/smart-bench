@@ -1,4 +1,5 @@
 mod canvas;
+mod moonbeam;
 mod runner;
 
 use clap::Parser;

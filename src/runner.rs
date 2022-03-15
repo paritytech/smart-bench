@@ -20,7 +20,8 @@ impl BenchRunner {
         let client = subxt::ClientBuilder::new().set_url(url).build().await?;
 
         let nonce = client
-            .fetch_nonce::<canvas::api::DefaultAccountData>(signer.account_id())
+            .rpc()
+            .system_account_next_index(signer.account_id())
             .await?;
         signer.set_nonce(nonce);
 

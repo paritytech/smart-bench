@@ -12,12 +12,15 @@ tokio = { version = "1.17.0", features = ["rt-multi-thread"] }
 color-eyre = "0.6.0"
 codec = { package = "parity-scale-codec", version = "3", default-features = false }
 contract-metadata = { package = "contract-metadata", git = "https://github.com/paritytech/cargo-contract", branch = "master" }
+serde = "1.0.136"
 serde_json = "1.0.79"
 clap = { version = "3.1.6", features = ["derive"] }
-subxt = "0.18.0"
+subxt = { git = "https://github.com/paritytech/subxt" }
 futures = "0.3.21"
+sha3 = "0.10.1"
 
 # substrate
 sp-core = "6.0.0"
 sp-keyring = "6.0.0"
 sp-runtime = "6.0.0"
+sp-io = "6.0.0"
