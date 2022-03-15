@@ -62,6 +62,12 @@ async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let cli = Cli::parse();
 
+    exec(cli);
+
+    Ok(())
+}
+
+async fn exec(cli: Cli) -> color_eyre::Result<()> {
     macro_rules! bench_contract {
         ($contract: path) => {
             matches!(&cli.contracts[..], &[Contract::All])
