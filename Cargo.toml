@@ -16,6 +16,7 @@ serde_json = "1.0.79"
 clap = { version = "3.1.6", features = ["derive"] }
 subxt = "0.18.0"
 futures = "0.3.21"
+parity-wasm = "0.42.2"
 
 # substrate
 sp-core = "6.0.0"

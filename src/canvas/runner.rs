@@ -93,7 +93,8 @@ impl BenchRunner {
 
         let mut accounts = Vec::new();
         for i in 0..count {
-            let salt = i.to_le_bytes().to_vec();
+            let code = append_unique_name_section(&code)?;
+            let salt = Vec::new();
 
             let contract = self
                 .api
@@ -101,7 +102,7 @@ impl BenchRunner {
                     value,
                     self.gas_limit,
                     DEFAULT_STORAGE_DEPOSIT_LIMIT,
-                    code.clone(),
+                    code,
                     data.clone(),
                     salt,
                     &mut self.signer,
@@ -156,6 +157,11 @@ impl BenchRunner {
 
         Ok(block_subscription.wait_for_txs(&tx_hashes))
     }
+}
+
+fn append_unique_name_section(code: &[u8]) -> color_eyre::Result<Vec<u8>> {
+    let module: parity_wasm::elements::Module = parity_wasm::deserialize_buffer(code)?;
+    todo!()
 }
 
 #[derive(Clone)]

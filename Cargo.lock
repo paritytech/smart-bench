@@ -2073,6 +2073,7 @@ dependencies = [
  "contract-metadata 0.5.1 (git+https://github.com/paritytech/cargo-contract?branch=master)",
  "futures",
  "parity-scale-codec",
+ "parity-wasm",
  "serde_json",
  "smart-bench-macro",
  "sp-core",
