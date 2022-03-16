@@ -2096,7 +2096,7 @@ dependencies = [
  "quote",
  "serde",
  "serde_json",
- "subxt-codegen 0.18.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "subxt-codegen",
  "syn",
 ]
 
@@ -2545,25 +2545,6 @@ dependencies = [
 [[package]]
 name = "subxt-codegen"
 version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19c04bfdcf4d4143b6208ff4fdfffef101b255d20c78f4812eb2da32bd644061"
-dependencies = [
- "async-trait",
- "darling",
- "frame-metadata",
- "heck 0.4.0",
- "parity-scale-codec",
- "proc-macro-crate 0.1.5",
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "scale-info",
- "syn",
-]
-
-[[package]]
-name = "subxt-codegen"
-version = "0.18.1"
 source = "git+https://github.com/paritytech/subxt#8b1954956072efb2f0959139c17f779e6937dd64"
 dependencies = [
  "async-trait",
@@ -2594,7 +2575,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "scale-info",
- "subxt-codegen 0.18.1 (git+https://github.com/paritytech/subxt)",
+ "subxt-codegen",
  "syn",
 ]
 

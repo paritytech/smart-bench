@@ -93,7 +93,7 @@ impl BenchRunner {
 
         let mut accounts = Vec::new();
         for i in 0..count {
-            let code = append_unique_name_section(&code)?;
+            let code = append_unique_name_section(&code, i)?;
             let salt = Vec::new();
 
             let contract = self
@@ -159,9 +159,12 @@ impl BenchRunner {
     }
 }
 
-fn append_unique_name_section(code: &[u8]) -> color_eyre::Result<Vec<u8>> {
-    let module: parity_wasm::elements::Module = parity_wasm::deserialize_buffer(code)?;
-    todo!()
+/// Add a custom section to make the Wasm code unique to upload many copies of the same contract.
+fn append_unique_name_section(code: &[u8], instance_id: u32) -> color_eyre::Result<Vec<u8>> {
+    let mut module: parity_wasm::elements::Module = parity_wasm::deserialize_buffer(code)?;
+    module.set_custom_section("smart-bench-unique", instance_id.to_le_bytes().to_vec());
+    let code = module.to_bytes()?;
+    Ok(code)
 }
 
 #[derive(Clone)]
