@@ -1,22 +1,21 @@
 use super::*;
+use crate::blocks;
 use codec::Encode;
 use color_eyre::eyre;
 use subxt::Signer as _;
 
+pub const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<Balance> = None;
+
 pub struct BenchRunner {
     url: String,
-    api: canvas::ContractsApi,
-    gas_limit: canvas::Gas,
-    signer: canvas::Signer,
+    api: ContractsApi,
+    gas_limit: Gas,
+    signer: Signer,
     calls: Vec<(String, Vec<Call>)>,
 }
 
 impl BenchRunner {
-    pub async fn new(
-        mut signer: canvas::Signer,
-        gas_limit: canvas::Gas,
-        url: &str,
-    ) -> color_eyre::Result<Self> {
+    pub async fn new(mut signer: Signer, gas_limit: Gas, url: &str) -> color_eyre::Result<Self> {
         let client = subxt::ClientBuilder::new().set_url(url).build().await?;
 
         let nonce = client
@@ -25,7 +24,7 @@ impl BenchRunner {
             .await?;
         signer.set_nonce(nonce);
 
-        let api = canvas::ContractsApi::new(client);
+        let api = ContractsApi::new(client);
 
         Ok(Self {
             url: url.to_string(),
@@ -84,11 +83,11 @@ impl BenchRunner {
 
     async fn exec_instantiate<C: InkConstructor>(
         &mut self,
-        value: canvas::Balance,
+        value: Balance,
         code: Vec<u8>,
         constructor: &C,
         count: u32,
-    ) -> color_eyre::Result<Vec<canvas::AccountId>> {
+    ) -> color_eyre::Result<Vec<AccountId>> {
         let mut data = C::SELECTOR.to_vec();
         <C as Encode>::encode_to(constructor, &mut data);
 
@@ -157,4 +156,30 @@ impl BenchRunner {
 
         Ok(block_subscription.wait_for_txs(&tx_hashes))
     }
+}
+
+#[derive(Clone)]
+pub struct EncodedMessage(Vec<u8>);
+
+impl EncodedMessage {
+    fn new<M: InkMessage>(call: &M) -> Self {
+        let mut call_data = M::SELECTOR.to_vec();
+        <M as Encode>::encode_to(call, &mut call_data);
+        Self(call_data)
+    }
+}
+
+impl<M> From<M> for EncodedMessage
+where
+    M: InkMessage,
+{
+    fn from(msg: M) -> Self {
+        EncodedMessage::new(&msg)
+    }
+}
+
+#[derive(Clone)]
+pub struct Call {
+    contract_account: AccountId,
+    call_data: EncodedMessage,
 }

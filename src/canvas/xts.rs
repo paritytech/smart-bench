@@ -1,12 +1,6 @@
+use super::*;
 use color_eyre::eyre;
-use sp_core::sr25519;
-use subxt::{DefaultConfig, DefaultExtra, PairSigner};
-
-pub type Balance = u128;
-pub type Gas = u64;
-pub type AccountId = <DefaultConfig as subxt::Config>::AccountId;
-pub type Hash = <DefaultConfig as subxt::Config>::Hash;
-pub type Signer = PairSigner<DefaultConfig, DefaultExtra<DefaultConfig>, sr25519::Pair>;
+use subxt::{DefaultConfig, DefaultExtra};
 
 #[subxt::subxt(runtime_metadata_path = "metadata/canvas.scale")]
 pub mod api {}
