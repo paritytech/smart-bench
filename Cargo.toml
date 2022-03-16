@@ -18,11 +18,6 @@ clap = { version = "3.1.6", features = ["derive"] }
 subxt = { git = "https://github.com/paritytech/subxt" }
 futures = "0.3.21"
 
-# ethereum
-sha3 = "0.10.1"
-libsecp256k1 = { version = "0.6", default-features = false, features = [ "hmac" ] }
-ethabi = "17.0.0"
-
 # substrate
 sp-core = "6.0.0"
 sp-keyring = "6.0.0"

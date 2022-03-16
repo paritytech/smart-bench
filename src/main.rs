@@ -1,6 +1,5 @@
 mod blocks;
 mod canvas;
-mod moonbeam;
 
 // export for use by contract! macro
 pub use canvas::{InkConstructor, InkMessage};
@@ -33,9 +32,7 @@ async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let cli = Cli::parse();
 
-    // canvas::exec(cli).await?;
-
-    moonbeam::exec(&cli).await?;
+    canvas::exec(cli).await?;
 
     Ok(())
 }
