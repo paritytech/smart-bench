@@ -2073,7 +2073,6 @@ dependencies = [
  "contract-metadata 0.5.1 (git+https://github.com/paritytech/cargo-contract?branch=master)",
  "futures",
  "parity-scale-codec",
- "serde",
  "serde_json",
  "smart-bench-macro",
  "sp-core",
@@ -2521,7 +2520,8 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "subxt"
 version = "0.18.1"
-source = "git+https://github.com/paritytech/subxt#8b1954956072efb2f0959139c17f779e6937dd64"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a4383f53951cfd154e561cb0eb595d4df36bf0a2a91302985f7fa7489d65461"
 dependencies = [
  "async-trait",
  "bitvec",
@@ -2532,6 +2532,7 @@ dependencies = [
  "hex",
  "jsonrpsee",
  "log",
+ "num-traits",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -2545,7 +2546,8 @@ dependencies = [
 [[package]]
 name = "subxt-codegen"
 version = "0.18.1"
-source = "git+https://github.com/paritytech/subxt#8b1954956072efb2f0959139c17f779e6937dd64"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19c04bfdcf4d4143b6208ff4fdfffef101b255d20c78f4812eb2da32bd644061"
 dependencies = [
  "async-trait",
  "darling",
@@ -2563,7 +2565,8 @@ dependencies = [
 [[package]]
 name = "subxt-macro"
 version = "0.18.1"
-source = "git+https://github.com/paritytech/subxt#8b1954956072efb2f0959139c17f779e6937dd64"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd262b4b74e41f94408ed5126983db90561cae0d23baafaa0224eb9f43abeafa"
 dependencies = [
  "async-trait",
  "darling",
