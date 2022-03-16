@@ -1,12 +1,12 @@
+pub mod runner;
+mod xts;
+
 use crate::Cli;
 use futures::{future, StreamExt};
 use sp_core::sr25519;
 use sp_keyring::AccountKeyring;
 use subxt::{DefaultConfig, DefaultExtra, PairSigner};
 use xts::ContractsApi;
-
-pub mod runner;
-mod xts;
 
 pub type Balance = u128;
 pub type Gas = u64;

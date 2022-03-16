@@ -1,8 +1,7 @@
-use codec::{Decode, Encode};
+use super::account::*;
 use color_eyre::eyre;
-use sha3::{Digest, Keccak256};
-use sp_core::{ecdsa, serde, H160, H256, U256};
-use subxt::{DefaultConfig, DefaultExtra, PairSigner};
+use sp_core::{ecdsa, H160, H256, U256};
+use subxt::{DefaultExtra, PairSigner, Signer as _};
 
 pub enum MoonbeamConfig {}
 
@@ -18,53 +17,7 @@ impl subxt::Config for MoonbeamConfig {
     type Extrinsic = sp_runtime::OpaqueExtrinsic;
 }
 
-#[derive(
-    Eq, PartialEq, Copy, Clone, Encode, Decode, Default, PartialOrd, Ord, serde::Serialize,
-)]
-pub struct AccountId20(pub [u8; 20]);
-
-impl core::fmt::Debug for AccountId20 {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:?}", sp_core::H160(self.0))
-    }
-}
-
-#[derive(Eq, PartialEq, Clone, Encode, Decode, sp_core::RuntimeDebug)]
-pub struct EthereumSignature(ecdsa::Signature);
-
-impl sp_runtime::traits::Verify for EthereumSignature {
-    type Signer = EthereumSigner;
-    fn verify<L: sp_runtime::traits::Lazy<[u8]>>(&self, mut msg: L, signer: &AccountId20) -> bool {
-        let mut m = [0u8; 32];
-        m.copy_from_slice(Keccak256::digest(msg.get()).as_slice());
-        match sp_io::crypto::secp256k1_ecdsa_recover(self.0.as_ref(), &m) {
-            Ok(pubkey) => {
-                AccountId20(H160::from(H256::from_slice(Keccak256::digest(&pubkey).as_slice())).0)
-                    == *signer
-            }
-            Err(sp_io::EcdsaVerifyError::BadRS) => false,
-            Err(sp_io::EcdsaVerifyError::BadV) => false,
-            Err(sp_io::EcdsaVerifyError::BadSignature) => false,
-        }
-    }
-}
-
-/// Public key for an Ethereum / Moonbeam compatible account
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Encode, Decode, sp_core::RuntimeDebug)]
-pub struct EthereumSigner([u8; 20]);
-
-impl sp_runtime::traits::IdentifyAccount for EthereumSigner {
-    type AccountId = AccountId20;
-    fn into_account(self) -> AccountId20 {
-        AccountId20(self.0)
-    }
-}
-
-impl From<[u8; 20]> for EthereumSigner {
-    fn from(x: [u8; 20]) -> Self {
-        EthereumSigner(x)
-    }
-}
+pub type Signer = PairSigner<MoonbeamConfig, DefaultExtra<MoonbeamConfig>, ecdsa::Pair>;
 
 #[subxt::subxt(runtime_metadata_path = "metadata/moonbeam.scale")]
 pub mod api {
@@ -74,31 +27,19 @@ pub mod api {
     use sp_core::U256;
 }
 
-pub type Signer = PairSigner<DefaultConfig, DefaultExtra<DefaultConfig>, ecdsa::Pair>;
-
-pub fn alice() -> Signer {
-    let pair = <ecdsa::Pair as sp_core::Pair>::from_string(
-        "0x5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133",
-        None,
-    )
-    .unwrap();
-    Signer::new(pair)
-}
-
 pub struct MoonbeamApi {
-    api: api::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>,
+    api: api::RuntimeApi<MoonbeamConfig, DefaultExtra<MoonbeamConfig>>,
 }
 
 impl MoonbeamApi {
-    pub fn new(client: subxt::Client<DefaultConfig>) -> Self {
-        let api =
-            client.to_runtime_api::<api::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>>();
+    pub fn new(client: subxt::Client<MoonbeamConfig>) -> Self {
+        let api = client
+            .to_runtime_api::<api::RuntimeApi<MoonbeamConfig, DefaultExtra<MoonbeamConfig>>>();
         Self { api }
     }
 
     pub async fn create2(
         &self,
-        from: H160,
         data: Vec<u8>,
         salt: H256,
         value: U256,
@@ -106,6 +47,7 @@ impl MoonbeamApi {
         nonce: Option<U256>,
         signer: &Signer,
     ) -> color_eyre::Result<AccountId20> {
+        let from = H160(signer.account_id().0);
         let max_fee_per_gas = U256::max_value();
         let max_priority_fee_per_gas = None;
         let access_list = Vec::new();
@@ -171,4 +113,13 @@ impl MoonbeamApi {
 
         Ok(tx_hash)
     }
+}
+
+pub fn alice() -> Signer {
+    let pair = <ecdsa::Pair as sp_core::Pair>::from_string(
+        "0x5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133",
+        None,
+    )
+    .unwrap();
+    Signer::new(pair)
 }

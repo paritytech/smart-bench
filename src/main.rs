@@ -33,7 +33,9 @@ async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let cli = Cli::parse();
 
-    canvas::exec(cli).await?;
+    // canvas::exec(cli).await?;
+
+    moonbeam::exec(&cli).await?;
 
     Ok(())
 }
