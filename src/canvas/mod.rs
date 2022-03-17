@@ -113,11 +113,16 @@ pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
     println!();
     result
         .for_each(|block| {
-            println!(
-                "Block {}, Extrinsics {}",
-                block.block_number,
-                block.extrinsics.len()
-            );
+            print!("Block {}: ", block.number);
+            if let Some(stats) = block.stats {
+                println!("{:?}", stats);
+            } else {
+                println!(
+                    "Extrinsics {:?} (block stats rpc not available)",
+                    block.extrinsics.len()
+                );
+            }
+
             future::ready(())
         })
         .await;

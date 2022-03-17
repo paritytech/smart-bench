@@ -1,15 +1,15 @@
 use futures::{SinkExt, StreamExt};
 use sp_runtime::traits::{BlakeTwo256, Hash as _};
-use subxt::DefaultConfig;
+use subxt::{rpc::BlockStats, DefaultConfig};
 
 type Hash = sp_core::H256;
 
 pub struct BlocksSubscription {
-    receiver: futures::channel::mpsc::UnboundedReceiver<BlockExtrinsics>,
+    receiver: futures::channel::mpsc::UnboundedReceiver<BlockInfo>,
 }
 
 impl BlocksSubscription {
-    pub fn wait_for_txs(self, tx_hashes: &[Hash]) -> impl futures::Stream<Item = BlockExtrinsics> {
+    pub fn wait_for_txs(self, tx_hashes: &[Hash]) -> impl futures::Stream<Item = BlockInfo> {
         let mut remaining_hashes: std::collections::HashSet<Hash> =
             tx_hashes.iter().cloned().collect();
 
@@ -33,20 +33,29 @@ impl BlocksSubscription {
         tokio::task::spawn(async move {
             while let Some(Ok(block_header)) = blocks_sub.next().await {
                 if let Ok(Some(block)) = client.rpc().block(Some(block_header.hash())).await {
+                    // if the stats rpc method is not present on the node then just return None.
+                    let stats = client
+                        .rpc()
+                        .block_stats(block_header.hash())
+                        .await
+                        .unwrap_or(None);
+
                     let extrinsics = block
                         .block
                         .extrinsics
                         .iter()
                         .map(BlakeTwo256::hash_of)
                         .collect();
-                    let block_extrinsics = BlockExtrinsics {
-                        block_number: block_header.number,
-                        block_hash: block_header.hash(),
+                    let block_extrinsics = BlockInfo {
+                        number: block_header.number,
+                        hash: block_header.hash(),
                         extrinsics,
+                        stats,
                     };
-                    sender.send(block_extrinsics).await.expect("Send failed");
+                    sender.send(block_extrinsics).await?;
                 }
             }
+            Ok::<(), color_eyre::Report>(())
         });
 
         Ok(Self { receiver })
@@ -54,8 +63,9 @@ impl BlocksSubscription {
 }
 
 #[derive(Debug)]
-pub struct BlockExtrinsics {
-    pub block_number: u32,
-    pub block_hash: Hash,
+pub struct BlockInfo {
+    pub number: u32,
+    pub hash: Hash,
     pub extrinsics: Vec<Hash>,
+    pub stats: Option<BlockStats>,
 }

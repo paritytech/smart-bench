@@ -120,7 +120,7 @@ impl BenchRunner {
     pub async fn run(
         &mut self,
         call_count: u32,
-    ) -> color_eyre::Result<impl futures::Stream<Item = blocks::BlockExtrinsics>> {
+    ) -> color_eyre::Result<impl futures::Stream<Item = blocks::BlockInfo>> {
         let block_subscription = blocks::BlocksSubscription::new(&self.url).await?;
 
         let mut tx_hashes = Vec::new();
