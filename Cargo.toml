@@ -14,8 +14,9 @@ codec = { package = "parity-scale-codec", version = "3", default-features = fals
 contract-metadata = { package = "contract-metadata", git = "https://github.com/paritytech/cargo-contract", branch = "master" }
 serde_json = "1.0.79"
 clap = { version = "3.1.6", features = ["derive"] }
-subxt = "0.18.0"
+subxt = { git =  "https://github.com/paritytech/subxt", package = "subxt" }
 futures = "0.3.21"
+parity-wasm = "0.42.2"
 
 # substrate
 sp-core = "6.0.0"
