@@ -1,12 +1,12 @@
 use super::*;
-use color_eyre::eyre;
+use sp_core::H256;
 use subxt::{DefaultConfig, DefaultExtra};
 
 #[subxt::subxt(runtime_metadata_path = "metadata/canvas.scale")]
 pub mod api {}
 
 pub struct ContractsApi {
-    api: api::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>,
+    pub api: api::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>,
 }
 
 impl ContractsApi {
@@ -26,24 +26,16 @@ impl ContractsApi {
         data: Vec<u8>,
         salt: Vec<u8>,
         signer: &Signer,
-    ) -> color_eyre::Result<AccountId> {
-        let result = self
+    ) -> color_eyre::Result<H256> {
+        let tx_hash = self
             .api
             .tx()
             .contracts()
             .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt)
-            .sign_and_submit_then_watch(signer)
-            .await?
-            .wait_for_in_block()
-            .await?
-            .wait_for_success()
+            .sign_and_submit(signer)
             .await?;
 
-        let instantiated = result
-            .find_first::<api::contracts::events::Instantiated>()?
-            .ok_or_else(|| eyre::eyre!("Failed to find Instantiated event"))?;
-
-        Ok(instantiated.contract)
+        Ok(tx_hash)
     }
 
     /// Submit extrinsic to call a contract.

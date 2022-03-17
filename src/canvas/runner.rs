@@ -47,7 +47,7 @@ impl BenchRunner {
         C: InkConstructor,
         F: FnMut() -> EncodedMessage,
     {
-        println!("Preparing {name}");
+        print!("Preparing {name}...");
 
         let root = std::env::var("CARGO_MANIFEST_DIR")?;
         let contract_path = format!("contracts/{name}.contract");
@@ -58,6 +58,8 @@ impl BenchRunner {
             .source
             .wasm
             .ok_or_else(|| eyre::eyre!("contract bundle missing source Wasm"))?;
+
+        println!("{} bytes", code.0.len());
 
         let contract_accounts = self
             .exec_instantiate(0, code.0, &constructor, instance_count)
@@ -91,13 +93,20 @@ impl BenchRunner {
         let mut data = C::SELECTOR.to_vec();
         <C as Encode>::encode_to(constructor, &mut data);
 
+        let mut instantiated_events = self
+            .api
+            .api
+            .events()
+            .subscribe()
+            .await?
+            .filter_events::<(xts::api::contracts::events::Instantiated,)>();
+
         let mut accounts = Vec::new();
         for i in 0..count {
             let code = append_unique_name_section(&code, i)?;
             let salt = Vec::new();
 
-            let contract = self
-                .api
+            self.api
                 .instantiate_with_code(
                     value,
                     self.gas_limit,
@@ -108,8 +117,14 @@ impl BenchRunner {
                     &mut self.signer,
                 )
                 .await?;
-            accounts.push(contract);
             self.signer.increment_nonce();
+        }
+
+        while let Some(Ok(instantiated)) = instantiated_events.next().await {
+            accounts.push(instantiated.event.contract);
+            if accounts.len() == count as usize {
+                break;
+            }
         }
 
         Ok(accounts)
