@@ -7,6 +7,7 @@ use sp_core::sr25519;
 use sp_keyring::AccountKeyring;
 use subxt::{DefaultConfig, DefaultExtra, PairSigner};
 use xts::ContractsApi;
+use povstats::substrate as api;
 
 pub type Balance = u128;
 pub type Gas = u64;

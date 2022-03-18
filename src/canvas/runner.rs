@@ -99,7 +99,7 @@ impl BenchRunner {
             .events()
             .subscribe()
             .await?
-            .filter_events::<(xts::api::contracts::events::Instantiated,)>();
+            .filter_events::<(api::contracts::events::Instantiated,)>();
 
         let mut accounts = Vec::new();
         for i in 0..count {

@@ -1541,6 +1541,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
+name = "povstats"
+version = "0.1.0"
+source = "git+https://github.com/athei/povstats#0858473494b09c38d88d48ed9258824356507a6e"
+dependencies = [
+ "clap",
+ "futures",
+ "once_cell",
+ "parity-scale-codec",
+ "subxt",
+ "tokio",
+]
+
+[[package]]
 name = "ppv-lite86"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2075,6 +2088,7 @@ dependencies = [
  "futures",
  "parity-scale-codec",
  "parity-wasm",
+ "povstats",
  "serde_json",
  "smart-bench-macro",
  "sp-core",

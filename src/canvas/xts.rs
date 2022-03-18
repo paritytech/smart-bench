@@ -2,9 +2,6 @@ use super::*;
 use sp_core::H256;
 use subxt::{DefaultConfig, DefaultExtra};
 
-#[subxt::subxt(runtime_metadata_path = "metadata/canvas.scale")]
-pub mod api {}
-
 pub struct ContractsApi {
     pub api: api::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>,
 }
