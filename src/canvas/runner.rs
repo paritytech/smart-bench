@@ -60,7 +60,7 @@ impl BenchRunner {
             .wasm
             .ok_or_else(|| eyre::eyre!("contract bundle missing source Wasm"))?;
 
-        println!("{} bytes", code.0.len());
+        println!("{}KiB", code.0.len() / 1024);
 
         let contract_accounts = self
             .exec_instantiate(0, code.0, &constructor, instance_count)
