@@ -1,4 +1,3 @@
-mod blocks;
 mod canvas;
 
 // export for use by contract! macro
