@@ -2,12 +2,12 @@ pub mod runner;
 mod xts;
 
 use crate::Cli;
-use futures::{future, StreamExt};
+use futures::{future, TryStreamExt};
+use povstats::substrate as api;
 use sp_core::sr25519;
 use sp_keyring::AccountKeyring;
 use subxt::{DefaultConfig, DefaultExtra, PairSigner};
 use xts::ContractsApi;
-use povstats::substrate as api;
 
 pub type Balance = u128;
 pub type Gas = u64;
@@ -113,20 +113,11 @@ pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
 
     println!();
     result
-        .for_each(|block| {
-            print!("Block {}: ", block.number);
-            if let Some(stats) = block.stats {
-                println!("{:?}", stats);
-            } else {
-                println!(
-                    "Extrinsics {:?} (block stats rpc not available)",
-                    block.extrinsics.len()
-                );
-            }
-
-            future::ready(())
+        .try_for_each(|block| {
+            println!("{}", block.stats);
+            future::ready(Ok(()))
         })
-        .await;
+        .await?;
 
     Ok(())
 }

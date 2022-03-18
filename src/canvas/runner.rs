@@ -1,7 +1,8 @@
 use super::*;
-use crate::blocks;
 use codec::Encode;
 use color_eyre::eyre;
+use futures::{future, StreamExt, TryStream, TryStreamExt};
+use sp_runtime::traits::{BlakeTwo256, Hash as _};
 use subxt::Signer as _;
 
 pub const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<Balance> = None;
@@ -135,8 +136,8 @@ impl BenchRunner {
     pub async fn run(
         &mut self,
         call_count: u32,
-    ) -> color_eyre::Result<impl futures::Stream<Item = blocks::BlockInfo>> {
-        let block_subscription = blocks::BlocksSubscription::new(&self.url).await?;
+    ) -> color_eyre::Result<impl TryStream<Ok = BlockInfo, Error = color_eyre::Report> + '_> {
+        let block_stats = povstats::subscribe_stats(&self.url).await?;
 
         let mut tx_hashes = Vec::new();
         let max_instance_count = self
@@ -170,7 +171,34 @@ impl BenchRunner {
 
         println!("Submitted {} total contract calls", tx_hashes.len());
 
-        Ok(block_subscription.wait_for_txs(&tx_hashes))
+        let mut remaining_hashes: std::collections::HashSet<Hash> =
+            tx_hashes.iter().cloned().collect();
+
+        let wait_for_txs = block_stats
+            .map_err(|e| eyre::eyre!("Block stats subscription error: {e:?}"))
+            .and_then(|stats| {
+                let client = self.api.api.client.clone();
+                async move {
+                    let block = client.rpc().block(Some(stats.hash)).await?;
+                    let extrinsics = block
+                        .unwrap_or_else(|| panic!("block {} not found", stats.hash))
+                        .block
+                        .extrinsics
+                        .iter()
+                        .map(BlakeTwo256::hash_of)
+                        .collect();
+                    Ok(BlockInfo { extrinsics, stats })
+                }
+            })
+            .try_take_while(move |block_info| {
+                let some_remaining_txs = !remaining_hashes.is_empty();
+                for xt in &block_info.extrinsics {
+                    remaining_hashes.remove(xt);
+                }
+                future::ready(Ok(some_remaining_txs))
+            });
+
+        Ok(wait_for_txs)
     }
 }
 
@@ -206,4 +234,9 @@ where
 pub struct Call {
     contract_account: AccountId,
     call_data: EncodedMessage,
+}
+
+pub struct BlockInfo {
+    pub stats: povstats::BlockStats,
+    pub extrinsics: Vec<Hash>,
 }
