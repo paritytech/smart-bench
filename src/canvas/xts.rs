@@ -8,6 +8,8 @@ use serde::Serialize;
 use sp_core::{Bytes, H256};
 use subxt::{rpc::NumberOrHex, DefaultConfig, DefaultExtra, Signer as _};
 
+const DRY_RUN_GAS_LIMIT: u64 = 500_000_000_000;
+
 pub struct ContractsApi {
     pub api: api::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>,
     ws_client: WsClient,
@@ -36,7 +38,7 @@ impl ContractsApi {
         let call_request = InstantiateRequest {
             origin: signer.account_id().clone(),
             value: NumberOrHex::Hex(value.into()),
-            gas_limit: NumberOrHex::Number(5000000000000),
+            gas_limit: NumberOrHex::Number(DRY_RUN_GAS_LIMIT),
             storage_deposit_limit,
             code,
             data: data.into(),
@@ -86,7 +88,7 @@ impl ContractsApi {
             origin: signer.account_id().clone(),
             dest: contract,
             value: NumberOrHex::Hex(value.into()),
-            gas_limit: NumberOrHex::Number(5000000000000),
+            gas_limit: NumberOrHex::Number(DRY_RUN_GAS_LIMIT),
             storage_deposit_limit,
             input_data: Bytes(data),
         };

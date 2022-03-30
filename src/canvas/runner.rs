@@ -106,7 +106,7 @@ impl BenchRunner {
                     &self.signer,
                 )
                 .await?;
-            dry_run.gas_consumed
+            dry_run.gas_consumed + 1 // need to add an extra 1 for some reason
         };
 
         let mut instantiated_events = self
