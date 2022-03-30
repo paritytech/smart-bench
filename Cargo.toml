@@ -14,10 +14,10 @@ codec = { package = "parity-scale-codec", version = "3", default-features = fals
 contract-metadata = { package = "contract-metadata", git = "https://github.com/paritytech/cargo-contract", branch = "master" }
 serde_json = "1.0.79"
 clap = { version = "3.1.6", features = ["derive"] }
-subxt = { git =  "https://github.com/paritytech/subxt", package = "subxt", branch = "at-block-stats" }
+subxt = { git =  "https://github.com/paritytech/subxt", package = "subxt", branch = "aj/runtime-constants" }
 futures = "0.3.21"
 parity-wasm = "0.42.2"
-povstats = { git = "https://github.com/athei/povstats" }
+povstats = { git = "https://github.com/ascjones/povstats", branch = "aj/runtime-metadata-constants" }
 
 # substrate
 sp-core = "6.0.0"

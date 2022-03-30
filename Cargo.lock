@@ -1543,7 +1543,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "povstats"
 version = "0.1.0"
-source = "git+https://github.com/athei/povstats#0858473494b09c38d88d48ed9258824356507a6e"
+source = "git+https://github.com/ascjones/povstats?branch=aj/runtime-metadata-constants#50df1158d03ec05676cfb1da54bba3d53757932b"
 dependencies = [
  "clap",
  "futures",
@@ -2535,8 +2535,8 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "subxt"
-version = "0.18.1"
-source = "git+https://github.com/paritytech/subxt?branch=at-block-stats#16d4306dfa7725d11c1c7f0539b4b3e3f0d99443"
+version = "0.19.0"
+source = "git+https://github.com/paritytech/subxt?branch=aj/runtime-constants#3cc2c420093da85dcfa56e4bea0098b0deb2816a"
 dependencies = [
  "async-trait",
  "bitvec",
@@ -2559,8 +2559,8 @@ dependencies = [
 
 [[package]]
 name = "subxt-codegen"
-version = "0.18.1"
-source = "git+https://github.com/paritytech/subxt?branch=at-block-stats#16d4306dfa7725d11c1c7f0539b4b3e3f0d99443"
+version = "0.19.0"
+source = "git+https://github.com/paritytech/subxt?branch=aj/runtime-constants#3cc2c420093da85dcfa56e4bea0098b0deb2816a"
 dependencies = [
  "async-trait",
  "darling",
@@ -2577,8 +2577,8 @@ dependencies = [
 
 [[package]]
 name = "subxt-macro"
-version = "0.18.1"
-source = "git+https://github.com/paritytech/subxt?branch=at-block-stats#16d4306dfa7725d11c1c7f0539b4b3e3f0d99443"
+version = "0.19.0"
+source = "git+https://github.com/paritytech/subxt?branch=aj/runtime-constants#3cc2c420093da85dcfa56e4bea0098b0deb2816a"
 dependencies = [
  "async-trait",
  "darling",
