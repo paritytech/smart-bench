@@ -10,13 +10,12 @@ pub const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<Balance> = None;
 pub struct BenchRunner {
     url: String,
     api: ContractsApi,
-    gas_limit: Gas,
     signer: Signer,
     calls: Vec<(String, Vec<Call>)>,
 }
 
 impl BenchRunner {
-    pub async fn new(mut signer: Signer, gas_limit: Gas, url: &str) -> color_eyre::Result<Self> {
+    pub async fn new(mut signer: Signer, url: &str) -> color_eyre::Result<Self> {
         let client = subxt::ClientBuilder::new().set_url(url).build().await?;
 
         let nonce = client
@@ -25,13 +24,12 @@ impl BenchRunner {
             .await?;
         signer.set_nonce(nonce);
 
-        let api = ContractsApi::new(client);
+        let api = ContractsApi::new(client, url).await?;
 
         Ok(Self {
             url: url.to_string(),
             api,
             signer,
-            gas_limit,
             calls: Vec::new(),
         })
     }
@@ -94,6 +92,23 @@ impl BenchRunner {
         let mut data = C::SELECTOR.to_vec();
         <C as Encode>::encode_to(constructor, &mut data);
 
+        // dry run the instantiate to calculate the gas limit
+        let gas_limit = {
+            let code = append_unique_name_section(&code, 0)?;
+            let dry_run = self
+                .api
+                .instantiate_with_code_dry_run(
+                    value,
+                    DEFAULT_STORAGE_DEPOSIT_LIMIT,
+                    code,
+                    data.clone(),
+                    Vec::new(),
+                    &self.signer,
+                )
+                .await?;
+            dry_run.gas_consumed + 1 // need to add an extra 1 for some reason
+        };
+
         let mut instantiated_events = self
             .api
             .api
@@ -110,7 +125,7 @@ impl BenchRunner {
             self.api
                 .instantiate_with_code(
                     value,
-                    self.gas_limit,
+                    gas_limit,
                     DEFAULT_STORAGE_DEPOSIT_LIMIT,
                     code,
                     data.clone(),
@@ -151,12 +166,27 @@ impl BenchRunner {
             for i in 0..max_instance_count {
                 for (_name, contract_calls) in &self.calls {
                     if let Some(contract_call) = contract_calls.get(i as usize) {
+                        // dry run the call to calculate the gas limit
+                        let gas_limit = {
+                            let dry_run = self
+                                .api
+                                .call_dry_run(
+                                    contract_call.contract_account.clone(),
+                                    0,
+                                    DEFAULT_STORAGE_DEPOSIT_LIMIT,
+                                    contract_call.call_data.0.clone(),
+                                    &self.signer,
+                                )
+                                .await?;
+                            dry_run.gas_consumed
+                        };
+
                         let tx_hash = self
                             .api
                             .call(
                                 contract_call.contract_account.clone(),
                                 0,
-                                self.gas_limit,
+                                gas_limit,
                                 DEFAULT_STORAGE_DEPOSIT_LIMIT,
                                 contract_call.call_data.0.clone(),
                                 &self.signer,

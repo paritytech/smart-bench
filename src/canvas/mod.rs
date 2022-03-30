@@ -52,7 +52,7 @@ pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
     let alice = PairSigner::new(AccountKeyring::Alice.pair());
     let bob = AccountKeyring::Bob.to_account_id();
 
-    let mut runner = runner::BenchRunner::new(alice, cli.gas_limit, &cli.url).await?;
+    let mut runner = runner::BenchRunner::new(alice, &cli.url).await?;
 
     // erc20
     if bench_contract!(Contract::Erc20) {
