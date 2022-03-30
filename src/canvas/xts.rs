@@ -93,7 +93,7 @@ impl ContractsApi {
             input_data: Bytes(data),
         };
         let params = rpc_params![call_request];
-        let result: ContractExecResult = cli.request("contracts_call", params).await?;
+        let result: ContractExecResult = self.ws_client.request("contracts_call", params).await?;
         Ok(result)
     }
 
@@ -148,6 +148,7 @@ struct InstantiateRequest {
 enum Code {
     /// A Wasm module as raw bytes.
     Upload(Bytes),
+    #[allow(unused)]
     /// The code hash of an on-chain Wasm blob.
     Existing(H256),
 }

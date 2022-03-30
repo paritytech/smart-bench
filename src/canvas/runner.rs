@@ -167,13 +167,12 @@ impl BenchRunner {
 
                         // dry run the call to calculate the gas limit
                         let gas_limit = {
-                            let dry_run = self.api.instantiate_with_code_dry_run(
-                                value,
+                            let dry_run = self.api.call_dry_run(
+                                contract_call.contract_account.clone(),
+                                0,
                                 u64::MAX,
                                 DEFAULT_STORAGE_DEPOSIT_LIMIT,
-                                code,
-                                data.clone(),
-                                Vec::new(),
+                                contract_call.call_data.0.clone(),
                                 &self.signer,
                             ).await?;
                             dry_run.gas_consumed
@@ -184,7 +183,7 @@ impl BenchRunner {
                             .call(
                                 contract_call.contract_account.clone(),
                                 0,
-                                self.gas_limit,
+                                gas_limit,
                                 DEFAULT_STORAGE_DEPOSIT_LIMIT,
                                 contract_call.call_data.0.clone(),
                                 &self.signer,
