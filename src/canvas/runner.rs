@@ -95,15 +95,18 @@ impl BenchRunner {
         // dry run the instantiate to calculate the gas limit
         let gas_limit = {
             let code = append_unique_name_section(&code, 0)?;
-            let dry_run = self.api.instantiate_with_code_dry_run(
-                value,
-                u64::MAX,
-                DEFAULT_STORAGE_DEPOSIT_LIMIT,
-                code,
-                data.clone(),
-                Vec::new(),
-                &self.signer,
-            ).await?;
+            let dry_run = self
+                .api
+                .instantiate_with_code_dry_run(
+                    value,
+                    u64::MAX,
+                    DEFAULT_STORAGE_DEPOSIT_LIMIT,
+                    code,
+                    data.clone(),
+                    Vec::new(),
+                    &self.signer,
+                )
+                .await?;
             dry_run.gas_consumed
         };
 
@@ -164,17 +167,19 @@ impl BenchRunner {
             for i in 0..max_instance_count {
                 for (_name, contract_calls) in &self.calls {
                     if let Some(contract_call) = contract_calls.get(i as usize) {
-
                         // dry run the call to calculate the gas limit
                         let gas_limit = {
-                            let dry_run = self.api.call_dry_run(
-                                contract_call.contract_account.clone(),
-                                0,
-                                u64::MAX,
-                                DEFAULT_STORAGE_DEPOSIT_LIMIT,
-                                contract_call.call_data.0.clone(),
-                                &self.signer,
-                            ).await?;
+                            let dry_run = self
+                                .api
+                                .call_dry_run(
+                                    contract_call.contract_account.clone(),
+                                    0,
+                                    u64::MAX,
+                                    DEFAULT_STORAGE_DEPOSIT_LIMIT,
+                                    contract_call.call_data.0.clone(),
+                                    &self.signer,
+                                )
+                                .await?;
                             dry_run.gas_consumed
                         };
 
