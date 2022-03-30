@@ -25,7 +25,6 @@ impl ContractsApi {
     pub async fn instantiate_with_code_dry_run(
         &self,
         value: Balance,
-        gas_limit: Gas,
         storage_deposit_limit: Option<Balance>,
         code: Vec<u8>,
         data: Vec<u8>,
@@ -37,7 +36,7 @@ impl ContractsApi {
         let call_request = InstantiateRequest {
             origin: signer.account_id().clone(),
             value: NumberOrHex::Hex(value.into()),
-            gas_limit: NumberOrHex::Number(gas_limit),
+            gas_limit: NumberOrHex::Number(5000000000000),
             storage_deposit_limit,
             code,
             data: data.into(),
@@ -78,7 +77,6 @@ impl ContractsApi {
         &self,
         contract: AccountId,
         value: Balance,
-        gas_limit: Gas,
         storage_deposit_limit: Option<Balance>,
         data: Vec<u8>,
         signer: &Signer,
@@ -88,7 +86,7 @@ impl ContractsApi {
             origin: signer.account_id().clone(),
             dest: contract,
             value: NumberOrHex::Hex(value.into()),
-            gas_limit: NumberOrHex::Number(gas_limit.into()),
+            gas_limit: NumberOrHex::Number(5000000000000),
             storage_deposit_limit,
             input_data: Bytes(data),
         };

@@ -99,7 +99,6 @@ impl BenchRunner {
                 .api
                 .instantiate_with_code_dry_run(
                     value,
-                    u64::MAX,
                     DEFAULT_STORAGE_DEPOSIT_LIMIT,
                     code,
                     data.clone(),
@@ -174,7 +173,6 @@ impl BenchRunner {
                                 .call_dry_run(
                                     contract_call.contract_account.clone(),
                                     0,
-                                    u64::MAX,
                                     DEFAULT_STORAGE_DEPOSIT_LIMIT,
                                     contract_call.call_data.0.clone(),
                                     &self.signer,
