@@ -1,0 +1,98 @@
+# .gitlab-ci.yml
+#
+# smart-bench
+#
+# pipelines can be triggered manually in the web
+
+stages:
+  - declare-vars
+  - build
+
+variables:
+  GIT_STRATEGY:                    fetch
+  GIT_DEPTH:                       "100"
+  CARGO_TARGET_DIR:                "/ci-cache/${CI_PROJECT_NAME}/targets/${CI_COMMIT_REF_NAME}/${CI_JOB_NAME}"
+  RUST_LIB_BACKTRACE:              "0"
+  RUST_LOG:                        "info"
+  CI_IMAGE:                        "paritytech/smart-bench-ci:latest"
+  INK_EXAMPLES_PATH:               "./ink/examples"
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH
+
+.default-refs:                      &default-refs
+  rules:
+  - if: $CI_PIPELINE_SOURCE == "web"
+  - if: $CI_PIPELINE_SOURCE == "schedule"
+  - if: $CI_COMMIT_REF_NAME == "master"
+  - if: $CI_COMMIT_REF_NAME == "tags"
+  - if: $CI_COMMIT_REF_NAME =~ /^[0-9]+$/                   # PRs
+  - if: $CI_COMMIT_REF_NAME =~ /^v[0-9]+\.[0-9]+.*$/        # i.e. v1.0, v2.1rc1
+
+.basic-env:                         &basic-env
+  image:                           "${CI_IMAGE}"
+  before_script:
+    - cargo -vV
+    - rustc -vV
+    - rustup show
+    - bash --version
+    - cargo-contract --version
+    - ./scripts/ci/pre_cache.sh
+    - sccache -s
+    - git show
+  <<:                              *default-refs
+  interruptible:                   true
+  retry:
+    max:                           2
+    when:
+      - runner_system_failure
+      - unknown_failure
+      - api_failure
+
+.docker-env:                      &docker-env
+  <<:                             *basic-env
+  tags:
+    - linux-docker
+
+.kubernetes-env:                  &kubernetes-env
+  <<:                             *basic-env
+  before_script:                  []
+  tags:
+    - kubernetes-parity-build
+
+.clone-repo:                       &clone-repo
+  - echo ${UPSTREAM_BRANCH} ${UPSTREAM_REPO}
+  - git clone --verbose --depth 1 --branch ${UPSTREAM_BRANCH} ${UPSTREAM_REPO}
+
+# Needed vars have to be "exported" in an earlier stage
+parent-vars:
+  stage:                                             declare-vars
+  <<:                                                *kubernetes-env
+  variables:
+    CI_IMAGE: "paritytech/tools"
+  script:
+    - echo
+  artifacts:
+    reports:
+      dotenv: parent-vars.env
+
+.build-ink-example-contracts:                  &build-ink-example-contracts
+  - set -o pipefail
+  - for example in ${INK_EXAMPLES_PATH}/*/; do
+      if [ "$example" == "./ink/examples/upgradeable-contracts/" ]; then continue; fi;
+      echo "set -o pipefail; ./scripts/ci/build-contract.sh ${example}" >> /tmp/cmds;
+    done
+  # Exit when the first job fails. Kill running jobs
+  - parallel --halt-on-error now,fail=1 -j 2 -a /tmp/cmds --joblog /tmp/joblog
+  - cat /tmp/joblog
+
+build-examples:
+  stage:                           build
+  <<:                              *kubernetes-env
+  script:
+    - *clone-repo
+    - *build-ink-example-contracts
+  dependencies:
+    - parent-vars
