@@ -106,7 +106,7 @@ impl BenchRunner {
                     &self.signer,
                 )
                 .await?;
-            (dry_run.gas_consumed as f64 * 1.05) as u64 // increase gas limit to avoid OutOfGas
+            dry_run.gas_required
         };
 
         let mut failed_or_instantiated_events =
@@ -197,7 +197,7 @@ impl BenchRunner {
                                     &self.signer,
                                 )
                                 .await?;
-                            dry_run.gas_consumed
+                            dry_run.gas_required
                         };
 
                         let tx_hash = self
