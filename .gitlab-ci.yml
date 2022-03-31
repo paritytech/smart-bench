@@ -75,5 +75,4 @@ build-examples:
   script:
     - *clone-repo
     - *build-ink-example-contracts
-  dependencies:
-    - parent-vars
+
