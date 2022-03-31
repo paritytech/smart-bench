@@ -106,16 +106,14 @@ impl BenchRunner {
                     &self.signer,
                 )
                 .await?;
-            dry_run.gas_consumed + 1 // need to add an extra 1 for some reason
+            (dry_run.gas_consumed as f64 * 1.05) as u64 // increase gas limit to avoid OutOfGas
         };
 
-        let mut instantiated_events = self
-            .api
-            .api
-            .events()
-            .subscribe()
-            .await?
-            .filter_events::<(api::contracts::events::Instantiated,)>();
+        let mut failed_or_instantiated_events =
+            self.api.api.events().subscribe().await?.filter_events::<(
+                api::system::events::ExtrinsicFailed,
+                api::contracts::events::Instantiated,
+            )>();
 
         let mut accounts = Vec::new();
         for i in 0..count {
@@ -136,10 +134,31 @@ impl BenchRunner {
             self.signer.increment_nonce();
         }
 
-        while let Some(Ok(instantiated)) = instantiated_events.next().await {
-            accounts.push(instantiated.event.contract);
-            if accounts.len() == count as usize {
-                break;
+        while let Some(Ok(info)) = failed_or_instantiated_events.next().await {
+            match info.event {
+                (Some(failed), None) => {
+                    let (pallet_idx, error_idx) =
+                        subxt::HasModuleError::module_error_indices(&failed.dispatch_error).ok_or(
+                            eyre::eyre!("Failed to find error details for {:?},", failed),
+                        )?;
+                    let details = self
+                        .api
+                        .api
+                        .client
+                        .metadata()
+                        .error(pallet_idx, error_idx)?;
+                    return Err(eyre::eyre!(
+                        "Instantiate Extrinsic Failed: {:?}",
+                        details.description()
+                    ));
+                }
+                (None, Some(instantiated)) => {
+                    accounts.push(instantiated.contract);
+                    if accounts.len() == count as usize {
+                        break;
+                    }
+                }
+                _ => return Err(eyre::eyre!("Events should be XOR, got {:?}", info.event)),
             }
         }
 
