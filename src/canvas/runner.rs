@@ -3,7 +3,6 @@ use codec::Encode;
 use color_eyre::eyre;
 use futures::{future, StreamExt, TryStream, TryStreamExt};
 use sp_runtime::traits::{BlakeTwo256, Hash as _};
-use subxt::Signer as _;
 
 pub const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<Balance> = None;
 
@@ -137,8 +136,8 @@ impl BenchRunner {
         while let Some(Ok(info)) = failed_or_instantiated_events.next().await {
             match info.event {
                 (Some(failed), None) => {
-                    let (pallet_idx, error_idx) =
-                        subxt::HasModuleError::module_error_indices(&failed.dispatch_error).ok_or(
+                    let error_data =
+                        subxt::HasModuleError::module_error_data(&failed.dispatch_error).ok_or(
                             eyre::eyre!("Failed to find error details for {:?},", failed),
                         )?;
                     let details = self
@@ -146,7 +145,7 @@ impl BenchRunner {
                         .api
                         .client
                         .metadata()
-                        .error(pallet_idx, error_idx)?;
+                        .error(error_data.pallet_index, error_data.error_index())?;
                     return Err(eyre::eyre!(
                         "Instantiate Extrinsic Failed: {:?}",
                         details.description()
