@@ -15,7 +15,7 @@ contract-metadata = { package = "contract-metadata", git = "https://github.com/p
 serde = { version = "1.0.136", default-features = false, features = ["derive"] }
 serde_json = "1.0.79"
 clap = { version = "3.1.6", features = ["derive"] }
-subxt = { git =  "https://github.com/paritytech/subxt", package = "subxt", branch = "aj/runtime-constants" }
+subxt = { git =  "https://github.com/paritytech/subxt", package = "subxt", branch = "master" }
 futures = "0.3.21"
 parity-wasm = "0.42.2"
 povstats = { git = "https://github.com/ascjones/povstats", branch = "aj/runtime-metadata-constants" }
