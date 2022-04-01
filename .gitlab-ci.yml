@@ -61,7 +61,7 @@ variables:
 .build-ink-example-contracts:                  &build-ink-example-contracts
   - set -o pipefail
   - mv Cargo.toml _Cargo.toml
-  ./scripts/ci/build-contract.sh ./ink/examples/erc20
+  - ./scripts/ci/build-contract.sh ./ink/examples/erc20
   - mv _Cargo.toml Cargo.toml
 
 build-examples:
