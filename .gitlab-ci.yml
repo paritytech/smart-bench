@@ -62,7 +62,7 @@ variables:
   - set -o pipefail
   - mv Cargo.toml _Cargo.toml
   - for example in ${INK_EXAMPLES_PATH}/*/; do
-      if [ "$example" == "./ink/examples/upgradeable-contracts/" ]; then continue; fi;
+      if [ "$example" != "./ink/examples/erc20/" ]; then continue; fi;
       echo "set -o pipefail; ./scripts/ci/build-contract.sh ${example}" >> /tmp/cmds;
     done
   # Exit when the first job fails. Kill running jobs
