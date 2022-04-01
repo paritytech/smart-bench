@@ -56,8 +56,7 @@ variables:
     - kubernetes-parity-build
 
 .clone-repo:                       &clone-repo
-  - echo ${UPSTREAM_BRANCH} ${UPSTREAM_REPO}
-  - git clone --verbose --depth 1 --branch ${UPSTREAM_BRANCH} ${UPSTREAM_REPO}
+  - git clone --verbose --depth 1 https://github.com/paritytech/ink.git
 
 .build-ink-example-contracts:                  &build-ink-example-contracts
   - set -o pipefail
