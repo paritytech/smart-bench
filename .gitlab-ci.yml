@@ -66,6 +66,7 @@ variables:
       echo "set -o pipefail; ./scripts/ci/build-contract.sh ${example}" >> /tmp/cmds;
     done
   # Exit when the first job fails. Kill running jobs
+  - cat /tmp/cmds
   - parallel --halt-on-error now,fail=1 -j 2 -a /tmp/cmds --joblog /tmp/joblog
   - cat /tmp/joblog
   - mv _Cargo.toml Cargo.toml
