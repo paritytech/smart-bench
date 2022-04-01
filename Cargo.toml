@@ -1,6 +1,3 @@
-[workspace]
-members = [".", "macro"]
-
 [package]
 name = "smart-bench"
 version = "0.1.0"
@@ -27,3 +24,7 @@ sp-core = "6.0.0"
 sp-keyring = "6.0.0"
 sp-runtime = "6.0.0"
 sp-io = "6.0.0"
+
+[workspace]
+members = [".", "macro"]
+

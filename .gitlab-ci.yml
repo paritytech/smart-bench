@@ -60,7 +60,7 @@ variables:
 
 .build-ink-example-contracts:                  &build-ink-example-contracts
   - set -o pipefail
-  - echo -e '[workspace]\nnexclude = [ "ink/", ]' >> Cargo.toml
+  - echo -e 'exclude = [ "ink/", ]' >> Cargo.toml
   - for example in ${INK_EXAMPLES_PATH}/*/; do
       if [ "$example" == "./ink/examples/upgradeable-contracts/" ]; then continue; fi;
       echo "set -o pipefail; ./scripts/ci/build-contract.sh ${example}" >> /tmp/cmds;
