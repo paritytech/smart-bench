@@ -61,7 +61,7 @@ variables:
 .build-ink-example-contracts:                  &build-ink-example-contracts
   - set -o pipefail
   # https://github.com/rust-lang/cargo/issues/6745
-  - find ./ink/ -name Cargo.toml -I % -exec echo '[workspace]' >> %;
+  - find ./ink/ -name Cargo.toml | xargs -n1 -I % echo '[workspace]' >> %
   - for example in ${INK_EXAMPLES_PATH}/*/; do
       if [ "$example" == "./ink/examples/upgradeable-contracts/" ]; then continue; fi;
       echo "set -o pipefail; ./scripts/ci/build-contract.sh ${example}" >> /tmp/cmds;
