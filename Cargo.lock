@@ -1639,7 +1639,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "povstats"
 version = "0.1.0"
-source = "git+https://github.com/ascjones/povstats?branch=aj/runtime-metadata-constants#8ee8e55b6d64a78a53922848db9940bff50fae70"
+source = "git+https://github.com/ascjones/povstats?branch=aj/runtime-metadata-constants#1de41797315ba01ef84a3c92e80e2a93a32f779d"
 dependencies = [
  "clap",
  "futures",
