@@ -6,14 +6,14 @@ use futures::{future, TryStreamExt};
 use povstats::substrate as api;
 use sp_core::sr25519;
 use sp_keyring::AccountKeyring;
-use subxt::{DefaultConfig, DefaultExtra, PairSigner};
+use subxt::{DefaultConfig, PairSigner};
 use xts::ContractsApi;
 
 pub type Balance = u128;
 pub type Gas = u64;
 pub type AccountId = <DefaultConfig as subxt::Config>::AccountId;
 pub type Hash = <DefaultConfig as subxt::Config>::Hash;
-pub type Signer = PairSigner<DefaultConfig, DefaultExtra<DefaultConfig>, sr25519::Pair>;
+pub type Signer = PairSigner<DefaultConfig, sr25519::Pair>;
 
 /// Trait implemented by [`smart_bench_macro::contract`] for all contract constructors.
 pub trait InkConstructor: codec::Encode {

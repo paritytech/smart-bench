@@ -6,19 +6,20 @@ use jsonrpsee::{
 };
 use serde::Serialize;
 use sp_core::{Bytes, H256};
-use subxt::{rpc::NumberOrHex, DefaultConfig, DefaultExtra, Signer as _};
+use subxt::{rpc::NumberOrHex, DefaultConfig, PolkadotExtrinsicParams};
 
 const DRY_RUN_GAS_LIMIT: u64 = 500_000_000_000;
 
+type RuntimeApi = api::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
+
 pub struct ContractsApi {
-    pub api: api::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>,
+    pub api: RuntimeApi,
     ws_client: WsClient,
 }
 
 impl ContractsApi {
     pub async fn new(client: subxt::Client<DefaultConfig>, url: &str) -> color_eyre::Result<Self> {
-        let api =
-            client.to_runtime_api::<api::RuntimeApi<DefaultConfig, DefaultExtra<DefaultConfig>>>();
+        let api = client.to_runtime_api::<RuntimeApi>();
         let ws_client = WsClientBuilder::default().build(&url).await?;
         Ok(Self { api, ws_client })
     }
@@ -68,7 +69,7 @@ impl ContractsApi {
             .tx()
             .contracts()
             .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt)
-            .sign_and_submit(signer)
+            .sign_and_submit_default(signer)
             .await?;
 
         Ok(tx_hash)
@@ -118,7 +119,7 @@ impl ContractsApi {
                 storage_deposit_limit,
                 data,
             )
-            .sign_and_submit(signer)
+            .sign_and_submit_default(signer)
             .await?;
 
         Ok(tx_hash)
