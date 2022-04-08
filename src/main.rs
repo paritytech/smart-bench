@@ -1,4 +1,3 @@
-mod blocks;
 mod canvas;
 mod moonbeam;
 
@@ -23,9 +22,6 @@ pub struct Cli {
     /// the number of calls to make to each contract.
     #[clap(long, short)]
     call_count: u32,
-    /// gas limit for all contract extrinsics.
-    #[clap(long, short, default_value = "50000000000")]
-    gas_limit: canvas::Gas,
 }
 
 #[tokio::main]

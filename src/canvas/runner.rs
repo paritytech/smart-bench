@@ -1,21 +1,20 @@
 use super::*;
-use crate::blocks;
 use codec::Encode;
 use color_eyre::eyre;
-use subxt::Signer as _;
+use futures::{future, StreamExt, TryStream, TryStreamExt};
+use sp_runtime::traits::{BlakeTwo256, Hash as _};
 
 pub const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<Balance> = None;
 
 pub struct BenchRunner {
     url: String,
     api: ContractsApi,
-    gas_limit: Gas,
     signer: Signer,
     calls: Vec<(String, Vec<Call>)>,
 }
 
 impl BenchRunner {
-    pub async fn new(mut signer: Signer, gas_limit: Gas, url: &str) -> color_eyre::Result<Self> {
+    pub async fn new(mut signer: Signer, url: &str) -> color_eyre::Result<Self> {
         let client = subxt::ClientBuilder::new().set_url(url).build().await?;
 
         let nonce = client
@@ -24,13 +23,12 @@ impl BenchRunner {
             .await?;
         signer.set_nonce(nonce);
 
-        let api = ContractsApi::new(client);
+        let api = ContractsApi::new(client, url).await?;
 
         Ok(Self {
             url: url.to_string(),
             api,
             signer,
-            gas_limit,
             calls: Vec::new(),
         })
     }
@@ -47,7 +45,7 @@ impl BenchRunner {
         C: InkConstructor,
         F: FnMut() -> EncodedMessage,
     {
-        println!("Preparing {name}");
+        print!("Preparing {name}...");
 
         let root = std::env::var("CARGO_MANIFEST_DIR")?;
         let contract_path = format!("contracts/{name}.contract");
@@ -58,6 +56,8 @@ impl BenchRunner {
             .source
             .wasm
             .ok_or_else(|| eyre::eyre!("contract bundle missing source Wasm"))?;
+
+        println!("{}KiB", code.0.len() / 1024);
 
         let contract_accounts = self
             .exec_instantiate(0, code.0, &constructor, instance_count)
@@ -91,24 +91,74 @@ impl BenchRunner {
         let mut data = C::SELECTOR.to_vec();
         <C as Encode>::encode_to(constructor, &mut data);
 
+        // dry run the instantiate to calculate the gas limit
+        let gas_limit = {
+            let code = append_unique_name_section(&code, 0)?;
+            let dry_run = self
+                .api
+                .instantiate_with_code_dry_run(
+                    value,
+                    DEFAULT_STORAGE_DEPOSIT_LIMIT,
+                    code,
+                    data.clone(),
+                    Vec::new(),
+                    &self.signer,
+                )
+                .await?;
+            dry_run.gas_required
+        };
+
+        let mut failed_or_instantiated_events =
+            self.api.api.events().subscribe().await?.filter_events::<(
+                api::system::events::ExtrinsicFailed,
+                api::contracts::events::Instantiated,
+            )>();
+
         let mut accounts = Vec::new();
         for i in 0..count {
-            let salt = i.to_le_bytes().to_vec();
+            let code = append_unique_name_section(&code, i)?;
+            let salt = Vec::new();
 
-            let contract = self
-                .api
+            self.api
                 .instantiate_with_code(
                     value,
-                    self.gas_limit,
+                    gas_limit,
                     DEFAULT_STORAGE_DEPOSIT_LIMIT,
-                    code.clone(),
+                    code,
                     data.clone(),
                     salt,
                     &mut self.signer,
                 )
                 .await?;
-            accounts.push(contract);
             self.signer.increment_nonce();
+        }
+
+        while let Some(Ok(info)) = failed_or_instantiated_events.next().await {
+            match info.event {
+                (Some(failed), None) => {
+                    let error_data =
+                        subxt::HasModuleError::module_error_data(&failed.dispatch_error).ok_or(
+                            eyre::eyre!("Failed to find error details for {:?},", failed),
+                        )?;
+                    let details = self
+                        .api
+                        .api
+                        .client
+                        .metadata()
+                        .error(error_data.pallet_index, error_data.error_index())?;
+                    return Err(eyre::eyre!(
+                        "Instantiate Extrinsic Failed: {:?}",
+                        details.description()
+                    ));
+                }
+                (None, Some(instantiated)) => {
+                    accounts.push(instantiated.contract);
+                    if accounts.len() == count as usize {
+                        break;
+                    }
+                }
+                _ => return Err(eyre::eyre!("Events should be XOR, got {:?}", info.event)),
+            }
         }
 
         Ok(accounts)
@@ -119,8 +169,8 @@ impl BenchRunner {
     pub async fn run(
         &mut self,
         call_count: u32,
-    ) -> color_eyre::Result<impl futures::Stream<Item = blocks::BlockExtrinsics>> {
-        let block_subscription = blocks::BlocksSubscription::new(&self.url).await?;
+    ) -> color_eyre::Result<impl TryStream<Ok = BlockInfo, Error = color_eyre::Report> + '_> {
+        let block_stats = povstats::subscribe_stats(&self.url).await?;
 
         let mut tx_hashes = Vec::new();
         let max_instance_count = self
@@ -134,12 +184,27 @@ impl BenchRunner {
             for i in 0..max_instance_count {
                 for (_name, contract_calls) in &self.calls {
                     if let Some(contract_call) = contract_calls.get(i as usize) {
+                        // dry run the call to calculate the gas limit
+                        let gas_limit = {
+                            let dry_run = self
+                                .api
+                                .call_dry_run(
+                                    contract_call.contract_account.clone(),
+                                    0,
+                                    DEFAULT_STORAGE_DEPOSIT_LIMIT,
+                                    contract_call.call_data.0.clone(),
+                                    &self.signer,
+                                )
+                                .await?;
+                            dry_run.gas_required
+                        };
+
                         let tx_hash = self
                             .api
                             .call(
                                 contract_call.contract_account.clone(),
                                 0,
-                                self.gas_limit,
+                                gas_limit,
                                 DEFAULT_STORAGE_DEPOSIT_LIMIT,
                                 contract_call.call_data.0.clone(),
                                 &self.signer,
@@ -154,8 +219,43 @@ impl BenchRunner {
 
         println!("Submitted {} total contract calls", tx_hashes.len());
 
-        Ok(block_subscription.wait_for_txs(&tx_hashes))
+        let mut remaining_hashes: std::collections::HashSet<Hash> =
+            tx_hashes.iter().cloned().collect();
+
+        let wait_for_txs = block_stats
+            .map_err(|e| eyre::eyre!("Block stats subscription error: {e:?}"))
+            .and_then(|stats| {
+                let client = self.api.api.client.clone();
+                async move {
+                    let block = client.rpc().block(Some(stats.hash)).await?;
+                    let extrinsics = block
+                        .unwrap_or_else(|| panic!("block {} not found", stats.hash))
+                        .block
+                        .extrinsics
+                        .iter()
+                        .map(BlakeTwo256::hash_of)
+                        .collect();
+                    Ok(BlockInfo { extrinsics, stats })
+                }
+            })
+            .try_take_while(move |block_info| {
+                let some_remaining_txs = !remaining_hashes.is_empty();
+                for xt in &block_info.extrinsics {
+                    remaining_hashes.remove(xt);
+                }
+                future::ready(Ok(some_remaining_txs))
+            });
+
+        Ok(wait_for_txs)
     }
+}
+
+/// Add a custom section to make the Wasm code unique to upload many copies of the same contract.
+fn append_unique_name_section(code: &[u8], instance_id: u32) -> color_eyre::Result<Vec<u8>> {
+    let mut module: parity_wasm::elements::Module = parity_wasm::deserialize_buffer(code)?;
+    module.set_custom_section("smart-bench-unique", instance_id.to_le_bytes().to_vec());
+    let code = module.to_bytes()?;
+    Ok(code)
 }
 
 #[derive(Clone)]
@@ -182,4 +282,9 @@ where
 pub struct Call {
     contract_account: AccountId,
     call_data: EncodedMessage,
+}
+
+pub struct BlockInfo {
+    pub stats: povstats::BlockStats,
+    pub extrinsics: Vec<Hash>,
 }
