@@ -1,7 +1,7 @@
 use super::account::*;
 use color_eyre::eyre;
 use sp_core::{ecdsa, H160, H256, U256};
-use subxt::{DefaultExtra, PairSigner, Signer as _};
+use subxt::{SubstrateExtrinsicParams, PairSigner, extrinsic::Signer as _};
 
 pub enum MoonbeamConfig {}
 
@@ -17,7 +17,7 @@ impl subxt::Config for MoonbeamConfig {
     type Extrinsic = sp_runtime::OpaqueExtrinsic;
 }
 
-pub type Signer = PairSigner<MoonbeamConfig, DefaultExtra<MoonbeamConfig>, ecdsa::Pair>;
+pub type Signer = PairSigner<MoonbeamConfig, ecdsa::Pair>;
 
 #[subxt::subxt(runtime_metadata_path = "metadata/moonbeam.scale")]
 pub mod api {
@@ -28,13 +28,13 @@ pub mod api {
 }
 
 pub struct MoonbeamApi {
-    api: api::RuntimeApi<MoonbeamConfig, DefaultExtra<MoonbeamConfig>>,
+    api: api::RuntimeApi<MoonbeamConfig, SubstrateExtrinsicParams<MoonbeamConfig>>,
 }
 
 impl MoonbeamApi {
     pub fn new(client: subxt::Client<MoonbeamConfig>) -> Self {
         let api = client
-            .to_runtime_api::<api::RuntimeApi<MoonbeamConfig, DefaultExtra<MoonbeamConfig>>>();
+            .to_runtime_api::<api::RuntimeApi<MoonbeamConfig, SubstrateExtrinsicParams<MoonbeamConfig>>>();
         Self { api }
     }
 
@@ -66,7 +66,7 @@ impl MoonbeamApi {
                 max_priority_fee_per_gas,
                 access_list,
             )
-            .sign_and_submit_then_watch(signer)
+            .sign_and_submit_then_watch_default(signer)
             .await?
             .wait_for_in_block()
             .await?
@@ -108,7 +108,7 @@ impl MoonbeamApi {
                 max_priority_fee_per_gas,
                 access_list,
             )
-            .sign_and_submit(signer)
+            .sign_and_submit_default(signer)
             .await?;
 
         Ok(tx_hash)
