@@ -37,5 +37,7 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
         .create2(data, salt, value, gas_limit, nonce, &signer)
         .await?;
 
+    println!("Created new contract {:?}", contract_account);
+
     Ok(())
 }
