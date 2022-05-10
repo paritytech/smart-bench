@@ -1789,7 +1789,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "povstats"
 version = "0.1.0"
-source = "git+https://github.com/athei/povstats?branch=master#317a788fdf8a52fb1a2f5286919e3f550f5b8c24"
+source = "git+https://github.com/ascjones/povstats?branch=aj/update-subxt#79d09d06e8be26bd91e7e86fc723e86e2b7c146d"
 dependencies = [
  "clap",
  "futures",

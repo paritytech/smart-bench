@@ -1,4 +1,4 @@
-use super::account::*;
+use super::account::{AccountId20, EthereumSignature};
 use color_eyre::eyre;
 use sp_core::{ecdsa, H160, H256, U256};
 use subxt::{PolkadotExtrinsicParams, PairSigner};
@@ -25,6 +25,8 @@ pub mod api {
     use sp_core::H160;
     #[subxt(substitute_type = "primitive_types::U256")]
     use sp_core::U256;
+    #[subxt(substitute_type = "account::AccountId20")]
+    use crate::moonbeam::xts::AccountId20;
 }
 
 pub struct MoonbeamApi {
@@ -37,6 +39,34 @@ impl MoonbeamApi {
             .to_runtime_api::<api::RuntimeApi<MoonbeamConfig, PolkadotExtrinsicParams<MoonbeamConfig>>>();
         Self { api }
     }
+
+    pub async fn transfer(
+        &self,
+        signer: &Signer,
+        dest: AccountId20,
+    ) -> color_eyre::Result<()> {
+        let result = self
+            .api
+            .tx()
+            .balances()
+            .transfer(
+                dest,
+                10_000
+            )?
+            .sign_and_submit_then_watch_default(signer)
+            .await?
+            .wait_for_in_block()
+            .await?
+            .wait_for_success()
+            .await?;
+
+        let _ = result
+            .find_first::<api::balances::events::Transfer>()?
+            .ok_or_else(|| eyre::eyre!("Failed to find Transfer event"))?;
+
+        Ok(())
+    }
+
 
     pub async fn create2(
         &self,
@@ -65,7 +95,7 @@ impl MoonbeamApi {
                 nonce,
                 max_priority_fee_per_gas,
                 access_list,
-            )
+            )?
             .sign_and_submit_then_watch_default(signer)
             .await?
             .wait_for_in_block()
@@ -107,7 +137,7 @@ impl MoonbeamApi {
                 nonce,
                 max_priority_fee_per_gas,
                 access_list,
-            )
+            )?
             .sign_and_submit_default(signer)
             .await?;
 

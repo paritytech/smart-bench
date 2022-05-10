@@ -68,7 +68,7 @@ impl ContractsApi {
             .api
             .tx()
             .contracts()
-            .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt)
+            .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt)?
             .sign_and_submit_default(signer)
             .await?;
 
@@ -118,7 +118,7 @@ impl ContractsApi {
                 gas_limit,
                 storage_deposit_limit,
                 data,
-            )
+            )?
             .sign_and_submit_default(signer)
             .await?;
 
