@@ -32,15 +32,17 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     let salt = H256::zero();
     let value = U256::zero();
     let gas_limit = 21_000_000;
-    let nonce = None;
+    // let nonce = None;
     let signer = xts::alice();
 
-    let contract_account = api
-        .create2(data, salt, value, gas_limit, nonce, &signer)
-        .await
-        .note("Error calling create2")?;
+    api.transfer(&signer, xts::bob().account_id().clone()).await?;
 
-    println!("Created new contract {:?}", contract_account);
+    // let contract_account = api
+    //     .create2(data, salt, value, gas_limit, nonce, &signer)
+    //     .await
+    //     .note("Error calling create2")?;
+
+    // println!("Created new contract {:?}", contract_account);
 
     Ok(())
 }

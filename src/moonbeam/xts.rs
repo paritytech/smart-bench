@@ -153,3 +153,12 @@ pub fn alice() -> Signer {
     .unwrap();
     Signer::new(pair)
 }
+
+pub fn bob() -> Signer {
+    let pair = <ecdsa::Pair as sp_core::Pair>::from_string(
+        "0x8075991ce870b93a8870eca0c0f91913d12f47948ca0fd25b49c6fa7cdbeee8b",
+        None,
+    )
+        .unwrap();
+    Signer::new(pair)
+}
