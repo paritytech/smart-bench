@@ -1,7 +1,7 @@
 use super::account::*;
 use color_eyre::eyre;
 use sp_core::{ecdsa, H160, H256, U256};
-use subxt::{SubstrateExtrinsicParams, PairSigner, extrinsic::Signer as _};
+use subxt::{PolkadotExtrinsicParams, PairSigner};
 
 pub enum MoonbeamConfig {}
 
@@ -28,13 +28,13 @@ pub mod api {
 }
 
 pub struct MoonbeamApi {
-    api: api::RuntimeApi<MoonbeamConfig, SubstrateExtrinsicParams<MoonbeamConfig>>,
+    api: api::RuntimeApi<MoonbeamConfig, PolkadotExtrinsicParams<MoonbeamConfig>>,
 }
 
 impl MoonbeamApi {
     pub fn new(client: subxt::Client<MoonbeamConfig>) -> Self {
         let api = client
-            .to_runtime_api::<api::RuntimeApi<MoonbeamConfig, SubstrateExtrinsicParams<MoonbeamConfig>>>();
+            .to_runtime_api::<api::RuntimeApi<MoonbeamConfig, PolkadotExtrinsicParams<MoonbeamConfig>>>();
         Self { api }
     }
 
