@@ -2339,6 +2339,7 @@ dependencies = [
  "contract-metadata 0.6.0",
  "ethabi",
  "futures",
+ "impl-serde",
  "jsonrpsee 0.9.0",
  "libsecp256k1 0.6.0",
  "pallet-contracts-primitives",

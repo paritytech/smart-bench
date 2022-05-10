@@ -1,11 +1,13 @@
 use codec::{Decode, Encode};
 use sha3::{Digest, Keccak256};
-use sp_core::{ecdsa, serde, H160, H256};
+use sp_core::{ecdsa, H160, H256};
 
 #[derive(
-    Eq, PartialEq, Copy, Clone, Encode, Decode, Default, PartialOrd, Ord, serde::Serialize,
+    Eq, PartialEq, Copy, Clone, Encode, Decode, Default, PartialOrd, Ord,
 )]
 pub struct AccountId20(pub [u8; 20]);
+
+impl_serde::impl_fixed_hash_serde!(AccountId20, 20);
 
 impl core::fmt::Debug for AccountId20 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

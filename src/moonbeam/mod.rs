@@ -29,7 +29,6 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
         .constructor()
         .ok_or_else(|| eyre::eyre!("No constructor for contract found"))?;
     let data = constructor.encode_input(code.into(), &[ethabi::Token::Uint(0u32.into())])?;
-    println!("data {:?}", data);
     let salt = H256::zero();
     let value = U256::zero();
     let gas_limit = 21_000_000;

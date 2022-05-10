@@ -12,6 +12,7 @@ tokio = { version = "1.17.0", features = ["rt-multi-thread"] }
 color-eyre = "0.6.0"
 codec = { package = "parity-scale-codec", version = "3", default-features = false }
 contract-metadata = { package = "contract-metadata", git = "https://github.com/paritytech/cargo-contract", branch = "master" }
+impl-serde = { version = "0.3.1", default-features = false }
 serde = { version = "1.0.136", default-features = false, features = ["derive"] }
 serde_json = "1.0.79"
 clap = { version = "3.1.6", features = ["derive"] }
