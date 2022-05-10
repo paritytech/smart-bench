@@ -278,6 +278,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "chameleon"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12bd83544cd11113170ce1eee45383928f3f720bc8b305af18c2a3da3547e1ae"
+
+[[package]]
 name = "chrono"
 version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -466,12 +472,36 @@ dependencies = [
 
 [[package]]
 name = "darling"
+version = "0.13.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a01d95850c592940db9b8194bc39f4bc0e89dee5c4265e4b1807c34a9aba453c"
+dependencies = [
+ "darling_core 0.13.4",
+ "darling_macro 0.13.4",
+]
+
+[[package]]
+name = "darling"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4529658bdda7fd6769b8614be250cdcfc3aeb0ee72fe66f9e41e5e5eb73eac02"
 dependencies = [
- "darling_core",
- "darling_macro",
+ "darling_core 0.14.1",
+ "darling_macro 0.14.1",
+]
+
+[[package]]
+name = "darling_core"
+version = "0.13.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "859d65a907b6852c9361e3185c862aae7fafd2887876799fa55f5f99dc40d610"
+dependencies = [
+ "fnv",
+ "ident_case",
+ "proc-macro2",
+ "quote",
+ "strsim",
+ "syn",
 ]
 
 [[package]]
@@ -490,11 +520,22 @@ dependencies = [
 
 [[package]]
 name = "darling_macro"
+version = "0.13.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c972679f83bdf9c42bd905396b6c3588a843a17f0f16dfcfa3e2c5d57441835"
+dependencies = [
+ "darling_core 0.13.4",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "darling_macro"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddfc69c5bfcbd2fc09a0f38451d2daf0e372e367986a83906d1b0dbc88134fb5"
 dependencies = [
- "darling_core",
+ "darling_core 0.14.1",
  "quote",
  "syn",
 ]
@@ -1152,6 +1193,16 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05fd8cd6c6b1bbd06881d2cf88f1fc83cc36c98f2219090f839115fb4a956cb9"
+dependencies = [
+ "jsonrpsee-client-transport 0.8.0",
+ "jsonrpsee-core 0.8.0",
+]
+
+[[package]]
+name = "jsonrpsee"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0d0b8cc1959f8c05256ace093b2317482da9127f1d9227564f47e7e6bf9bda8"
@@ -1169,6 +1220,27 @@ checksum = "ad6f9ff3481f3069c92474b697c104502f7e9191d29b34bfa38ae9a19415f1cd"
 dependencies = [
  "jsonrpsee-client-transport 0.12.0",
  "jsonrpsee-core 0.12.0",
+]
+
+[[package]]
+name = "jsonrpsee-client-transport"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3303cdf246e6ab76e2866fb3d9acb6c76a068b1b28bd923a1b7a8122257ad7b5"
+dependencies = [
+ "futures",
+ "http",
+ "jsonrpsee-core 0.8.0",
+ "jsonrpsee-types 0.8.0",
+ "pin-project",
+ "rustls-native-certs",
+ "soketto",
+ "thiserror",
+ "tokio",
+ "tokio-rustls",
+ "tokio-util 0.6.9",
+ "tracing",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -1215,6 +1287,29 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-core"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f220b5a238dc7992b90f1144fbf6eaa585872c9376afe6fe6863ffead6191bf3"
+dependencies = [
+ "anyhow",
+ "arrayvec 0.7.2",
+ "async-trait",
+ "beef",
+ "futures-channel",
+ "futures-util",
+ "hyper",
+ "jsonrpsee-types 0.8.0",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "soketto",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "jsonrpsee-core"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22abc3274b265dcefe2e26c4beecf9fda4fffa48cf94930443a6c73678f020d5"
@@ -1255,6 +1350,20 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "jsonrpsee-types"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1b3f601bbbe45cd63f5407b6f7d7950e08a7d4f82aa699ff41a4a5e9e54df58"
+dependencies = [
+ "anyhow",
+ "beef",
+ "serde",
+ "serde_json",
+ "thiserror",
  "tracing",
 ]
 
@@ -1663,7 +1772,7 @@ version = "3.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c45ed1f39709f5a89338fab50e59816b2e8815f5bb58276e7ddf9afd495f73f8"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.1.3",
  "proc-macro2",
  "quote",
  "syn",
@@ -1789,12 +1898,13 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "povstats"
 version = "0.1.0"
-source = "git+https://github.com/ascjones/povstats?branch=aj/update-subxt#79d09d06e8be26bd91e7e86fc723e86e2b7c146d"
+source = "git+https://github.com/ascjones/povstats?branch=master#0858473494b09c38d88d48ed9258824356507a6e"
 dependencies = [
  "clap",
  "futures",
+ "once_cell",
  "parity-scale-codec",
- "subxt",
+ "subxt 0.18.1",
  "tokio",
 ]
 
@@ -1816,6 +1926,15 @@ dependencies = [
  "impl-serde",
  "scale-info",
  "uint",
+]
+
+[[package]]
+name = "proc-macro-crate"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d6ea3c4595b96363c13943497db34af4460fb474a95c43f4446ad341b8c9785"
+dependencies = [
+ "toml",
 ]
 
 [[package]]
@@ -2120,7 +2239,7 @@ version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7805950c36512db9e3251c970bb7ac425f326716941862205d612ab3b5e46e2"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.1.3",
  "proc-macro2",
  "quote",
  "syn",
@@ -2359,7 +2478,7 @@ dependencies = [
  "sp-io",
  "sp-keyring",
  "sp-runtime",
- "subxt",
+ "subxt 0.21.0",
  "tokio",
 ]
 
@@ -2375,7 +2494,7 @@ dependencies = [
  "quote",
  "serde",
  "serde_json",
- "subxt-codegen",
+ "subxt-codegen 0.21.0",
  "syn",
 ]
 
@@ -2643,7 +2762,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22ecb916b9664ed9f90abef0ff5a3e61454c1efea5861b2997e03f39b59b955f"
 dependencies = [
  "Inflector",
- "proc-macro-crate",
+ "proc-macro-crate 1.1.3",
  "proc-macro2",
  "quote",
  "syn",
@@ -2810,6 +2929,30 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "subxt"
+version = "0.18.1"
+source = "git+https://github.com/paritytech/subxt.git?branch=at-block-stats#16d4306dfa7725d11c1c7f0539b4b3e3f0d99443"
+dependencies = [
+ "async-trait",
+ "bitvec",
+ "chameleon",
+ "derivative",
+ "frame-metadata",
+ "futures",
+ "hex",
+ "jsonrpsee 0.8.0",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "sp-core",
+ "sp-runtime",
+ "subxt-macro 0.18.1",
+ "thiserror",
+]
+
+[[package]]
+name = "subxt"
 version = "0.21.0"
 source = "git+https://github.com/paritytech/subxt?branch=master#199cfa744b33be555ca0786a032a34120aaeb2d4"
 dependencies = [
@@ -2827,9 +2970,27 @@ dependencies = [
  "serde_json",
  "sp-core",
  "sp-runtime",
- "subxt-macro",
+ "subxt-macro 0.21.0",
  "subxt-metadata",
  "thiserror",
+]
+
+[[package]]
+name = "subxt-codegen"
+version = "0.18.1"
+source = "git+https://github.com/paritytech/subxt.git?branch=at-block-stats#16d4306dfa7725d11c1c7f0539b4b3e3f0d99443"
+dependencies = [
+ "async-trait",
+ "darling 0.13.4",
+ "frame-metadata",
+ "heck 0.4.0",
+ "parity-scale-codec",
+ "proc-macro-crate 0.1.5",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "scale-info",
+ "syn",
 ]
 
 [[package]]
@@ -2837,7 +2998,7 @@ name = "subxt-codegen"
 version = "0.21.0"
 source = "git+https://github.com/paritytech/subxt?branch=master#199cfa744b33be555ca0786a032a34120aaeb2d4"
 dependencies = [
- "darling",
+ "darling 0.14.1",
  "frame-metadata",
  "heck 0.4.0",
  "parity-scale-codec",
@@ -2851,12 +3012,31 @@ dependencies = [
 
 [[package]]
 name = "subxt-macro"
+version = "0.18.1"
+source = "git+https://github.com/paritytech/subxt.git?branch=at-block-stats#16d4306dfa7725d11c1c7f0539b4b3e3f0d99443"
+dependencies = [
+ "async-trait",
+ "darling 0.13.4",
+ "frame-metadata",
+ "heck 0.4.0",
+ "parity-scale-codec",
+ "proc-macro-crate 0.1.5",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "scale-info",
+ "subxt-codegen 0.18.1",
+ "syn",
+]
+
+[[package]]
+name = "subxt-macro"
 version = "0.21.0"
 source = "git+https://github.com/paritytech/subxt?branch=master#199cfa744b33be555ca0786a032a34120aaeb2d4"
 dependencies = [
- "darling",
+ "darling 0.14.1",
  "proc-macro-error",
- "subxt-codegen",
+ "subxt-codegen 0.21.0",
  "syn",
 ]
 
