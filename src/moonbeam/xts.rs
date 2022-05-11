@@ -8,7 +8,7 @@ pub enum MoonbeamConfig {}
 impl subxt::Config for MoonbeamConfig {
     type Index = u32;
     type BlockNumber = u32;
-    type Hash = sp_core::H256;
+    type Hash = H256;
     type Hashing = sp_runtime::traits::BlakeTwo256;
     type AccountId = AccountId20;
     type Address = Self::AccountId;
