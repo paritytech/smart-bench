@@ -1,8 +1,9 @@
 use super::account::{AccountId20, EthereumSignature};
 use color_eyre::eyre;
 use sp_core::{ecdsa, H160, H256, U256};
-use subxt::{PolkadotExtrinsicParams, PairSigner};
+use subxt::{PolkadotExtrinsicParams, PairSigner, extrinsic::Era, PolkadotExtrinsicParamsBuilder as Params};
 
+#[derive(Debug)]
 pub enum MoonbeamConfig {}
 
 impl subxt::Config for MoonbeamConfig {
@@ -45,6 +46,9 @@ impl MoonbeamApi {
         signer: &Signer,
         dest: AccountId20,
     ) -> color_eyre::Result<()> {
+        let tx_params = Params::new()
+            .era(Era::mortal(256, 0), *self.api.client.genesis());
+
         let result = self
             .api
             .tx()
@@ -53,7 +57,7 @@ impl MoonbeamApi {
                 dest,
                 10_000
             )?
-            .sign_and_submit_then_watch_default(signer)
+            .sign_and_submit_then_watch(signer, tx_params)
             .await?
             .wait_for_in_block()
             .await?
