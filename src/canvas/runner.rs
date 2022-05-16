@@ -140,15 +140,20 @@ impl BenchRunner {
                         subxt::HasModuleError::module_error_data(&failed.dispatch_error).ok_or(
                             eyre::eyre!("Failed to find error details for {:?},", failed),
                         )?;
-                    let details = self
-                        .api
-                        .api
-                        .client
-                        .metadata()
-                        .error(error_data.pallet_index, error_data.error_index())?;
+                    let description = {
+                        let metadata = self
+                            .api
+                            .api
+                            .client
+                            .metadata();
+                        let locked_metadata = metadata.read();
+                        let details = locked_metadata.error(error_data.pallet_index, error_data.error_index())?;
+                        details.description().to_vec()
+                    };
+
                     return Err(eyre::eyre!(
                         "Instantiate Extrinsic Failed: {:?}",
-                        details.description()
+                        description
                     ));
                 }
                 (None, Some(instantiated)) => {
