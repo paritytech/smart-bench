@@ -1,6 +1,6 @@
-// Import the API, Keyring and some utility functions
-const { ApiPromise } = require('@polkadot/api');
-const { Keyring } = require('@polkadot/keyring');
+import '@moonbeam-network/api-augment/moonbase'
+import { ApiPromise } from '@polkadot/api';
+import { Keyring } from '@polkadot/keyring';
 
 const BOB = '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty';
 

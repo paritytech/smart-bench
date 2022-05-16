@@ -2,5 +2,6 @@ yarn.lock
 node_modules
 dist
 moonbeam.js
+*.d.ts
 yarn.lock
 yarn-error.log
