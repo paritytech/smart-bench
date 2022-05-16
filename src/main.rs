@@ -28,6 +28,7 @@ pub struct Cli {
 async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let cli = Cli::parse();
+    tracing_subscriber::fmt::init();
 
     // canvas::exec(cli).await?;
 

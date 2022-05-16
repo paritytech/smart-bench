@@ -2361,6 +2361,8 @@ dependencies = [
  "sp-runtime",
  "subxt",
  "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.11",
 ]
 
 [[package]]
@@ -2811,7 +2813,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "subxt"
 version = "0.21.0"
-source = "git+https://github.com/paritytech/subxt?branch=master#199cfa744b33be555ca0786a032a34120aaeb2d4"
+source = "git+https://github.com/paritytech/subxt?branch=master#1658e8d93de9ccf24c09086dca8d11e8971375fc"
 dependencies = [
  "bitvec",
  "derivative",
@@ -2819,7 +2821,6 @@ dependencies = [
  "futures",
  "hex",
  "jsonrpsee 0.12.0",
- "log",
  "parity-scale-codec",
  "parking_lot",
  "scale-info",
@@ -2830,12 +2831,13 @@ dependencies = [
  "subxt-macro",
  "subxt-metadata",
  "thiserror",
+ "tracing",
 ]
 
 [[package]]
 name = "subxt-codegen"
 version = "0.21.0"
-source = "git+https://github.com/paritytech/subxt?branch=master#199cfa744b33be555ca0786a032a34120aaeb2d4"
+source = "git+https://github.com/paritytech/subxt?branch=master#1658e8d93de9ccf24c09086dca8d11e8971375fc"
 dependencies = [
  "darling",
  "frame-metadata",
@@ -2852,7 +2854,7 @@ dependencies = [
 [[package]]
 name = "subxt-macro"
 version = "0.21.0"
-source = "git+https://github.com/paritytech/subxt?branch=master#199cfa744b33be555ca0786a032a34120aaeb2d4"
+source = "git+https://github.com/paritytech/subxt?branch=master#1658e8d93de9ccf24c09086dca8d11e8971375fc"
 dependencies = [
  "darling",
  "proc-macro-error",
@@ -2863,7 +2865,7 @@ dependencies = [
 [[package]]
 name = "subxt-metadata"
 version = "0.21.0"
-source = "git+https://github.com/paritytech/subxt?branch=master#199cfa744b33be555ca0786a032a34120aaeb2d4"
+source = "git+https://github.com/paritytech/subxt?branch=master#1658e8d93de9ccf24c09086dca8d11e8971375fc"
 dependencies = [
  "frame-metadata",
  "parity-scale-codec",
@@ -3070,9 +3072,9 @@ checksum = "360dfd1d6d30e05fda32ace2c8c70e9c0a9da713275777f5a4dbb8a1893930c6"
 
 [[package]]
 name = "tracing"
-version = "0.1.32"
+version = "0.1.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a1bdf54a7c28a2bbf701e1d2233f6c77f473486b94bee4f9678da5a148dca7f"
+checksum = "5d0ecdcb44a79f0fe9844f0c4f33a342cbcbb5117de8001e6ba0dc2351327d09"
 dependencies = [
  "cfg-if",
  "pin-project-lite",
@@ -3108,7 +3110,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d686ec1c0f384b1277f097b2f279a2ecc11afe8c133c1aabf036a27cb4cd206e"
 dependencies = [
  "tracing",
- "tracing-subscriber 0.3.9",
+ "tracing-subscriber 0.3.11",
 ]
 
 [[package]]
@@ -3156,13 +3158,16 @@ dependencies = [
 
 [[package]]
 name = "tracing-subscriber"
-version = "0.3.9"
+version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e0ab7bdc962035a87fba73f3acca9b8a8d0034c2e6f60b84aeaaddddc155dce"
+checksum = "4bc28f93baff38037f64e6f43d34cfa1605f27a49c34e8a04c5e78b0babf2596"
 dependencies = [
+ "ansi_term",
  "sharded-slab",
+ "smallvec",
  "thread_local",
  "tracing-core",
+ "tracing-log",
 ]
 
 [[package]]
