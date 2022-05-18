@@ -46,9 +46,6 @@ impl MoonbeamApi {
         signer: &Signer,
         dest: AccountId20,
     ) -> color_eyre::Result<()> {
-        let tx_params = Params::new()
-            .era(Era::mortal(256, 0), *self.api.client.genesis());
-
         let result = self
             .api
             .tx()
@@ -57,7 +54,7 @@ impl MoonbeamApi {
                 dest,
                 10_000
             )?
-            .sign_and_submit_then_watch(signer, tx_params)
+            .sign_and_submit_then_watch_default(signer)
             .await?
             .wait_for_in_block()
             .await?
