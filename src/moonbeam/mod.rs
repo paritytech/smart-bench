@@ -5,7 +5,6 @@ use crate::Cli;
 use color_eyre::{Section as _, eyre};
 use ethabi::Contract;
 use sp_core::{H256, U256};
-use subxt::extrinsic::Signer;
 
 pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     let client = subxt::ClientBuilder::new()
@@ -32,18 +31,16 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     let data = constructor.encode_input(code.into(), &[ethabi::Token::Uint(0u32.into())])?;
     let salt = H256::zero();
     let value = U256::zero();
-    let gas_limit = 21_000_000;
-    // let nonce = None;
+    let gas_limit = 1_000_000;
+    let nonce = None;
     let signer = xts::alice();
 
-    api.transfer(&signer, xts::bob().account_id().clone()).await?;
+    let contract_account = api
+        .create2(data, salt, value, gas_limit, nonce, &signer)
+        .await
+        .note("Error calling create2")?;
 
-    // let contract_account = api
-    //     .create2(data, salt, value, gas_limit, nonce, &signer)
-    //     .await
-    //     .note("Error calling create2")?;
-
-    // println!("Created new contract {:?}", contract_account);
+    println!("Created new contract {:?}", contract_account);
 
     Ok(())
 }
