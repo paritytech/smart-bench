@@ -72,3 +72,30 @@ impl From<ecdsa::Public> for EthereumSigner {
         EthereumSigner(account.into())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use impl_serde::serialize::from_hex;
+    use sp_core::{ecdsa, Pair};
+    use sp_runtime::traits::{IdentifyAccount, Verify};
+
+    #[test]
+    fn test_verify() {
+        let pair = <ecdsa::Pair as Pair>::from_string(
+            "0x5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133",
+            None,
+        ).unwrap();
+        let account_id =
+            <EthereumSignature as Verify>::Signer::from(pair.public()).into_account();
+
+        let message = from_hex("0x00").unwrap();
+
+        // Bad signature, because it uses the wrong hashing: `self.sign_prehashed(&blake2_256(message))`
+        let signature = pair.sign(&message);
+        assert!(!EthereumSignature::from(signature).verify(&message[..], &account_id));
+
+        let signature2 = pair.sign_prehashed(&sp_core::keccak_256(&message));
+        assert!(EthereumSignature::from(signature2).verify(&message[..], &account_id));
+    }
+}
