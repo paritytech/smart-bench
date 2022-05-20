@@ -5,6 +5,7 @@ use crate::Cli;
 use color_eyre::{Section as _, eyre};
 use ethabi::Contract;
 use sp_core::{H256, U256};
+use subxt::extrinsic::Signer;
 
 pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     let client = subxt::ClientBuilder::new()

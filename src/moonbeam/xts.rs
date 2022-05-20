@@ -1,7 +1,7 @@
-use super::account::{AccountId20, EthereumSignature};
+use super::account::{AccountId20, EthereumSignature, EthereumSigner};
 use color_eyre::eyre;
-use sp_core::{ecdsa, H160, H256, U256};
-use subxt::{PolkadotExtrinsicParams, PairSigner, extrinsic::Era, PolkadotExtrinsicParamsBuilder as Params};
+use sp_core::{ecdsa, H160, H256, U256, Pair};
+use subxt::{PolkadotExtrinsicParams, extrinsic::Signer};
 
 #[derive(Debug)]
 pub enum MoonbeamConfig {}
@@ -18,7 +18,46 @@ impl subxt::Config for MoonbeamConfig {
     type Extrinsic = sp_runtime::OpaqueExtrinsic;
 }
 
-pub type Signer = PairSigner<MoonbeamConfig, ecdsa::Pair>;
+pub struct EthereumPairSigner {
+    account_id: AccountId20,
+    pair: ecdsa::Pair,
+    nonce: Option<u32>,
+}
+
+impl Signer<MoonbeamConfig> for EthereumPairSigner {
+    fn nonce(&self) -> Option<u32> {
+        self.nonce
+    }
+
+    fn account_id(&self) -> &AccountId20 {
+        &self.account_id
+    }
+
+    fn address(&self) -> AccountId20 {
+        self.account_id.clone()
+    }
+
+    fn sign(&self, signer_payload: &[u8]) -> EthereumSignature {
+        self.pair.sign_prehashed(&sp_core::keccak_256(signer_payload)).into()
+    }
+}
+
+impl EthereumPairSigner {
+    pub fn new(pair: ecdsa::Pair) -> Self {
+        let account_id =
+            sp_runtime::traits::IdentifyAccount::into_account(EthereumSigner::from(pair.public()));
+        Self {
+            account_id,
+            pair,
+            nonce: None
+        }
+    }
+
+    pub fn from_secret_hex(secret: &str) -> Result<Self, sp_core::crypto::SecretStringError> {
+        let pair = <ecdsa::Pair as sp_core::Pair>::from_string(secret, None)?;
+        Ok(Self::new(pair))
+    }
+}
 
 #[subxt::subxt(runtime_metadata_path = "metadata/moonbeam.scale")]
 pub mod api {
@@ -43,7 +82,7 @@ impl MoonbeamApi {
 
     pub async fn transfer(
         &self,
-        signer: &Signer,
+        signer: &EthereumPairSigner,
         dest: AccountId20,
     ) -> color_eyre::Result<()> {
         let result = self
@@ -76,7 +115,7 @@ impl MoonbeamApi {
         value: U256,
         gas_limit: u64,
         nonce: Option<U256>,
-        signer: &Signer,
+        signer: &EthereumPairSigner,
     ) -> color_eyre::Result<AccountId20> {
         let from = H160(signer.account_id().0);
         let max_fee_per_gas = U256::max_value();
@@ -119,7 +158,7 @@ impl MoonbeamApi {
         value: U256,
         gas_limit: u64,
         nonce: Option<U256>,
-        signer: &Signer,
+        signer: &EthereumPairSigner,
     ) -> color_eyre::Result<H256> {
         let max_fee_per_gas = U256::max_value();
         let max_priority_fee_per_gas = None;
@@ -146,20 +185,10 @@ impl MoonbeamApi {
     }
 }
 
-pub fn alice() -> Signer {
-    let pair = <ecdsa::Pair as sp_core::Pair>::from_string(
-        "0x5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133",
-        None,
-    )
-    .unwrap();
-    Signer::new(pair)
+pub fn alice() -> EthereumPairSigner {
+    EthereumPairSigner::from_secret_hex("0x5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133").unwrap()
 }
 
-pub fn bob() -> Signer {
-    let pair = <ecdsa::Pair as sp_core::Pair>::from_string(
-        "0x8075991ce870b93a8870eca0c0f91913d12f47948ca0fd25b49c6fa7cdbeee8b",
-        None,
-    )
-        .unwrap();
-    Signer::new(pair)
+pub fn bob() -> EthereumPairSigner {
+    EthereumPairSigner::from_secret_hex("0x8075991ce870b93a8870eca0c0f91913d12f47948ca0fd25b49c6fa7cdbeee8b").unwrap()
 }
