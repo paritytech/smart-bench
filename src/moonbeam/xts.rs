@@ -1,16 +1,14 @@
+use super::transaction::Transaction;
 use color_eyre::eyre;
-use web3::{
-    Web3,
-    signing::Key,
-    transports::ws,
-    types::{Address, Bytes, TransactionParameters, U64, U256, H256},
-};
 use secp256k1::SecretKey;
-use super::transaction::{
-    Transaction,
-};
 use std::str::FromStr;
 use subxt::PolkadotExtrinsicParams;
+use web3::{
+    signing::Key,
+    transports::ws,
+    types::{Address, Bytes, TransactionParameters, H256, U256, U64},
+    Web3,
+};
 //
 // #[derive(Debug)]
 // pub enum MoonbeamConfig {}
@@ -27,10 +25,8 @@ use subxt::PolkadotExtrinsicParams;
 //     type Extrinsic = sp_runtime::OpaqueExtrinsic;
 // }
 
-
-
 #[subxt::subxt(runtime_metadata_path = "metadata/moonbeam.scale")]
-pub mod api { }
+pub mod api {}
 
 pub struct MoonbeamApi {
     web3: Web3<ws::WebSocket>,
@@ -38,16 +34,17 @@ pub struct MoonbeamApi {
 
 impl MoonbeamApi {
     pub fn new(transport: ws::WebSocket) -> Self {
-        Self { web3: Web3::new(transport) }
+        Self {
+            web3: Web3::new(transport),
+        }
     }
 
-    pub async fn deploy(
-        &self,
-        data: Vec<u8>,
-        signer: impl Key,
-    ) -> color_eyre::Result<H256> {
-
-        let nonce = self.web3.eth().transaction_count(signer.address(), None).await?;
+    pub async fn deploy(&self, data: Vec<u8>, signer: impl Key) -> color_eyre::Result<H256> {
+        let nonce = self
+            .web3
+            .eth()
+            .transaction_count(signer.address(), None)
+            .await?;
         let gas_price = self.web3.eth().gas_price().await?;
         let chain_id = self.web3.eth().chain_id().await?;
 
@@ -71,7 +68,11 @@ impl MoonbeamApi {
         };
 
         let signed_tx = tx.sign(signer, chain_id.as_u64());
-        let hash = self.web3.eth().send_raw_transaction(signed_tx.raw_transaction).await?;
+        let hash = self
+            .web3
+            .eth()
+            .send_raw_transaction(signed_tx.raw_transaction)
+            .await?;
         Ok(hash)
     }
 

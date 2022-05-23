@@ -1,9 +1,9 @@
 mod transaction;
 mod xts;
 
-use crate::Cli;
-use color_eyre::{Section as _, eyre};
 use crate::moonbeam::xts::MoonbeamApi;
+use crate::Cli;
+use color_eyre::{eyre, Section as _};
 
 pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     // incrementer
@@ -14,7 +14,8 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     let metadata_path = format!("{root}/contracts/solidity/{name}_meta.json");
     let code = std::fs::read(bin_path)?;
     let metadata_reader = std::fs::File::open(metadata_path)?;
-    let json: serde_json::Map<String, serde_json::Value> = serde_json::from_reader(metadata_reader)?;
+    let json: serde_json::Map<String, serde_json::Value> =
+        serde_json::from_reader(metadata_reader)?;
     let abi = json["output"]["abi"].clone();
     let contract: ethabi::Contract = serde_json::from_value(abi)?;
 

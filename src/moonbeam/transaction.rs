@@ -1,7 +1,7 @@
 use rlp::RlpStream;
 use web3::{
-    types::{Address, AccessList, U256, U64, SignedTransaction},
     signing::{self, Signature},
+    types::{AccessList, Address, SignedTransaction, U256, U64},
 };
 
 pub const LEGACY_TX_ID: u64 = 0;
@@ -53,7 +53,11 @@ impl Transaction {
         stream
     }
 
-    fn encode_access_list_payload(&self, chain_id: u64, signature: Option<&Signature>) -> RlpStream {
+    fn encode_access_list_payload(
+        &self,
+        chain_id: u64,
+        signature: Option<&Signature>,
+    ) -> RlpStream {
         let mut stream = RlpStream::new();
 
         let list_size = if signature.is_some() { 11 } else { 8 };
@@ -147,7 +151,10 @@ impl Transaction {
 
     /// Sign and return a raw signed transaction.
     pub fn sign(self, sign: impl signing::Key, chain_id: u64) -> SignedTransaction {
-        let adjust_v_value = matches!(self.transaction_type.map(|t| t.as_u64()), Some(LEGACY_TX_ID) | None);
+        let adjust_v_value = matches!(
+            self.transaction_type.map(|t| t.as_u64()),
+            Some(LEGACY_TX_ID) | None
+        );
 
         let encoded = self.encode(chain_id, None);
 
@@ -157,7 +164,8 @@ impl Transaction {
             sign.sign(&hash, Some(chain_id))
                 .expect("hash is non-zero 32-bytes; qed")
         } else {
-            sign.sign_message(&hash).expect("hash is non-zero 32-bytes; qed")
+            sign.sign_message(&hash)
+                .expect("hash is non-zero 32-bytes; qed")
         };
 
         let signed = self.encode(chain_id, Some(&signature));

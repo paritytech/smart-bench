@@ -141,13 +141,10 @@ impl BenchRunner {
                             eyre::eyre!("Failed to find error details for {:?},", failed),
                         )?;
                     let description = {
-                        let metadata = self
-                            .api
-                            .api
-                            .client
-                            .metadata();
+                        let metadata = self.api.api.client.metadata();
                         let locked_metadata = metadata.read();
-                        let details = locked_metadata.error(error_data.pallet_index, error_data.error_index())?;
+                        let details = locked_metadata
+                            .error(error_data.pallet_index, error_data.error_index())?;
                         details.description().to_vec()
                     };
 
