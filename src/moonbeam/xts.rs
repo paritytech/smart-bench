@@ -1,194 +1,119 @@
-use super::account::{AccountId20, EthereumSignature, EthereumSigner};
 use color_eyre::eyre;
-use sp_core::{ecdsa, H160, H256, U256, Pair};
-use subxt::{PolkadotExtrinsicParams, extrinsic::Signer};
+use web3::{
+    Web3,
+    signing::Key,
+    transports::ws,
+    types::{Address, Bytes, TransactionParameters, U64, U256, H256},
+};
+use secp256k1::SecretKey;
+use super::transaction::{
+    Transaction,
+};
+use std::str::FromStr;
+use subxt::PolkadotExtrinsicParams;
+//
+// #[derive(Debug)]
+// pub enum MoonbeamConfig {}
+//
+// impl subxt::Config for MoonbeamConfig {
+//     type Index = u32;
+//     type BlockNumber = u32;
+//     type Hash = H256;
+//     type Hashing = sp_runtime::traits::BlakeTwo256;
+//     type AccountId = AccountId20;
+//     type Address = Self::AccountId;
+//     type Header = sp_runtime::generic::Header<Self::BlockNumber, sp_runtime::traits::BlakeTwo256>;
+//     type Signature = EthereumSignature;
+//     type Extrinsic = sp_runtime::OpaqueExtrinsic;
+// }
 
-#[derive(Debug)]
-pub enum MoonbeamConfig {}
 
-impl subxt::Config for MoonbeamConfig {
-    type Index = u32;
-    type BlockNumber = u32;
-    type Hash = H256;
-    type Hashing = sp_runtime::traits::BlakeTwo256;
-    type AccountId = AccountId20;
-    type Address = Self::AccountId;
-    type Header = sp_runtime::generic::Header<Self::BlockNumber, sp_runtime::traits::BlakeTwo256>;
-    type Signature = EthereumSignature;
-    type Extrinsic = sp_runtime::OpaqueExtrinsic;
-}
-
-pub struct EthereumPairSigner {
-    account_id: AccountId20,
-    pair: ecdsa::Pair,
-    nonce: Option<u32>,
-}
-
-impl Signer<MoonbeamConfig> for EthereumPairSigner {
-    fn nonce(&self) -> Option<u32> {
-        self.nonce
-    }
-
-    fn account_id(&self) -> &AccountId20 {
-        &self.account_id
-    }
-
-    fn address(&self) -> AccountId20 {
-        self.account_id.clone()
-    }
-
-    fn sign(&self, signer_payload: &[u8]) -> EthereumSignature {
-        self.pair.sign_prehashed(&sp_core::keccak_256(signer_payload)).into()
-    }
-}
-
-impl EthereumPairSigner {
-    pub fn new(pair: ecdsa::Pair) -> Self {
-        let account_id =
-            sp_runtime::traits::IdentifyAccount::into_account(EthereumSigner::from(pair.public()));
-        Self {
-            account_id,
-            pair,
-            nonce: None
-        }
-    }
-
-    pub fn from_secret_hex(secret: &str) -> Result<Self, sp_core::crypto::SecretStringError> {
-        let pair = <ecdsa::Pair as sp_core::Pair>::from_string(secret, None)?;
-        Ok(Self::new(pair))
-    }
-}
 
 #[subxt::subxt(runtime_metadata_path = "metadata/moonbeam.scale")]
-pub mod api {
-    #[subxt(substitute_type = "primitive_types::H160")]
-    use sp_core::H160;
-    #[subxt(substitute_type = "primitive_types::U256")]
-    use sp_core::U256;
-    #[subxt(substitute_type = "account::AccountId20")]
-    use crate::moonbeam::xts::AccountId20;
-}
+pub mod api { }
 
 pub struct MoonbeamApi {
-    api: api::RuntimeApi<MoonbeamConfig, PolkadotExtrinsicParams<MoonbeamConfig>>,
+    web3: Web3<ws::WebSocket>,
 }
 
 impl MoonbeamApi {
-    pub fn new(client: subxt::Client<MoonbeamConfig>) -> Self {
-        let api = client
-            .to_runtime_api::<api::RuntimeApi<MoonbeamConfig, PolkadotExtrinsicParams<MoonbeamConfig>>>();
-        Self { api }
+    pub fn new(transport: ws::WebSocket) -> Self {
+        Self { web3: Web3::new(transport) }
     }
 
-    pub async fn transfer(
-        &self,
-        signer: &EthereumPairSigner,
-        dest: AccountId20,
-    ) -> color_eyre::Result<()> {
-        let result = self
-            .api
-            .tx()
-            .balances()
-            .transfer(
-                dest,
-                10_000
-            )?
-            .sign_and_submit_then_watch_default(signer)
-            .await?
-            .wait_for_in_block()
-            .await?
-            .wait_for_success()
-            .await?;
-
-        let _ = result
-            .find_first::<api::balances::events::Transfer>()?
-            .ok_or_else(|| eyre::eyre!("Failed to find Transfer event"))?;
-
-        Ok(())
-    }
-
-
-    pub async fn create2(
+    pub async fn deploy(
         &self,
         data: Vec<u8>,
-        salt: H256,
-        value: U256,
-        gas_limit: u64,
-        nonce: Option<U256>,
-        signer: &EthereumPairSigner,
-    ) -> color_eyre::Result<AccountId20> {
-        let from = H160(signer.account_id().0);
-        let max_fee_per_gas = U256::max_value();
-        let max_priority_fee_per_gas = None;
-        let access_list = Vec::new();
-        let result = self
-            .api
-            .tx()
-            .evm()
-            .create2(
-                from,
-                data,
-                salt,
-                value,
-                gas_limit,
-                max_fee_per_gas,
-                nonce,
-                max_priority_fee_per_gas,
-                access_list,
-            )?
-            .sign_and_submit_then_watch_default(signer)
-            .await?
-            .wait_for_in_block()
-            .await?
-            .wait_for_success()
-            .await?;
-
-        let created = result
-            .find_first::<api::evm::events::Created>()?
-            .ok_or_else(|| eyre::eyre!("Failed to find Created event"))?;
-
-        Ok(AccountId20(created.0 .0))
-    }
-
-    pub async fn call(
-        &self,
-        source: H160,
-        target: H160,
-        input: Vec<u8>,
-        value: U256,
-        gas_limit: u64,
-        nonce: Option<U256>,
-        signer: &EthereumPairSigner,
+        signer: impl Key,
     ) -> color_eyre::Result<H256> {
-        let max_fee_per_gas = U256::max_value();
-        let max_priority_fee_per_gas = None;
-        let access_list = Vec::new();
-        let tx_hash = self
-            .api
-            .tx()
-            .evm()
-            .call(
-                source,
-                target,
-                input,
-                value,
-                gas_limit,
-                max_fee_per_gas,
-                nonce,
-                max_priority_fee_per_gas,
-                access_list,
-            )?
-            .sign_and_submit_default(signer)
-            .await?;
 
-        Ok(tx_hash)
+        let nonce = self.web3.eth().transaction_count(signer.address(), None).await?;
+        let gas_price = self.web3.eth().gas_price().await?;
+        let chain_id = self.web3.eth().chain_id().await?;
+
+        // let max_priority_fee_per_gas = match tx.transaction_type {
+        //     Some(tx_type) if tx_type == U64::from(EIP1559_TX_ID) => {
+        //         tx.max_priority_fee_per_gas.unwrap_or(gas_price)
+        //     }
+        //     _ => gas_price,
+        // };
+
+        let tx = Transaction {
+            nonce,
+            to: None,
+            gas: 1_000_000u32.into(),
+            gas_price: gas_price.into(),
+            value: 0u32.into(),
+            data: data.into(),
+            transaction_type: None,
+            access_list: Default::default(),
+            max_priority_fee_per_gas: gas_price,
+        };
+
+        let signed_tx = tx.sign(signer, chain_id.as_u64());
+        let hash = self.web3.eth().send_raw_transaction(signed_tx.raw_transaction).await?;
+        Ok(hash)
     }
+
+    // pub async fn call(
+    //     &self,
+    //     source: H160,
+    //     target: H160,
+    //     input: Vec<u8>,
+    //     value: U256,
+    //     gas_limit: u64,
+    //     nonce: Option<U256>,
+    //     signer: &EthereumPairSigner,
+    // ) -> color_eyre::Result<H256> {
+    //     let max_fee_per_gas = U256::max_value();
+    //     let max_priority_fee_per_gas = None;
+    //     let access_list = Vec::new();
+    //     let tx_hash = self
+    //         .web3
+    //         .tx()
+    //         .evm()
+    //         .call(
+    //             source,
+    //             target,
+    //             input,
+    //             value,
+    //             gas_limit,
+    //             max_fee_per_gas,
+    //             nonce,
+    //             max_priority_fee_per_gas,
+    //             access_list,
+    //         )?
+    //         .sign_and_submit_default(signer)
+    //         .await?;
+    //
+    //     Ok(tx_hash)
+    // }
 }
 
-pub fn alice() -> EthereumPairSigner {
-    EthereumPairSigner::from_secret_hex("0x5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133").unwrap()
+pub fn alice() -> SecretKey {
+    SecretKey::from_str("5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133").unwrap()
 }
 
-pub fn bob() -> EthereumPairSigner {
-    EthereumPairSigner::from_secret_hex("0x8075991ce870b93a8870eca0c0f91913d12f47948ca0fd25b49c6fa7cdbeee8b").unwrap()
+pub fn bob() -> SecretKey {
+    SecretKey::from_str("8075991ce870b93a8870eca0c0f91913d12f47948ca0fd25b49c6fa7cdbeee8b").unwrap()
 }
