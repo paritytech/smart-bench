@@ -14,15 +14,14 @@ impl MoonbeamRunner {
     pub async fn exec_deploy(&self, data: Vec<u8>) -> color_eyre::Result<()> {
         let mut events = self.api.api().events().subscribe().await?.filter_events::<(
             api::system::events::ExtrinsicFailed,
-            api::evm::events::CreatedFailed,
-            api::evm::events::Created,
+            api::ethereum::events::Executed,
         )>();
 
         self.api.deploy(data, &xts::alice()).await?;
 
         while let Some(Ok(info)) = events.next().await {
             match info.event {
-                (Some(failed), None, None) => {
+                (Some(failed), None) => {
                     let error_data =
                         subxt::HasModuleError::module_error_data(&failed.dispatch_error).ok_or(
                             eyre::eyre!("Failed to find error details for {:?},", failed),
@@ -37,12 +36,9 @@ impl MoonbeamRunner {
 
                     return Err(eyre::eyre!("Deploy Extrinsic Failed: {:?}", description));
                 }
-                (None, Some(create_failed), None) => {
-                    return Err(eyre::eyre!("Create failed {:?}", create_failed))
-                }
-                (None, None, Some(created)) => {
+                (None, Some(executed)) => {
                     // todo: add account id to vec
-                    println!("CREATED! {:?}", created);
+                    println!("EXECUTED! {:?}", executed);
                     return Ok(());
                 }
                 _ => unreachable!("Only a single event should be emitted at a time"),
