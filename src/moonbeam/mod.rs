@@ -1,6 +1,8 @@
+mod runner;
 mod transaction;
 mod xts;
 
+use crate::moonbeam::runner::MoonbeamRunner;
 use crate::moonbeam::xts::MoonbeamApi;
 use crate::Cli;
 use color_eyre::{eyre, Section as _};
@@ -24,9 +26,11 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
         .ok_or_else(|| eyre::eyre!("No constructor for contract found"))?;
     let data = constructor.encode_input(code.into(), &[ethabi::Token::Uint(0u32.into())])?;
 
-    let ws = web3::transports::ws::WebSocket::new(&cli.url).await?;
-    let api = MoonbeamApi::new(ws);
-    api.deploy(data, &xts::alice()).await?;
+    let api = MoonbeamApi::new(&cli.url).await?;
+
+    let runner = MoonbeamRunner::new(api);
+
+    runner.exec_deploy(data).await?;
 
     // println!("Created new contract {:?}", contract_account);
 

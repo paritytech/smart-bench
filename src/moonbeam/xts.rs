@@ -2,7 +2,7 @@ use super::transaction::Transaction;
 use color_eyre::eyre;
 use secp256k1::SecretKey;
 use std::str::FromStr;
-use subxt::PolkadotExtrinsicParams;
+use subxt::{ClientBuilder, DefaultConfig, PolkadotExtrinsicParams};
 use web3::{
     signing::Key,
     transports::ws,
@@ -30,13 +30,21 @@ pub mod api {}
 
 pub struct MoonbeamApi {
     web3: Web3<ws::WebSocket>,
+    api: api::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>,
 }
 
 impl MoonbeamApi {
-    pub fn new(transport: ws::WebSocket) -> Self {
-        Self {
+    pub async fn new(url: &str) -> color_eyre::Result<Self> {
+        let transport = ws::WebSocket::new(url).await?;
+        let client = ClientBuilder::new().set_url(url).build().await?;
+        Ok(Self {
             web3: Web3::new(transport),
-        }
+            api: client.to_runtime_api(),
+        })
+    }
+
+    pub fn api(&self) -> &api::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>> {
+        &self.api
     }
 
     pub async fn deploy(&self, data: Vec<u8>, signer: impl Key) -> color_eyre::Result<H256> {
@@ -68,11 +76,13 @@ impl MoonbeamApi {
         };
 
         let signed_tx = tx.sign(signer, chain_id.as_u64());
+
         let hash = self
             .web3
             .eth()
             .send_raw_transaction(signed_tx.raw_transaction)
             .await?;
+
         Ok(hash)
     }
 
