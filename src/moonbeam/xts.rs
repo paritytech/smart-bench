@@ -2,28 +2,14 @@ use super::transaction::Transaction;
 use color_eyre::eyre;
 use secp256k1::SecretKey;
 use std::str::FromStr;
+use serde::Serialize;
 use subxt::{ClientBuilder, DefaultConfig, PolkadotExtrinsicParams};
 use web3::{
     signing::Key,
     transports::ws,
-    types::{Address, Bytes, TransactionParameters, H256, U256, U64},
+    types::{Address, Bytes, TransactionParameters, H256, H160, U256, U64},
     Web3,
 };
-//
-// #[derive(Debug)]
-// pub enum MoonbeamConfig {}
-//
-// impl subxt::Config for MoonbeamConfig {
-//     type Index = u32;
-//     type BlockNumber = u32;
-//     type Hash = H256;
-//     type Hashing = sp_runtime::traits::BlakeTwo256;
-//     type AccountId = AccountId20;
-//     type Address = Self::AccountId;
-//     type Header = sp_runtime::generic::Header<Self::BlockNumber, sp_runtime::traits::BlakeTwo256>;
-//     type Signature = EthereumSignature;
-//     type Extrinsic = sp_runtime::OpaqueExtrinsic;
-// }
 
 #[subxt::subxt(runtime_metadata_path = "metadata/moonbeam.scale")]
 pub mod api {}
@@ -86,39 +72,26 @@ impl MoonbeamApi {
         Ok(hash)
     }
 
-    // pub async fn call(
-    //     &self,
-    //     source: H160,
-    //     target: H160,
-    //     input: Vec<u8>,
-    //     value: U256,
-    //     gas_limit: u64,
-    //     nonce: Option<U256>,
-    //     signer: &EthereumPairSigner,
-    // ) -> color_eyre::Result<H256> {
-    //     let max_fee_per_gas = U256::max_value();
-    //     let max_priority_fee_per_gas = None;
-    //     let access_list = Vec::new();
-    //     let tx_hash = self
-    //         .web3
-    //         .tx()
-    //         .evm()
-    //         .call(
-    //             source,
-    //             target,
-    //             input,
-    //             value,
-    //             gas_limit,
-    //             max_fee_per_gas,
-    //             nonce,
-    //             max_priority_fee_per_gas,
-    //             access_list,
-    //         )?
-    //         .sign_and_submit_default(signer)
-    //         .await?;
-    //
-    //     Ok(tx_hash)
-    // }
+    pub async fn deploy2(&self, json: &serde_json::Value, code: &str, signer: impl Key) -> color_eyre::Result<H160> {
+        let json = serde_json::to_vec(json)?;
+        let contract = web3::contract::Contract::deploy(self.web3.eth(), &json)?
+            .confirmations(1)
+            .options(web3::contract::Options::with(|opt| {
+                // opt.value = Some(5.into());
+                // opt.gas_price = Some(5.into());
+                opt.gas = Some(3_000_000.into());
+            }))
+            .sign_with_key_and_execute(
+                code,
+                (1u32, ),
+                signer,
+                None,
+            )
+            .await?;
+
+        let contract_address = contract.address();
+        Ok(contract_address)
+    }
 }
 
 pub fn alice() -> SecretKey {

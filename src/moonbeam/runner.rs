@@ -11,13 +11,13 @@ impl MoonbeamRunner {
         Self { api }
     }
 
-    pub async fn exec_deploy(&self, data: Vec<u8>) -> color_eyre::Result<()> {
+    pub async fn exec_deploy(&self, json: &serde_json::Value, code: &str) -> color_eyre::Result<()> {
         let mut events = self.api.api().events().subscribe().await?.filter_events::<(
             api::system::events::ExtrinsicFailed,
             api::ethereum::events::Executed,
         )>();
 
-        self.api.deploy(data, &xts::alice()).await?;
+        self.api.deploy2(json, code, &xts::alice()).await?;
 
         while let Some(Ok(info)) = events.next().await {
             match info.event {
