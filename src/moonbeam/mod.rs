@@ -6,7 +6,7 @@ use crate::moonbeam::runner::MoonbeamRunner;
 use crate::moonbeam::xts::MoonbeamApi;
 use crate::Cli;
 use color_eyre::{eyre, Section as _};
-use impl_serde::serialize::to_hex;
+use web3::contract::tokens::Tokenize;
 
 pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     // incrementer
@@ -20,21 +20,19 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     let json: serde_json::Map<String, serde_json::Value> =
         serde_json::from_reader(metadata_reader)?;
     let abi = json["output"]["abi"].clone();
-    // let contract: ethabi::Contract = serde_json::from_value(abi)?;
+    let contract: web3::ethabi::Contract = serde_json::from_value(abi)?;
 
-    // let constructor = contract
-    //     .constructor()
-    //     .ok_or_else(|| eyre::eyre!("No constructor for contract found"))?;
-    // let data = constructor.encode_input(code.into(), &[ethabi::Token::Uint(0u32.into())])?;
-
-    let code =
-        to_hex(&code, true);
+    let constructor = contract
+        .constructor()
+        .ok_or_else(|| eyre::eyre!("No constructor for contract found"))?;
+    let params = (1u32,).into_tokens();
+    let data = constructor.encode_input(code.into(), &params[..])?;
 
     let api = MoonbeamApi::new(&cli.url).await?;
 
     let runner = MoonbeamRunner::new(api);
 
-    runner.exec_deploy(&abi, &code).await?;
+    runner.exec_deploy(&data).await?;
 
     // println!("Created new contract {:?}", contract_account);
 

@@ -33,7 +33,7 @@ impl MoonbeamApi {
         &self.api
     }
 
-    pub async fn deploy(&self, data: Vec<u8>, signer: impl Key) -> color_eyre::Result<H256> {
+    pub async fn deploy(&self, data: &[u8], signer: impl Key) -> color_eyre::Result<H256> {
         let nonce = self
             .web3
             .eth()
@@ -41,13 +41,6 @@ impl MoonbeamApi {
             .await?;
         let gas_price = self.web3.eth().gas_price().await?;
         let chain_id = self.web3.eth().chain_id().await?;
-
-        // let max_priority_fee_per_gas = match tx.transaction_type {
-        //     Some(tx_type) if tx_type == U64::from(EIP1559_TX_ID) => {
-        //         tx.max_priority_fee_per_gas.unwrap_or(gas_price)
-        //     }
-        //     _ => gas_price,
-        // };
 
         let tx = Transaction {
             nonce,
