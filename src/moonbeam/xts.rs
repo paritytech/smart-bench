@@ -1,13 +1,13 @@
 use super::transaction::Transaction;
 use color_eyre::eyre;
 use secp256k1::SecretKey;
-use std::str::FromStr;
 use serde::Serialize;
+use std::str::FromStr;
 use subxt::{ClientBuilder, DefaultConfig, PolkadotExtrinsicParams};
 use web3::{
     signing::Key,
     transports::ws,
-    types::{Address, Bytes, TransactionParameters, H256, H160, U256, U64},
+    types::{Address, Bytes, TransactionParameters, H160, H256, U256, U64},
     Web3,
 };
 
@@ -65,7 +65,12 @@ impl MoonbeamApi {
         Ok(hash)
     }
 
-    pub async fn deploy2(&self, json: &serde_json::Value, code: &str, signer: impl Key) -> color_eyre::Result<H160> {
+    pub async fn deploy2(
+        &self,
+        json: &serde_json::Value,
+        code: &str,
+        signer: impl Key,
+    ) -> color_eyre::Result<H160> {
         let json = serde_json::to_vec(json)?;
         let contract = web3::contract::Contract::deploy(self.web3.eth(), &json)?
             .confirmations(1)
@@ -74,12 +79,7 @@ impl MoonbeamApi {
                 // opt.gas_price = Some(5.into());
                 opt.gas = Some(3_000_000.into());
             }))
-            .sign_with_key_and_execute(
-                code,
-                (1u32, ),
-                signer,
-                None,
-            )
+            .sign_with_key_and_execute(code, (1u32,), signer, None)
             .await?;
 
         let contract_address = contract.address();
