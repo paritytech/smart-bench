@@ -7,6 +7,7 @@ use crate::moonbeam::xts::MoonbeamApi;
 use crate::Cli;
 use color_eyre::{eyre, Section as _};
 use web3::contract::tokens::Tokenize;
+use impl_serde::serialize::from_hex;
 
 pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     // incrementer
@@ -15,7 +16,7 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     let root = std::env::var("CARGO_MANIFEST_DIR")?;
     let bin_path = format!("{root}/contracts/solidity/{name}.bin");
     let metadata_path = format!("{root}/contracts/solidity/{name}_meta.json");
-    let code = std::fs::read(bin_path)?;
+    let code = from_hex(&std::fs::read_to_string(bin_path)?)?;
     let metadata_reader = std::fs::File::open(metadata_path)?;
     let json: serde_json::Map<String, serde_json::Value> =
         serde_json::from_reader(metadata_reader)?;
