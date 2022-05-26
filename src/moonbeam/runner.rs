@@ -63,13 +63,4 @@ impl MoonbeamRunner {
         }
         Err(eyre::eyre!("No triggered events found for attempted contract deployment"))
     }
-
-    pub async fn exec_deploy2(
-        &self,
-        json: &serde_json::Value,
-        code: &str,
-    ) -> color_eyre::Result<web3::types::H160> {
-        let contract_address = dbg!(self.api.deploy2(json, code, &xts::alice()).await?);
-        Ok(contract_address)
-    }
 }

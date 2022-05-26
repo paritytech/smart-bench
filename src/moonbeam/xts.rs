@@ -70,27 +70,6 @@ impl MoonbeamApi {
 
         Ok(hash)
     }
-
-    pub async fn deploy2(
-        &self,
-        json: &serde_json::Value,
-        code: &str,
-        signer: impl Key,
-    ) -> color_eyre::Result<H160> {
-        let json = serde_json::to_vec(json)?;
-        let contract = web3::contract::Contract::deploy(self.web3.eth(), &json)?
-            .confirmations(1)
-            .options(web3::contract::Options::with(|opt| {
-                // opt.value = Some(5.into());
-                // opt.gas_price = Some(5.into());
-                opt.gas = Some(3_000_000.into());
-            }))
-            .sign_with_key_and_execute(code, (1u32,), signer, None)
-            .await?;
-
-        let contract_address = contract.address();
-        Ok(contract_address)
-    }
 }
 
 pub fn alice() -> SecretKey {
