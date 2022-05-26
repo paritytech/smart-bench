@@ -1,13 +1,12 @@
 use super::transaction::Transaction;
-use color_eyre::eyre;
+use impl_serde::serialize::to_hex;
 use secp256k1::SecretKey;
-use serde::Serialize;
 use std::str::FromStr;
 use subxt::{ClientBuilder, DefaultConfig, PolkadotExtrinsicParams};
 use web3::{
     signing::Key,
     transports::ws,
-    types::{Address, Bytes, TransactionParameters, H160, H256, U256, U64},
+    types::{H160, H256},
     Web3,
 };
 
@@ -42,11 +41,13 @@ impl MoonbeamApi {
         let gas_price = self.web3.eth().gas_price().await?;
         let chain_id = self.web3.eth().chain_id().await?;
 
+        tracing::info!("nonce {}, gas_price {}, chain_id {}", nonce, gas_price, chain_id);
+
         let tx = Transaction {
             nonce,
             to: None,
             gas: 1_000_000u32.into(),
-            gas_price: gas_price.into(),
+            gas_price,
             value: 0u32.into(),
             data: data.into(),
             transaction_type: None,
@@ -55,6 +56,11 @@ impl MoonbeamApi {
         };
 
         let signed_tx = tx.sign(signer, chain_id.as_u64());
+
+        tracing::debug!("data: {}", to_hex(data, false));
+        tracing::debug!("signed_tx.raw_transaction: {}", to_hex(&signed_tx.raw_transaction.0, false));
+        tracing::debug!("signed_tx.message_hash: {:?}", signed_tx.message_hash);
+        tracing::debug!("signed_tx.transaction_hash: {:?}", signed_tx.transaction_hash);
 
         let hash = self
             .web3
