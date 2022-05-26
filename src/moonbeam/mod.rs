@@ -5,7 +5,7 @@ mod xts;
 use crate::moonbeam::runner::MoonbeamRunner;
 use crate::moonbeam::xts::MoonbeamApi;
 use crate::Cli;
-use color_eyre::{eyre, Section as _};
+use color_eyre::eyre;
 use web3::contract::tokens::Tokenize;
 use impl_serde::serialize::from_hex;
 
