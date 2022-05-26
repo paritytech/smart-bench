@@ -7,9 +7,9 @@ use super::xts::{
     },
     MoonbeamApi
 };
+use sp_core::H160;
 use color_eyre::eyre;
 use futures::StreamExt;
-use web3::types::H160;
 
 pub struct MoonbeamRunner {
     api: MoonbeamApi,

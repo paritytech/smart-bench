@@ -6,12 +6,15 @@ use subxt::{ClientBuilder, DefaultConfig, PolkadotExtrinsicParams};
 use web3::{
     signing::Key,
     transports::ws,
-    types::{H160, H256},
+    types::{H256},
     Web3,
 };
 
 #[subxt::subxt(runtime_metadata_path = "metadata/moonbeam.scale")]
-pub mod api {}
+pub mod api {
+    #[subxt(substitute_type = "primitive_types::H160")]
+    use sp_core::H160;
+}
 
 pub struct MoonbeamApi {
     web3: Web3<ws::WebSocket>,
