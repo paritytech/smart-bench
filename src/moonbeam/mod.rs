@@ -10,32 +10,25 @@ use web3::contract::tokens::Tokenize;
 use impl_serde::serialize::from_hex;
 
 pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
-    // incrementer
-    let name = "incrementer";
-
-    let root = std::env::var("CARGO_MANIFEST_DIR")?;
-    let bin_path = format!("{root}/contracts/solidity/{name}.bin");
-    let metadata_path = format!("{root}/contracts/solidity/{name}_meta.json");
-    let code = from_hex(&std::fs::read_to_string(bin_path)?)?;
-    let metadata_reader = std::fs::File::open(metadata_path)?;
-    let json: serde_json::Map<String, serde_json::Value> =
-        serde_json::from_reader(metadata_reader)?;
-    let abi = json["output"]["abi"].clone();
-    let contract: web3::ethabi::Contract = serde_json::from_value(abi)?;
-
-    let constructor = contract
-        .constructor()
-        .ok_or_else(|| eyre::eyre!("No constructor for contract found"))?;
     let params = (1u32,).into_tokens();
-    let data = constructor.encode_input(code.into(), &params[..])?;
-
     let api = MoonbeamApi::new(&cli.url).await?;
 
-    let runner = MoonbeamRunner::new(api);
+    let mut runner = MoonbeamRunner::new(keyring::alith(), api);
 
-    runner.exec_deploy(&data).await?;
-
-    // println!("Created new contract {:?}", contract_account);
+    runner.prepare_contract("incrementer", cli.instance_count,&params).await?;
 
     Ok(())
+}
+
+mod keyring {
+    use secp256k1::SecretKey;
+    use std::str::FromStr as _;
+
+    pub fn alith() -> SecretKey {
+        SecretKey::from_str("5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133").unwrap()
+    }
+
+    pub fn balthazar() -> SecretKey {
+        SecretKey::from_str("8075991ce870b93a8870eca0c0f91913d12f47948ca0fd25b49c6fa7cdbeee8b").unwrap()
+    }
 }

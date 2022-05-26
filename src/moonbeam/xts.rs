@@ -74,11 +74,3 @@ impl MoonbeamApi {
         Ok(hash)
     }
 }
-
-pub fn alice() -> SecretKey {
-    SecretKey::from_str("5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133").unwrap()
-}
-
-pub fn bob() -> SecretKey {
-    SecretKey::from_str("8075991ce870b93a8870eca0c0f91913d12f47948ca0fd25b49c6fa7cdbeee8b").unwrap()
-}
