@@ -1,7 +1,7 @@
 pub mod runner;
 mod xts;
 
-use crate::Cli;
+use crate::{Cli, Contract};
 use futures::{future, TryStreamExt};
 use povstats::substrate as api;
 use sp_core::sr25519;
@@ -23,16 +23,6 @@ pub trait InkConstructor: codec::Encode {
 /// Trait implemented by [`smart_bench_macro::contract`] for all contract messages.
 pub trait InkMessage: codec::Encode {
     const SELECTOR: [u8; 4];
-}
-
-#[derive(clap::ArgEnum, Debug, Clone)]
-pub enum Contract {
-    All,
-    Erc20,
-    Flipper,
-    Incrementer,
-    Erc721,
-    Erc1155,
 }
 
 smart_bench_macro::contract!("./contracts/erc20.contract");
