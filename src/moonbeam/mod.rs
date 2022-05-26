@@ -2,12 +2,14 @@ mod runner;
 mod transaction;
 mod xts;
 
-use crate::moonbeam::runner::MoonbeamRunner;
-use crate::moonbeam::xts::MoonbeamApi;
-use crate::Cli;
-use color_eyre::eyre;
+use crate::{
+    Cli,
+    moonbeam::{
+        runner::MoonbeamRunner,
+        xts::MoonbeamApi,
+    }
+};
 use web3::contract::tokens::Tokenize;
-use impl_serde::serialize::from_hex;
 
 pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     let params = (1u32,).into_tokens();

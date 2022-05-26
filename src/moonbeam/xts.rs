@@ -1,7 +1,5 @@
 use super::transaction::Transaction;
 use impl_serde::serialize::to_hex;
-use secp256k1::SecretKey;
-use std::str::FromStr;
 use subxt::{ClientBuilder, DefaultConfig, PolkadotExtrinsicParams};
 use web3::{
     signing::Key,

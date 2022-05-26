@@ -1,5 +1,4 @@
 use super::xts::{
-    self,
     api::{
         self,
         ethereum::events::Executed,
@@ -65,7 +64,7 @@ impl MoonbeamRunner {
         )>();
 
         let mut tx_hashes = Vec::new();
-        for i in 0..instance_count {
+        for _ in 0..instance_count {
             let tx_hash = self.api.deploy(data, &self.signer).await?;
             tx_hashes.push(tx_hash);
         }
@@ -89,7 +88,7 @@ impl MoonbeamRunner {
                     return Err(eyre::eyre!("Deploy Extrinsic Failed: {:?}", description));
                 }
                 (None, Some(Executed(from, contract_address, tx, exit_reason))) => {
-                    if from == Key::address(&SecretKeyRef::from(&self.signer)) {
+                    if from.as_ref() == Key::address(&SecretKeyRef::from(&self.signer)).as_ref() {
                         match exit_reason {
                             ExitReason::Succeed(ExitSucceed::Returned) => {
                                 addresses.push(contract_address);
