@@ -1,12 +1,7 @@
 use super::transaction::Transaction;
 use impl_serde::serialize::to_hex;
 use subxt::{ClientBuilder, DefaultConfig, PolkadotExtrinsicParams};
-use web3::{
-    signing::Key,
-    transports::ws,
-    types::{H256},
-    Web3,
-};
+use web3::{signing::Key, transports::ws, types::H256, Web3};
 
 #[subxt::subxt(runtime_metadata_path = "metadata/moonbeam.scale")]
 pub mod api {
@@ -42,7 +37,12 @@ impl MoonbeamApi {
         let gas_price = self.web3.eth().gas_price().await?;
         let chain_id = self.web3.eth().chain_id().await?;
 
-        tracing::info!("nonce {}, gas_price {}, chain_id {}", nonce, gas_price, chain_id);
+        tracing::info!(
+            "nonce {}, gas_price {}, chain_id {}",
+            nonce,
+            gas_price,
+            chain_id
+        );
 
         let tx = Transaction {
             nonce,
@@ -59,9 +59,15 @@ impl MoonbeamApi {
         let signed_tx = tx.sign(signer, chain_id.as_u64());
 
         tracing::debug!("data: {}", to_hex(data, false));
-        tracing::debug!("signed_tx.raw_transaction: {}", to_hex(&signed_tx.raw_transaction.0, false));
+        tracing::debug!(
+            "signed_tx.raw_transaction: {}",
+            to_hex(&signed_tx.raw_transaction.0, false)
+        );
         tracing::debug!("signed_tx.message_hash: {:?}", signed_tx.message_hash);
-        tracing::debug!("signed_tx.transaction_hash: {:?}", signed_tx.transaction_hash);
+        tracing::debug!(
+            "signed_tx.transaction_hash: {:?}",
+            signed_tx.transaction_hash
+        );
 
         let hash = self
             .web3

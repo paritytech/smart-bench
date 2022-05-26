@@ -4,16 +4,16 @@ use super::xts::{
         ethereum::events::Executed,
         runtime_types::evm_core::error::{ExitReason, ExitSucceed},
     },
-    MoonbeamApi
+    MoonbeamApi,
 };
-use sp_core::H160;
 use color_eyre::eyre;
 use futures::StreamExt;
 use impl_serde::serialize::from_hex;
 use secp256k1::SecretKey;
+use sp_core::H160;
 use web3::{
     ethabi::Token,
-    signing::{SecretKeyRef, Key},
+    signing::{Key, SecretKeyRef},
 };
 
 pub struct MoonbeamRunner {
@@ -26,7 +26,12 @@ impl MoonbeamRunner {
         Self { signer, api }
     }
 
-    pub async fn prepare_contract(&mut self, name: &str, instance_count: u32, ctor_params: &[Token]) -> color_eyre::Result<()> {
+    pub async fn prepare_contract(
+        &mut self,
+        name: &str,
+        instance_count: u32,
+        ctor_params: &[Token],
+    ) -> color_eyre::Result<()> {
         print!("Preparing {name}...");
 
         let root = std::env::var("CARGO_MANIFEST_DIR")?;
@@ -46,9 +51,7 @@ impl MoonbeamRunner {
 
         let data = constructor.encode_input(code.into(), ctor_params)?;
 
-        let contract_accounts = self
-            .exec_deploy(&data, instance_count)
-            .await?;
+        let contract_accounts = self.exec_deploy(&data, instance_count).await?;
 
         println!("Instantiated {} {name} contracts", contract_accounts.len());
 
@@ -58,10 +61,13 @@ impl MoonbeamRunner {
     }
 
     async fn exec_deploy(&self, data: &[u8], instance_count: u32) -> color_eyre::Result<Vec<H160>> {
-        let mut events = self.api.api().events().subscribe().await?.filter_events::<(
-            api::system::events::ExtrinsicFailed,
-            Executed,
-        )>();
+        let mut events = self
+            .api
+            .api()
+            .events()
+            .subscribe()
+            .await?
+            .filter_events::<(api::system::events::ExtrinsicFailed, Executed)>();
 
         let mut tx_hashes = Vec::new();
         for _ in 0..instance_count {
@@ -99,7 +105,13 @@ impl MoonbeamRunner {
                             ExitReason::Error(error) => {
                                 return Err(eyre::eyre!("Error executing tx {:?}: {:?}", tx, error))
                             }
-                            _ => return Err(eyre::eyre!("tx {:?}: exit_reason {:?}", tx, exit_reason))
+                            _ => {
+                                return Err(eyre::eyre!(
+                                    "tx {:?}: exit_reason {:?}",
+                                    tx,
+                                    exit_reason
+                                ))
+                            }
                         }
                     }
                 }
