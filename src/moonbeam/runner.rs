@@ -6,11 +6,10 @@ use super::xts::{
     },
     MoonbeamApi,
 };
-use color_eyre::eyre;
+use color_eyre::{eyre, Section as _};
 use futures::StreamExt;
 use impl_serde::serialize::from_hex;
 use secp256k1::SecretKey;
-use sp_core::H160;
 use web3::{
     ethabi::Token,
     signing::{Key, SecretKeyRef},
@@ -21,20 +20,31 @@ pub struct MoonbeamRunner {
     api: MoonbeamApi,
     signer: SecretKey,
     address: Address,
+    calls: Vec<(String, Vec<Call>)>,
 }
 
 impl MoonbeamRunner {
     pub fn new(signer: SecretKey, api: MoonbeamApi) -> Self {
         let address = Key::address(&SecretKeyRef::from(&signer));
-        Self { signer, api, address }
+        Self {
+            signer,
+            api,
+            address,
+            calls: Vec::new(),
+        }
     }
 
-    pub async fn prepare_contract(
+    pub async fn prepare_contract<F>(
         &mut self,
         name: &str,
         instance_count: u32,
         ctor_params: &[Token],
-    ) -> color_eyre::Result<()> {
+        call_name: &str,
+        mut create_call_params: F,
+    ) -> color_eyre::Result<()>
+    where
+        F: FnMut() -> Vec<Token>,
+    {
         print!("Preparing {name}...");
 
         let root = std::env::var("CARGO_MANIFEST_DIR")?;
@@ -58,12 +68,26 @@ impl MoonbeamRunner {
 
         println!("Instantiated {} {name} contracts", contract_accounts.len());
 
-        // todo: build a set of calls for each contract
+        let call = contract
+            .function(call_name)
+            .with_note(|| format!("Call '{call_name}' not found for {name}"))?;
+
+        let mut calls = Vec::new();
+        for contract in contract_accounts {
+            let call_params = create_call_params();
+            let data = call.encode_input(&call_params)?;
+            calls.push(Call { contract, data })
+        }
+        self.calls.push((name.to_string(), calls));
 
         Ok(())
     }
 
-    async fn exec_deploy(&self, data: &[u8], instance_count: u32) -> color_eyre::Result<Vec<H160>> {
+    async fn exec_deploy(
+        &self,
+        data: &[u8],
+        instance_count: u32,
+    ) -> color_eyre::Result<Vec<Address>> {
         let mut nonce = self.api.fetch_nonce(self.address).await?;
         let mut events = self
             .api
@@ -102,7 +126,7 @@ impl MoonbeamRunner {
                     if from.as_ref() == Key::address(&SecretKeyRef::from(&self.signer)).as_ref() {
                         match exit_reason {
                             ExitReason::Succeed(ExitSucceed::Returned) => {
-                                addresses.push(contract_address);
+                                addresses.push(Address::from_slice(contract_address.as_ref()));
                                 if addresses.len() == instance_count as usize {
                                     break;
                                 }
@@ -125,4 +149,9 @@ impl MoonbeamRunner {
         }
         Ok(addresses)
     }
+}
+
+struct Call {
+    contract: Address,
+    data: Vec<u8>,
 }

@@ -1,7 +1,12 @@
 use super::transaction::Transaction;
 use impl_serde::serialize::to_hex;
 use subxt::{ClientBuilder, DefaultConfig, PolkadotExtrinsicParams};
-use web3::{signing::Key, transports::ws, types::{Address, H256, U256}, Web3};
+use web3::{
+    signing::Key,
+    transports::ws,
+    types::{Address, H256, U256},
+    Web3,
+};
 
 #[subxt::subxt(runtime_metadata_path = "metadata/moonbeam.scale")]
 pub mod api {
@@ -27,7 +32,7 @@ impl MoonbeamApi {
             web3,
             api: client.to_runtime_api(),
             gas_price,
-            chain_id
+            chain_id,
         })
     }
 
@@ -36,15 +41,19 @@ impl MoonbeamApi {
     }
 
     pub async fn fetch_nonce(&self, address: Address) -> color_eyre::Result<U256> {
-        self
-            .web3
+        self.web3
             .eth()
             .transaction_count(address, None)
             .await
             .map_err(Into::into)
     }
 
-    pub async fn deploy(&self, data: &[u8], signer: impl Key, nonce: U256) -> color_eyre::Result<H256> {
+    pub async fn deploy(
+        &self,
+        data: &[u8],
+        signer: impl Key,
+        nonce: U256,
+    ) -> color_eyre::Result<H256> {
         let tx = Transaction {
             nonce,
             to: None,

@@ -4,19 +4,28 @@ mod xts;
 
 use crate::{
     moonbeam::{runner::MoonbeamRunner, xts::MoonbeamApi},
-    Cli,
+    Cli, Contract,
 };
 use web3::contract::tokens::Tokenize;
 
 pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
-    let params = (1u32,).into_tokens();
     let api = MoonbeamApi::new(&cli.url).await?;
 
     let mut runner = MoonbeamRunner::new(keyring::alith(), api);
 
-    runner
-        .prepare_contract("incrementer", cli.instance_count, &params)
-        .await?;
+    if cli.should_bench_contract(Contract::Incrementer) {
+        let ctor_params = (1u32,).into_tokens();
+        let inc_params = || (1u32,).into_tokens();
+        runner
+            .prepare_contract(
+                "incrementer",
+                cli.instance_count,
+                &ctor_params,
+                "inc",
+                inc_params,
+            )
+            .await?;
+    }
 
     Ok(())
 }
