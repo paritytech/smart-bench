@@ -14,16 +14,19 @@ use sp_core::H160;
 use web3::{
     ethabi::Token,
     signing::{Key, SecretKeyRef},
+    types::Address,
 };
 
 pub struct MoonbeamRunner {
     api: MoonbeamApi,
     signer: SecretKey,
+    address: Address,
 }
 
 impl MoonbeamRunner {
     pub fn new(signer: SecretKey, api: MoonbeamApi) -> Self {
-        Self { signer, api }
+        let address = Key::address(&SecretKeyRef::from(&signer));
+        Self { signer, api, address }
     }
 
     pub async fn prepare_contract(
@@ -61,6 +64,7 @@ impl MoonbeamRunner {
     }
 
     async fn exec_deploy(&self, data: &[u8], instance_count: u32) -> color_eyre::Result<Vec<H160>> {
+        let mut nonce = self.api.fetch_nonce(self.address).await?;
         let mut events = self
             .api
             .api()
@@ -71,8 +75,9 @@ impl MoonbeamRunner {
 
         let mut tx_hashes = Vec::new();
         for _ in 0..instance_count {
-            let tx_hash = self.api.deploy(data, &self.signer).await?;
+            let tx_hash = self.api.deploy(data, &self.signer, nonce).await?;
             tx_hashes.push(tx_hash);
+            nonce += 1.into();
         }
 
         let mut addresses = Vec::new();
