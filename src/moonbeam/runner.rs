@@ -1,22 +1,26 @@
-use super::xts::{
-    api::{
-        self,
-        ethereum::events::Executed,
-        runtime_types::evm_core::error::{ExitReason, ExitSucceed},
+use super::{
+    transaction::Transaction,
+    xts::{
+        api::{
+            self,
+            ethereum::events::Executed,
+            runtime_types::evm_core::error::{ExitReason, ExitSucceed},
+        },
+        MoonbeamApi,
     },
-    MoonbeamApi,
 };
 use color_eyre::{eyre, Section as _};
-use futures::StreamExt;
+use futures::{future, StreamExt, TryStream, TryStreamExt};
 use impl_serde::serialize::from_hex;
 use secp256k1::SecretKey;
 use web3::{
     ethabi::Token,
     signing::{Key, SecretKeyRef},
-    types::Address,
+    types::{Address, CallRequest, H256},
 };
 
 pub struct MoonbeamRunner {
+    url: String,
     api: MoonbeamApi,
     signer: SecretKey,
     address: Address,
@@ -24,9 +28,10 @@ pub struct MoonbeamRunner {
 }
 
 impl MoonbeamRunner {
-    pub fn new(signer: SecretKey, api: MoonbeamApi) -> Self {
+    pub fn new(url: String, signer: SecretKey, api: MoonbeamApi) -> Self {
         let address = Key::address(&SecretKeyRef::from(&signer));
         Self {
+            url,
             signer,
             api,
             address,
@@ -149,9 +154,91 @@ impl MoonbeamRunner {
         }
         Ok(addresses)
     }
+
+    /// Call each contract instance `call_count` times. Wait for all txs to be included in a block
+    /// before returning.
+    pub async fn run(
+        &mut self,
+        call_count: u32,
+    ) -> color_eyre::Result<impl TryStream<Ok = BlockInfo, Error = color_eyre::Report> + '_> {
+        let block_stats = povstats::subscribe_stats(&self.url).await?;
+
+        let mut tx_hashes = Vec::new();
+        let max_instance_count = self
+            .calls
+            .iter()
+            .map(|(_, calls)| calls.len())
+            .max()
+            .ok_or_else(|| eyre::eyre!("No prepared contracts for benchmarking."))?;
+        let mut nonce = self.api.fetch_nonce(self.address).await?;
+
+        for _ in 0..call_count {
+            for i in 0..max_instance_count {
+                for (_name, contract_calls) in &self.calls {
+                    if let Some(contract_call) = contract_calls.get(i as usize) {
+                        let gas_limit = self
+                            .api
+                            .estimate_gas(self.address, &contract_call.data)
+                            .await?;
+
+                        let tx_hash = self
+                            .api
+                            .call(
+                                contract_call.contract,
+                                &contract_call.data,
+                                &self.signer,
+                                nonce,
+                                gas_limit,
+                            )
+                            .await?;
+                        nonce += 1.into();
+                        tx_hashes.push(tx_hash)
+                    }
+                }
+            }
+        }
+
+        println!("Submitted {} total contract calls", tx_hashes.len());
+
+        todo!()
+
+        // let mut remaining_hashes: std::collections::HashSet<Hash> =
+        //     tx_hashes.iter().cloned().collect();
+        //
+        // let wait_for_txs = block_stats
+        //     .map_err(|e| eyre::eyre!("Block stats subscription error: {e:?}"))
+        //     .and_then(|stats| {
+        //         let client = self.api.api.client.clone();
+        //         async move {
+        //             let block = client.rpc().block(Some(stats.hash)).await?;
+        //             let extrinsics = block
+        //                 .unwrap_or_else(|| panic!("block {} not found", stats.hash))
+        //                 .block
+        //                 .extrinsics
+        //                 .iter()
+        //                 .map(BlakeTwo256::hash_of)
+        //                 .collect();
+        //             Ok(BlockInfo { extrinsics, stats })
+        //         }
+        //     })
+        //     .try_take_while(move |block_info| {
+        //         let some_remaining_txs = !remaining_hashes.is_empty();
+        //         for xt in &block_info.extrinsics {
+        //             remaining_hashes.remove(xt);
+        //         }
+        //         future::ready(Ok(some_remaining_txs))
+        //     });
+        //
+        // Ok(wait_for_txs)
+    }
 }
 
 struct Call {
     contract: Address,
     data: Vec<u8>,
+}
+
+pub struct BlockInfo {
+    pub stats: povstats::BlockStats,
+    pub extrinsics: Vec<H256>,
 }

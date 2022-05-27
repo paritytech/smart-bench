@@ -4,7 +4,7 @@ use subxt::{ClientBuilder, DefaultConfig, PolkadotExtrinsicParams};
 use web3::{
     signing::Key,
     transports::ws,
-    types::{Address, H256, U256},
+    types::{Address, CallRequest, H256, U256},
     Web3,
 };
 
@@ -48,16 +48,60 @@ impl MoonbeamApi {
             .map_err(Into::into)
     }
 
+    pub async fn estimate_gas(&self, from: Address, data: &[u8]) -> color_eyre::Result<U256> {
+        let call_request = CallRequest {
+            from: Some(from),
+            to: None,
+            gas: None,
+            gas_price: None,
+            value: None,
+            data: Some(data.clone().into()),
+            transaction_type: None,
+            access_list: None,
+            max_fee_per_gas: None,
+            max_priority_fee_per_gas: None,
+        };
+        self.web3
+            .eth()
+            .estimate_gas(call_request, None)
+            .await
+            .map_err(Into::into)
+    }
+
     pub async fn deploy(
         &self,
         data: &[u8],
         signer: impl Key,
         nonce: U256,
     ) -> color_eyre::Result<H256> {
+        self.sign_and_submit_tx(data, signer, nonce, None, 1_000_000u32.into())
+            .await
+    }
+
+    pub async fn call(
+        &self,
+        contract: Address,
+        data: &[u8],
+        signer: impl Key,
+        nonce: U256,
+        gas: U256,
+    ) -> color_eyre::Result<H256> {
+        self.sign_and_submit_tx(data, signer, nonce, Some(contract), gas)
+            .await
+    }
+
+    pub async fn sign_and_submit_tx(
+        &self,
+        data: &[u8],
+        signer: impl Key,
+        nonce: U256,
+        to: Option<Address>,
+        gas: U256,
+    ) -> color_eyre::Result<H256> {
         let tx = Transaction {
             nonce,
-            to: None,
-            gas: 1_000_000u32.into(),
+            to,
+            gas,
             gas_price: self.gas_price,
             value: 0u32.into(),
             data: data.into(),

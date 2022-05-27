@@ -6,12 +6,13 @@ use crate::{
     moonbeam::{runner::MoonbeamRunner, xts::MoonbeamApi},
     Cli, Contract,
 };
+use futures::{future, TryStreamExt};
 use web3::contract::tokens::Tokenize;
 
 pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     let api = MoonbeamApi::new(&cli.url).await?;
 
-    let mut runner = MoonbeamRunner::new(keyring::alith(), api);
+    let mut runner = MoonbeamRunner::new(cli.url.to_string(), keyring::alith(), api);
 
     if cli.should_bench_contract(Contract::Incrementer) {
         let ctor_params = (1u32,).into_tokens();
@@ -26,6 +27,16 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
             )
             .await?;
     }
+
+    let result = runner.run(cli.call_count).await?;
+
+    println!();
+    result
+        .try_for_each(|block| {
+            println!("{}", block.stats);
+            future::ready(Ok(()))
+        })
+        .await?;
 
     Ok(())
 }
