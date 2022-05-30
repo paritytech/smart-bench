@@ -3,7 +3,6 @@ mod xts;
 
 use crate::{Cli, Contract};
 use futures::{future, TryStreamExt};
-use povstats::substrate as api;
 use sp_core::sr25519;
 use sp_keyring::AccountKeyring;
 use subxt::{DefaultConfig, PairSigner};

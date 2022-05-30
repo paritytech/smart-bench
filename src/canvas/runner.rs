@@ -110,8 +110,8 @@ impl BenchRunner {
 
         let mut failed_or_instantiated_events =
             self.api.api.events().subscribe().await?.filter_events::<(
-                api::system::events::ExtrinsicFailed,
-                api::contracts::events::Instantiated,
+                xts::api::system::events::ExtrinsicFailed,
+                xts::api::contracts::events::Instantiated,
             )>();
 
         let mut accounts = Vec::new();
