@@ -1,27 +1,25 @@
-use super::{
-    transaction::Transaction,
-    xts::{
-        api::{
-            self,
-            ethereum::events::Executed,
-            runtime_types::evm_core::error::{ExitReason, ExitSucceed},
-        },
-        MoonbeamApi,
+use super::xts::{
+    api::{
+        self,
+        ethereum::events::Executed,
+        runtime_types::evm_core::error::{ExitReason, ExitSucceed},
     },
+    MoonbeamApi,
 };
 use color_eyre::{eyre, Section as _};
 use futures::{future, StreamExt, TryStream, TryStreamExt};
 use impl_serde::serialize::from_hex;
 use secp256k1::SecretKey;
+use sp_runtime::traits::{BlakeTwo256, Hash as _};
 use web3::{
     ethabi::Token,
     signing::{Key, SecretKeyRef},
-    types::{Address, CallRequest, H256},
+    types::Address,
 };
 
 pub struct MoonbeamRunner {
     url: String,
-    api: MoonbeamApi,
+    pub api: MoonbeamApi,
     signer: SecretKey,
     address: Address,
     calls: Vec<(String, Vec<Call>)>,
@@ -200,36 +198,37 @@ impl MoonbeamRunner {
 
         println!("Submitted {} total contract calls", tx_hashes.len());
 
-        todo!()
+        let mut remaining_hashes: std::collections::HashSet<sp_core::H256> = tx_hashes
+            .iter()
+            .map(|hash| sp_core::H256::from_slice(hash.as_ref()))
+            .collect();
 
-        // let mut remaining_hashes: std::collections::HashSet<Hash> =
-        //     tx_hashes.iter().cloned().collect();
-        //
-        // let wait_for_txs = block_stats
-        //     .map_err(|e| eyre::eyre!("Block stats subscription error: {e:?}"))
-        //     .and_then(|stats| {
-        //         let client = self.api.api.client.clone();
-        //         async move {
-        //             let block = client.rpc().block(Some(stats.hash)).await?;
-        //             let extrinsics = block
-        //                 .unwrap_or_else(|| panic!("block {} not found", stats.hash))
-        //                 .block
-        //                 .extrinsics
-        //                 .iter()
-        //                 .map(BlakeTwo256::hash_of)
-        //                 .collect();
-        //             Ok(BlockInfo { extrinsics, stats })
-        //         }
-        //     })
-        //     .try_take_while(move |block_info| {
-        //         let some_remaining_txs = !remaining_hashes.is_empty();
-        //         for xt in &block_info.extrinsics {
-        //             remaining_hashes.remove(xt);
-        //         }
-        //         future::ready(Ok(some_remaining_txs))
-        //     });
-        //
-        // Ok(wait_for_txs)
+        // todo: this can probably be extracted and duplication with bench runner removed
+        let wait_for_txs = block_stats
+            .map_err(|e| eyre::eyre!("Block stats subscription error: {e:?}"))
+            .and_then(|stats| {
+                let client = self.api.api.client.clone();
+                async move {
+                    let block = client.rpc().block(Some(stats.hash)).await?;
+                    let extrinsics = block
+                        .unwrap_or_else(|| panic!("block {} not found", stats.hash))
+                        .block
+                        .extrinsics
+                        .iter()
+                        .map(BlakeTwo256::hash_of)
+                        .collect();
+                    Ok(BlockInfo { extrinsics, stats })
+                }
+            })
+            .try_take_while(move |block_info| {
+                let some_remaining_txs = !remaining_hashes.is_empty();
+                for xt in &block_info.extrinsics {
+                    remaining_hashes.remove(xt);
+                }
+                future::ready(Ok(some_remaining_txs))
+            });
+
+        Ok(wait_for_txs)
     }
 }
 
@@ -240,5 +239,5 @@ struct Call {
 
 pub struct BlockInfo {
     pub stats: povstats::BlockStats,
-    pub extrinsics: Vec<H256>,
+    pub extrinsics: Vec<sp_core::H256>,
 }

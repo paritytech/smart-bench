@@ -16,7 +16,7 @@ pub mod api {
 
 pub struct MoonbeamApi {
     web3: Web3<ws::WebSocket>,
-    api: api::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>,
+    pub api: api::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>,
     gas_price: U256,
     chain_id: U256,
 }
