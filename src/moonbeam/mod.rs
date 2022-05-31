@@ -7,7 +7,10 @@ use crate::{
     Cli, Contract,
 };
 use futures::{future, TryStreamExt};
-use web3::contract::tokens::Tokenize;
+use web3::{
+    contract::tokens::Tokenize,
+    signing::Key,
+};
 
 pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     let api = MoonbeamApi::new(&cli.url).await?;
@@ -16,10 +19,11 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
 
     // erc20
     if cli.should_bench_contract(Contract::Erc20) {
+        let transfer_to = (&keyring::balthazar()).address();
         let ctor_params = (1_000_000u32,).into_tokens();
-        let transfer_params = || (1000u32,).into_tokens();
+        let transfer_params = || (1000u32, transfer_to).into_tokens();
         runner
-            .prepare_contract("erc20", cli.instance_count, &ctor_params, "transfer", &transfer_params)
+            .prepare_contract("BenchERC20", cli.instance_count, &ctor_params, "transfer", &transfer_params)
             .await?;
     }
 
