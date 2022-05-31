@@ -14,6 +14,25 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
 
     let mut runner = MoonbeamRunner::new(cli.url.to_string(), keyring::alith(), api);
 
+    // erc20
+    if cli.should_bench_contract(Contract::Erc20) {
+        let ctor_params = (1_000_000u32,).into_tokens();
+        let transfer_params = || (1000u32,).into_tokens();
+        runner
+            .prepare_contract("erc20", cli.instance_count, &ctor_params, "transfer", &transfer_params)
+            .await?;
+    }
+
+    // flipper
+    // if cli.should_bench_contract(Contract::Flipper) {
+    //     let flipper_new = flipper::constructors::new(false);
+    //     let flipper_flip = || flipper::messages::flip().into();
+    //     runner
+    //         .prepare_contract("flipper", flipper_new, cli.instance_count, &flipper_flip)
+    //         .await?;
+    // }
+
+    // incrementer
     if cli.should_bench_contract(Contract::Incrementer) {
         let ctor_params = (1u32,).into_tokens();
         let inc_params = || (1u32,).into_tokens();
