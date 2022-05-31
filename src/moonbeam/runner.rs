@@ -14,7 +14,7 @@ use sp_runtime::traits::{BlakeTwo256, Hash as _};
 use web3::{
     ethabi::Token,
     signing::{Key, SecretKeyRef},
-    types::Address,
+    types::{Address, U256},
 };
 
 pub struct MoonbeamRunner {
@@ -79,7 +79,12 @@ impl MoonbeamRunner {
         for contract in contract_accounts {
             let call_params = create_call_params();
             let data = call.encode_input(&call_params)?;
-            calls.push(Call { contract, data })
+            let gas_limit = self
+                .api
+                .estimate_gas(self.address, contract, &data)
+                .await
+                .note("Error estimating gas")?;
+            calls.push(Call { name: name.to_string(), contract, data, gas_limit })
         }
         self.calls.push((name.to_string(), calls));
 
@@ -174,11 +179,7 @@ impl MoonbeamRunner {
             for i in 0..max_instance_count {
                 for (_name, contract_calls) in &self.calls {
                     if let Some(contract_call) = contract_calls.get(i as usize) {
-                        let gas_limit = self
-                            .api
-                            .estimate_gas(self.address, &contract_call.data)
-                            .await?;
-
+                        tracing::debug!("Calling {}, address {}, gas_limit {}", contract_call.name, contract_call.contract, contract_call.gas_limit);
                         let tx_hash = self
                             .api
                             .call(
@@ -186,7 +187,7 @@ impl MoonbeamRunner {
                                 &contract_call.data,
                                 &self.signer,
                                 nonce,
-                                gas_limit,
+                                contract_call.gas_limit,
                             )
                             .await?;
                         nonce += 1.into();
@@ -233,8 +234,10 @@ impl MoonbeamRunner {
 }
 
 struct Call {
+    name: String,
     contract: Address,
     data: Vec<u8>,
+    gas_limit: U256,
 }
 
 pub struct BlockInfo {
