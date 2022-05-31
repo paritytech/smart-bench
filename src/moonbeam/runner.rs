@@ -45,17 +45,21 @@ impl MoonbeamRunner {
         call_name: &str,
         mut create_call_params: F,
     ) -> color_eyre::Result<()>
-    where F: FnMut() -> Vec<Token>,
+    where
+        F: FnMut() -> Vec<Token>,
     {
         print!("Preparing {name}...");
 
         let root = std::env::var("CARGO_MANIFEST_DIR")?;
-        let metadata_path = format!("{root}/contracts/solidity/artifacts/contracts/{name}.sol/{name}.json");
+        let metadata_path =
+            format!("{root}/contracts/solidity/artifacts/contracts/{name}.sol/{name}.json");
 
         let metadata_reader = std::fs::File::open(metadata_path)?;
         let json: serde_json::Map<String, serde_json::Value> =
             serde_json::from_reader(metadata_reader)?;
-        let bytecode = json["deployedBytecode"].as_str().ok_or_else(|| eyre::eyre!("Bytecode should be a string"))?;
+        let bytecode = json["deployedBytecode"]
+            .as_str()
+            .ok_or_else(|| eyre::eyre!("Bytecode should be a string"))?;
         let code = from_hex(bytecode).note("Error decoding hex bytecode")?;
         let abi = json["abi"].clone();
         let contract: web3::ethabi::Contract = serde_json::from_value(abi)?;
