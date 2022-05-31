@@ -84,7 +84,12 @@ impl MoonbeamRunner {
                 .estimate_gas(self.address, contract, &data)
                 .await
                 .note("Error estimating gas")?;
-            calls.push(Call { name: name.to_string(), contract, data, gas_limit })
+            calls.push(Call {
+                name: name.to_string(),
+                contract,
+                data,
+                gas_limit,
+            })
         }
         self.calls.push((name.to_string(), calls));
 
@@ -179,7 +184,12 @@ impl MoonbeamRunner {
             for i in 0..max_instance_count {
                 for (_name, contract_calls) in &self.calls {
                     if let Some(contract_call) = contract_calls.get(i as usize) {
-                        tracing::debug!("Calling {}, address {}, gas_limit {}", contract_call.name, contract_call.contract, contract_call.gas_limit);
+                        tracing::debug!(
+                            "Calling {}, address {}, gas_limit {}",
+                            contract_call.name,
+                            contract_call.contract,
+                            contract_call.gas_limit
+                        );
                         let tx_hash = self
                             .api
                             .call(

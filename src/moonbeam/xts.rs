@@ -48,7 +48,12 @@ impl MoonbeamApi {
             .map_err(Into::into)
     }
 
-    pub async fn estimate_gas(&self, from: Address, contract: Address, data: &[u8]) -> color_eyre::Result<U256> {
+    pub async fn estimate_gas(
+        &self,
+        from: Address,
+        contract: Address,
+        data: &[u8],
+    ) -> color_eyre::Result<U256> {
         let call_request = CallRequest {
             from: Some(from),
             to: Some(contract),
