@@ -18,7 +18,7 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     if cli.should_bench_contract(Contract::Erc20) {
         let transfer_to = (&keyring::balthazar()).address();
         let ctor_params = (1_000_000u32,).into_tokens();
-        let transfer_params = || (1000u32, transfer_to).into_tokens();
+        let transfer_params = || (transfer_to, 1000u32).into_tokens();
         runner
             .prepare_contract(
                 "BenchERC20",

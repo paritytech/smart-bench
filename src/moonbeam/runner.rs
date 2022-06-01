@@ -82,7 +82,9 @@ impl MoonbeamRunner {
         let mut calls = Vec::new();
         for contract in contract_accounts {
             let call_params = create_call_params();
-            let data = call.encode_input(&call_params)?;
+            let data = call
+                .encode_input(&call_params)
+                .note("Error encoding contract call input")?;
             let gas_limit = self
                 .api
                 .estimate_gas(self.address, contract, &data)
