@@ -10,6 +10,9 @@ use subxt::{rpc::NumberOrHex, DefaultConfig, PolkadotExtrinsicParams};
 
 const DRY_RUN_GAS_LIMIT: u64 = 500_000_000_000;
 
+#[subxt::subxt(runtime_metadata_path = "metadata/contracts-node.scale")]
+pub mod api {}
+
 type RuntimeApi = api::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
 
 pub struct ContractsApi {
@@ -68,7 +71,7 @@ impl ContractsApi {
             .api
             .tx()
             .contracts()
-            .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt)
+            .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt)?
             .sign_and_submit_default(signer)
             .await?;
 
@@ -118,7 +121,7 @@ impl ContractsApi {
                 gas_limit,
                 storage_deposit_limit,
                 data,
-            )
+            )?
             .sign_and_submit_default(signer)
             .await?;
 

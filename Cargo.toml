@@ -12,15 +12,25 @@ tokio = { version = "1.18.2", features = ["rt-multi-thread"] }
 color-eyre = "0.6.1"
 codec = { package = "parity-scale-codec", version = "3.1.2", default-features = false }
 contract-metadata = { package = "contract-metadata", git = "https://github.com/paritytech/cargo-contract", branch = "master" }
+impl-serde = { version = "0.3.1", default-features = false }
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 serde_json = "1.0.81"
 clap = { version = "3.1.17", features = ["derive"] }
 subxt = { git =  "https://github.com/paritytech/subxt", package = "subxt", branch = "master" }
 futures = "0.3.21"
 parity-wasm = "0.42.2"
-povstats = { git = "https://github.com/athei/povstats", branch = "master" }
+povstats = { git = "https://github.com/ascjones/povstats", branch = "generic-runtime-metadata" }
 jsonrpsee = { version = "0.12.0", features = ["ws-client"] }
 pallet-contracts-primitives = "6.0.0"
+tracing = "0.1.34"
+tracing-subscriber = "0.3.11"
+
+# ethereum
+sha3 = "0.10.1"
+libsecp256k1 = { version = "0.6", default-features = false, features = [ "hmac" ] }
+web3 = { version = "0.18.0", features = ["signing"] }
+rlp = "0.5.1"
+secp256k1 = { version = "0.21", features = ["recovery"] }
 
 # substrate
 sp-core = "6.0.0"
