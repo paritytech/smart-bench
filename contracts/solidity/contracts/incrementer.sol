@@ -1,4 +1,4 @@
-pragma solidity 0;
+pragma solidity ^0.8.0;
 
 contract incrementer {
 	uint32 private value;

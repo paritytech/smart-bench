@@ -14,7 +14,7 @@ module.exports = {
       accounts: [alith]
     },
   },
-  solidity: "0.8.0",
+  solidity: "0.8.1",
   paths: {
     sources: "./contracts",
     tests: "./test",

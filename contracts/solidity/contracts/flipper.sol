@@ -1,4 +1,4 @@
-pragma solidity 0;
+pragma solidity ^0.8.0;
 
 contract flipper {
 	bool private value;

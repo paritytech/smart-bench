@@ -7,7 +7,7 @@ use crate::{
     Cli, Contract,
 };
 use futures::{future, TryStreamExt};
-use web3::{contract::tokens::Tokenize, signing::Key};
+use web3::{contract::tokens::Tokenize, signing::Key, types::U256};
 
 pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     let api = MoonbeamApi::new(&cli.url).await?;
@@ -56,6 +56,26 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
                 &ctor_params,
                 "inc",
                 inc_params,
+            )
+            .await?;
+    }
+
+    // erc721
+    if cli.should_bench_contract(Contract::Erc721) {
+        let ctor_params = ().into_tokens();
+        let mut token_id = 0;
+        let mint_params = || {
+            let mint = (U256::from(token_id),).into_tokens();
+            token_id += 1;
+            mint
+        };
+        runner
+            .prepare_contract(
+                "BenchERC721",
+                cli.instance_count,
+                &ctor_params,
+                "mint",
+                mint_params,
             )
             .await?;
     }
