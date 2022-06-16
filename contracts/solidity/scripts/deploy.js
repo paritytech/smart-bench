@@ -1,7 +1,7 @@
 async function main() {
     // We get the contract to deploy
     const BenchERC20 = await ethers.getContractFactory("BenchERC20");
-    const erc20 = await BenchERC20.deploy(1000);
+    const erc20 = await BenchERC20.deploy(1000000);
 
     await erc20.deployed();
 
