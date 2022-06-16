@@ -57,7 +57,7 @@ impl MoonbeamRunner {
         let metadata_reader = std::fs::File::open(metadata_path)?;
         let json: serde_json::Map<String, serde_json::Value> =
             serde_json::from_reader(metadata_reader)?;
-        let bytecode = json["deployedBytecode"]
+        let bytecode = json["bytecode"]
             .as_str()
             .ok_or_else(|| eyre::eyre!("Bytecode should be a string"))?;
         let code = from_hex(bytecode).note("Error decoding hex bytecode")?;
@@ -142,9 +142,11 @@ impl MoonbeamRunner {
                     return Err(eyre::eyre!("Deploy Extrinsic Failed: {:?}", description));
                 }
                 (None, Some(Executed(from, contract_address, tx, exit_reason))) => {
+                    tracing::debug!("Contract {contract_address} executed");
                     if from.as_ref() == Key::address(&SecretKeyRef::from(&self.signer)).as_ref() {
                         match exit_reason {
                             ExitReason::Succeed(ExitSucceed::Returned) => {
+                                tracing::debug!("Deployed contract {contract_address}");
                                 addresses.push(Address::from_slice(contract_address.as_ref()));
                                 if addresses.len() == instance_count as usize {
                                     break;
