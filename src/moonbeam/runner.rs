@@ -87,7 +87,7 @@ impl MoonbeamRunner {
                 .note("Error encoding contract call input")?;
             let gas_limit = self
                 .api
-                .estimate_gas(self.address, contract, &data)
+                .estimate_gas(self.address, Some(contract), &data)
                 .await
                 .note("Error estimating gas")?;
             calls.push(Call {
@@ -116,9 +116,15 @@ impl MoonbeamRunner {
             .await?
             .filter_events::<(api::system::events::ExtrinsicFailed, Executed)>();
 
+        let gas = self
+            .api
+            .estimate_gas(self.address, None, &data)
+            .await
+            .note("Error estimating gas")?;
+
         let mut tx_hashes = Vec::new();
         for _ in 0..instance_count {
-            let tx_hash = self.api.deploy(data, &self.signer, nonce).await?;
+            let tx_hash = self.api.deploy(data, &self.signer, nonce, gas).await?;
             tx_hashes.push(tx_hash);
             nonce += 1.into();
         }

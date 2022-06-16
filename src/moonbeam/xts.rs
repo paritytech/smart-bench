@@ -51,13 +51,13 @@ impl MoonbeamApi {
     pub async fn estimate_gas(
         &self,
         from: Address,
-        contract: Address,
+        contract: Option<Address>,
         data: &[u8],
     ) -> color_eyre::Result<U256> {
         let call_request = CallRequest {
             from: Some(from),
-            to: Some(contract),
-            gas: Some(1_000_000.into()),
+            to: contract,
+            gas: None,
             gas_price: None,
             value: None,
             data: Some(data.clone().into()),
@@ -78,8 +78,9 @@ impl MoonbeamApi {
         data: &[u8],
         signer: impl Key,
         nonce: U256,
+        gas: U256,
     ) -> color_eyre::Result<H256> {
-        self.sign_and_submit_tx(data, signer, nonce, None, 1_000_000u32.into())
+        self.sign_and_submit_tx(data, signer, nonce, None, gas)
             .await
     }
 
