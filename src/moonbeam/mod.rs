@@ -80,6 +80,21 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
             .await?;
     }
 
+    // erc1155
+    if cli.should_bench_contract(Contract::Erc1155) {
+        let ctor_params = ().into_tokens();
+        let create_params = || (U256::from(1_000_000),).into_tokens();
+        runner
+            .prepare_contract(
+                "BenchERC1155",
+                cli.instance_count,
+                &ctor_params,
+                "create",
+                create_params,
+            )
+            .await?;
+    }
+
     let result = runner.run(cli.call_count).await?;
 
     println!();
