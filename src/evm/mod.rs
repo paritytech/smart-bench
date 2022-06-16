@@ -3,7 +3,7 @@ mod transaction;
 mod xts;
 
 use crate::{
-    moonbeam::{runner::MoonbeamRunner, xts::MoonbeamApi},
+    evm::{runner::MoonbeamRunner, xts::MoonbeamApi},
     Cli, Contract,
 };
 use futures::{future, TryStreamExt};

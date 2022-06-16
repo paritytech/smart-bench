@@ -1,9 +1,9 @@
-mod canvas;
-mod moonbeam;
+mod evm;
+mod wasm;
 
 // export for use by contract! macro
-pub use canvas::{InkConstructor, InkMessage};
 use clap::Parser;
+pub use wasm::{InkConstructor, InkMessage};
 
 #[derive(Debug, Parser)]
 #[clap(version)]
@@ -11,9 +11,9 @@ pub struct Cli {
     /// the url of the substrate node for submitting the extrinsics.
     #[clap(name = "url", long, default_value = "ws://localhost:9944")]
     url: String,
-    /// the chain to benchmark.
+    /// the smart contract platform to benchmark.
     #[clap(arg_enum)]
-    chain: TargetChain,
+    chain: TargetPlatform,
     /// the list of contracts to benchmark with.
     #[clap(arg_enum)]
     contracts: Vec<Contract>,
@@ -33,9 +33,9 @@ impl Cli {
 }
 
 #[derive(clap::ArgEnum, Debug, Clone)]
-pub enum TargetChain {
-    Canvas,
-    Moonbeam,
+pub enum TargetPlatform {
+    Wasm,
+    Evm,
 }
 
 #[derive(clap::ArgEnum, Debug, Clone, Eq, PartialEq)]
@@ -55,7 +55,7 @@ async fn main() -> color_eyre::Result<()> {
     tracing_subscriber::fmt::init();
 
     match cli.chain {
-        TargetChain::Canvas => canvas::exec(cli).await,
-        TargetChain::Moonbeam => moonbeam::exec(&cli).await,
+        TargetPlatform::Wasm => wasm::exec(cli).await,
+        TargetPlatform::Evm => evm::exec(&cli).await,
     }
 }
