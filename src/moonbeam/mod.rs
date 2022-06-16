@@ -31,13 +31,19 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     }
 
     // flipper
-    // if cli.should_bench_contract(Contract::Flipper) {
-    //     let flipper_new = flipper::constructors::new(false);
-    //     let flipper_flip = || flipper::messages::flip().into();
-    //     runner
-    //         .prepare_contract("flipper", flipper_new, cli.instance_count, &flipper_flip)
-    //         .await?;
-    // }
+    if cli.should_bench_contract(Contract::Flipper) {
+        let ctor_params = (true,).into_tokens();
+        let flip_params = || Vec::new();
+        runner
+            .prepare_contract(
+                "flipper",
+                cli.instance_count,
+                &ctor_params,
+                "flip",
+                &flip_params,
+            )
+            .await?;
+    }
 
     // incrementer
     if cli.should_bench_contract(Contract::Incrementer) {
