@@ -39,7 +39,7 @@
 	},
 	"parachains": [
 		{
-			"bin": "./bin/polkadot-collator",
+			"bin": "./bin/polkadot-parachain",
 			"chain": "contracts-rococo-local",
 			"balance": "1000000000000000000000",
 			"nodes": [
