@@ -138,7 +138,7 @@ impl BenchRunner {
                 (Some(failed), None) => {
                     let error_data =
                         subxt::HasModuleError::module_error_data(&failed.dispatch_error).ok_or(
-                            eyre::eyre!("Failed to find error details for {:?},", failed),
+                            eyre::eyre!("Failed to find error details for {failed:?},"),
                         )?;
                     let description = {
                         let metadata = self.api.api.client.metadata();
@@ -149,8 +149,7 @@ impl BenchRunner {
                     };
 
                     return Err(eyre::eyre!(
-                        "Instantiate Extrinsic Failed: {:?}",
-                        description
+                        "Instantiate Extrinsic Failed: {description:?}"
                     ));
                 }
                 (None, Some(instantiated)) => {
@@ -227,6 +226,7 @@ impl BenchRunner {
         let wait_for_txs = block_stats
             .map_err(|e| eyre::eyre!("Block stats subscription error: {e:?}"))
             .and_then(|stats| {
+                tracing::debug!("{stats:?}");
                 let client = self.api.api.client.clone();
                 async move {
                     let block = client.rpc().block(Some(stats.hash)).await?;

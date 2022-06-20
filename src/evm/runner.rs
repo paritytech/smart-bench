@@ -232,6 +232,7 @@ impl MoonbeamRunner {
         let wait_for_txs = block_stats
             .map_err(|e| eyre::eyre!("Block stats subscription error: {e:?}"))
             .and_then(|stats| {
+                tracing::debug!("{stats:?}");
                 let client = self.api.api.client.clone();
                 async move {
                     let block = client.rpc().block(Some(stats.hash)).await?;
