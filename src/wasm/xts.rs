@@ -4,14 +4,27 @@ use jsonrpsee::{
     rpc_params,
     ws_client::{WsClient, WsClientBuilder},
 };
+use pallet_contracts_primitives::{ContractResult, ExecReturnValue, InstantiateReturnValue};
 use serde::Serialize;
 use sp_core::{Bytes, H256};
-use subxt::{rpc::NumberOrHex, DefaultConfig, PolkadotExtrinsicParams};
+use subxt::{rpc::NumberOrHex, Config, DefaultConfig, PolkadotExtrinsicParams};
 
 const DRY_RUN_GAS_LIMIT: u64 = 500_000_000_000;
 
-#[subxt::subxt(runtime_metadata_path = "metadata/contracts-node.scale")]
+#[subxt::subxt(
+    runtime_metadata_path = "metadata/contracts-node.scale",
+    derive_for_type(type = "sp_runtime::DispatchError", derive = "::serde::Deserialize"),
+    derive_for_type(type = "sp_runtime::ModuleError", derive = "::serde::Deserialize"),
+    derive_for_type(type = "sp_runtime::TokenError", derive = "::serde::Deserialize"),
+    derive_for_type(type = "sp_runtime::ArithmeticError", derive = "::serde::Deserialize"),
+    derive_for_type(
+        type = "sp_runtime::TransactionalError",
+        derive = "::serde::Deserialize"
+    )
+)]
 pub mod api {}
+
+use api::DispatchError as RuntimeDispatchError;
 
 type RuntimeApi = api::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
 
@@ -128,10 +141,13 @@ impl ContractsApi {
         Ok(tx_hash)
     }
 }
-type ContractExecResult = pallet_contracts_primitives::ContractExecResult<Balance>;
 
-type ContractInstantiateResult =
-    pallet_contracts_primitives::ContractInstantiateResult<AccountId, Balance>;
+type ContractExecResult = ContractResult<Result<ExecReturnValue, RuntimeDispatchError>, Balance>;
+
+type ContractInstantiateResult = ContractResult<
+    Result<InstantiateReturnValue<<DefaultConfig as Config>::AccountId>, RuntimeDispatchError>,
+    Balance,
+>;
 
 /// A struct that encodes RPC parameters required to instantiate a new smart contract.
 #[derive(Serialize)]

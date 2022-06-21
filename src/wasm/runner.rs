@@ -137,9 +137,8 @@ impl BenchRunner {
             match info.event {
                 (Some(failed), None) => {
                     let error_data =
-                        subxt::HasModuleError::module_error_data(&failed.dispatch_error).ok_or(
-                            eyre::eyre!("Failed to find error details for {failed:?},"),
-                        )?;
+                        subxt::HasModuleError::module_error_data(&failed.dispatch_error)
+                            .ok_or(eyre::eyre!("Failed to find error details for {failed:?},"))?;
                     let description = {
                         let metadata = self.api.api.client.metadata();
                         let locked_metadata = metadata.read();
@@ -148,9 +147,7 @@ impl BenchRunner {
                         details.description().to_vec()
                     };
 
-                    return Err(eyre::eyre!(
-                        "Instantiate Extrinsic Failed: {description:?}"
-                    ));
+                    return Err(eyre::eyre!("Instantiate Extrinsic Failed: {description:?}"));
                 }
                 (None, Some(instantiated)) => {
                     accounts.push(instantiated.contract);
