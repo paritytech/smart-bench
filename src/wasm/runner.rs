@@ -15,23 +15,31 @@ pub struct BenchRunner {
 }
 
 impl BenchRunner {
-    pub async fn new(mut signer: Signer, url: &str) -> color_eyre::Result<Self> {
+    pub async fn new(signer: Signer, url: &str) -> color_eyre::Result<Self> {
         let client = subxt::ClientBuilder::new().set_url(url).build().await?;
-
-        let nonce = client
-            .rpc()
-            .system_account_next_index(signer.account_id())
-            .await?;
-        signer.set_nonce(nonce);
 
         let api = ContractsApi::new(client, url).await?;
 
-        Ok(Self {
+        let mut runner = Self {
             url: url.to_string(),
             api,
             signer,
             calls: Vec::new(),
-        })
+        };
+        runner.set_nonce().await?;
+        Ok(runner)
+    }
+
+    async fn set_nonce(&mut self) -> color_eyre::Result<()> {
+        let nonce = self
+            .api
+            .api
+            .client
+            .rpc()
+            .system_account_next_index(self.signer.account_id())
+            .await?;
+        self.signer.set_nonce(nonce);
+        Ok(())
     }
 
     /// Upload and instantiate instances of contract, and build calls for benchmarking
@@ -59,6 +67,8 @@ impl BenchRunner {
             .ok_or_else(|| eyre::eyre!("contract bundle missing source Wasm"))?;
 
         println!("{}KiB", code.0.len() / 1024);
+
+        self.set_nonce().await?;
 
         let contract_accounts = self
             .exec_instantiate(0, code.0, &constructor, instance_count)
