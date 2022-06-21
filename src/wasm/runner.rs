@@ -3,6 +3,7 @@ use codec::Encode;
 use color_eyre::eyre;
 use futures::{future, StreamExt, TryStream, TryStreamExt};
 use sp_runtime::traits::{BlakeTwo256, Hash as _};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<Balance> = None;
 
@@ -91,9 +92,12 @@ impl BenchRunner {
         let mut data = C::SELECTOR.to_vec();
         <C as Encode>::encode_to(constructor, &mut data);
 
+        // a value to append to a contract's custom section to make the code unique
+        let unique_code_salt = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
+
         // dry run the instantiate to calculate the gas limit
         let gas_limit = {
-            let code = append_unique_name_section(&code, 0)?;
+            let code = append_unique_name_section(&code, unique_code_salt)?;
             let dry_run = self
                 .api
                 .instantiate_with_code_dry_run(
@@ -115,7 +119,7 @@ impl BenchRunner {
             )>();
 
         let mut accounts = Vec::new();
-        for i in 0..count {
+        for i in unique_code_salt..unique_code_salt + count as u128 {
             let code = append_unique_name_section(&code, i)?;
             let salt = Vec::new();
 
@@ -250,7 +254,7 @@ impl BenchRunner {
 }
 
 /// Add a custom section to make the Wasm code unique to upload many copies of the same contract.
-fn append_unique_name_section(code: &[u8], instance_id: u32) -> color_eyre::Result<Vec<u8>> {
+fn append_unique_name_section(code: &[u8], instance_id: u128) -> color_eyre::Result<Vec<u8>> {
     let mut module: parity_wasm::elements::Module = parity_wasm::deserialize_buffer(code)?;
     module.set_custom_section("smart-bench-unique", instance_id.to_le_bytes().to_vec());
     let code = module.to_bytes()?;
