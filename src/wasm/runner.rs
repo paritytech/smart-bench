@@ -257,7 +257,7 @@ impl BenchRunner {
 fn append_unique_name_section(code: &[u8], instance_id: u128) -> color_eyre::Result<Vec<u8>> {
     let mut module: parity_wasm::elements::Module = parity_wasm::deserialize_buffer(code)?;
     module.set_custom_section("smart-bench-unique", instance_id.to_le_bytes().to_vec());
-    let code = module.to_bytes()?;
+    let code = module.into_bytes()?;
     Ok(code)
 }
 

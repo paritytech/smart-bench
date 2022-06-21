@@ -18,7 +18,7 @@ serde_json = "1.0.81"
 clap = { version = "3.1.17", features = ["derive"] }
 subxt = "0.22"
 futures = "0.3.21"
-parity-wasm = "0.42.2"
+parity-wasm = "0.45"
 blockstats = "0.1"
 jsonrpsee = { version = "0.14.0", features = ["ws-client"] }
 pallet-contracts-primitives = "6.0.0"
