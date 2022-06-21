@@ -1324,44 +1324,14 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad6f9ff3481f3069c92474b697c104502f7e9191d29b34bfa38ae9a19415f1cd"
-dependencies = [
- "jsonrpsee-core 0.12.0",
- "jsonrpsee-types 0.12.0",
- "jsonrpsee-ws-client",
-]
-
-[[package]]
-name = "jsonrpsee"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11e017217fcd18da0a25296d3693153dd19c8a6aadab330b3595285d075385d1"
 dependencies = [
- "jsonrpsee-client-transport 0.14.0",
- "jsonrpsee-core 0.14.0",
-]
-
-[[package]]
-name = "jsonrpsee-client-transport"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4358e100faf43b2f3b7b0ecf0ad4ce3e6275fe12fda8428dedda2979751dd184"
-dependencies = [
- "futures-util",
- "http",
- "jsonrpsee-core 0.12.0",
- "jsonrpsee-types 0.12.0",
- "pin-project",
- "rustls-native-certs",
- "soketto",
- "thiserror",
- "tokio",
- "tokio-rustls",
- "tokio-util 0.7.3",
- "tracing",
- "webpki-roots",
+ "jsonrpsee-client-transport",
+ "jsonrpsee-core",
+ "jsonrpsee-types",
+ "jsonrpsee-ws-client",
 ]
 
 [[package]]
@@ -1372,8 +1342,8 @@ checksum = "ce395539a14d3ad4ec1256fde105abd36a2da25d578a291cabe98f45adfdb111"
 dependencies = [
  "futures-util",
  "http",
- "jsonrpsee-core 0.14.0",
- "jsonrpsee-types 0.14.0",
+ "jsonrpsee-core",
+ "jsonrpsee-types",
  "pin-project",
  "rustls-native-certs",
  "soketto",
@@ -1383,28 +1353,6 @@ dependencies = [
  "tokio-util 0.7.3",
  "tracing",
  "webpki-roots",
-]
-
-[[package]]
-name = "jsonrpsee-core"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e1d26ab3868749d6f716345a5fbd3334a100c0709fe464bd9189ee9d78adcde"
-dependencies = [
- "anyhow",
- "async-lock",
- "async-trait",
- "beef",
- "futures-channel",
- "futures-timer",
- "futures-util",
- "jsonrpsee-types 0.12.0",
- "rustc-hash",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -1420,26 +1368,12 @@ dependencies = [
  "futures-channel",
  "futures-timer",
  "futures-util",
- "jsonrpsee-types 0.14.0",
+ "jsonrpsee-types",
  "rustc-hash",
  "serde",
  "serde_json",
  "thiserror",
  "tokio",
- "tracing",
-]
-
-[[package]]
-name = "jsonrpsee-types"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5fe5a629443d17a30ff564881ba68881a710fd7eb02a538087b0bc51cb4962c"
-dependencies = [
- "anyhow",
- "beef",
- "serde",
- "serde_json",
- "thiserror",
  "tracing",
 ]
 
@@ -1459,13 +1393,13 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-ws-client"
-version = "0.12.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba31eb2b9a4b73d8833f53fe55e579516289f8b31adb6104b3dbc629755acf7d"
+checksum = "ee043cb5dd0d51d3eb93432e998d5bae797691a7b10ec4a325e036bcdb48c48a"
 dependencies = [
- "jsonrpsee-client-transport 0.12.0",
- "jsonrpsee-core 0.12.0",
- "jsonrpsee-types 0.12.0",
+ "jsonrpsee-client-transport",
+ "jsonrpsee-core",
+ "jsonrpsee-types",
 ]
 
 [[package]]
@@ -2703,7 +2637,7 @@ dependencies = [
  "contract-metadata",
  "futures",
  "impl-serde",
- "jsonrpsee 0.12.0",
+ "jsonrpsee",
  "libsecp256k1 0.6.0",
  "pallet-contracts-primitives",
  "parity-scale-codec 3.1.5",
@@ -3182,7 +3116,7 @@ dependencies = [
  "frame-metadata",
  "futures",
  "hex",
- "jsonrpsee 0.14.0",
+ "jsonrpsee",
  "parity-scale-codec 3.1.5",
  "parking_lot",
  "scale-info",
