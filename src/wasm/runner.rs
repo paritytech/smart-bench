@@ -182,7 +182,7 @@ impl BenchRunner {
         &mut self,
         call_count: u32,
     ) -> color_eyre::Result<impl TryStream<Ok = BlockInfo, Error = color_eyre::Report> + '_> {
-        let block_stats = povstats::subscribe_stats(&self.url).await?;
+        let block_stats = blockstats::subscribe_stats(&self.url).await?;
 
         let mut tx_hashes = Vec::new();
         let max_instance_count = self
@@ -267,7 +267,7 @@ impl BenchRunner {
 fn append_unique_name_section(code: &[u8], instance_id: u128) -> color_eyre::Result<Vec<u8>> {
     let mut module: parity_wasm::elements::Module = parity_wasm::deserialize_buffer(code)?;
     module.set_custom_section("smart-bench-unique", instance_id.to_le_bytes().to_vec());
-    let code = module.to_bytes()?;
+    let code = module.into_bytes()?;
     Ok(code)
 }
 
@@ -298,6 +298,6 @@ pub struct Call {
 }
 
 pub struct BlockInfo {
-    pub stats: povstats::BlockStats,
+    pub stats: blockstats::BlockStats,
     pub extrinsics: Vec<Hash>,
 }

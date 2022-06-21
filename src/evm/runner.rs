@@ -183,7 +183,7 @@ impl MoonbeamRunner {
         &mut self,
         call_count: u32,
     ) -> color_eyre::Result<impl TryStream<Ok = BlockInfo, Error = color_eyre::Report> + '_> {
-        let block_stats = povstats::subscribe_stats(&self.url).await?;
+        let block_stats = blockstats::subscribe_stats(&self.url).await?;
 
         let mut tx_hashes = Vec::new();
         let max_instance_count = self
@@ -266,6 +266,6 @@ struct Call {
 }
 
 pub struct BlockInfo {
-    pub stats: povstats::BlockStats,
+    pub stats: blockstats::BlockStats,
     pub extrinsics: Vec<sp_core::H256>,
 }
