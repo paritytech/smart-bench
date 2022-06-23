@@ -29,6 +29,7 @@ smart_bench_macro::contract!("./contracts/flipper.contract");
 smart_bench_macro::contract!("./contracts/incrementer.contract");
 smart_bench_macro::contract!("./contracts/erc721.contract");
 smart_bench_macro::contract!("./contracts/erc1155.contract");
+smart_bench_macro::contract!("./contracts/computation.contract");
 
 pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
     let alice = PairSigner::new(AccountKeyring::Alice.pair());
@@ -81,6 +82,31 @@ pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
                 let erc1155_create = || erc1155::messages::create(1_000_000).into();
                 runner
                     .prepare_contract("erc1155", erc1155_new, cli.instance_count, erc1155_create)
+                    .await?;
+            }
+            Contract::OddProduct => {
+                let computation_new = computation::constructors::new();
+                let computation_odd_product = || computation::messages::odd_product(1000).into();
+                runner
+                    .prepare_contract(
+                        "computation",
+                        computation_new,
+                        cli.instance_count,
+                        computation_odd_product,
+                    )
+                    .await?;
+            }
+            Contract::TriangleNumber => {
+                let computation_new = computation::constructors::new();
+                let computation_triangle_number =
+                    || computation::messages::triangle_number(1000).into();
+                runner
+                    .prepare_contract(
+                        "computation",
+                        computation_new,
+                        cli.instance_count,
+                        computation_triangle_number,
+                    )
                     .await?;
             }
         }

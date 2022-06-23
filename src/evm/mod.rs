@@ -87,6 +87,32 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
                     )
                     .await?;
             }
+            Contract::OddProduct => {
+                let ctor_params = ().into_tokens();
+                let call_params = || (1000i32,).into_tokens();
+                runner
+                    .prepare_contract(
+                        "Computation",
+                        cli.instance_count,
+                        &ctor_params,
+                        "oddProduct",
+                        call_params,
+                    )
+                    .await?;
+            }
+            Contract::TriangleNumber => {
+                let ctor_params = ().into_tokens();
+                let call_params = || (1000i32,).into_tokens();
+                runner
+                    .prepare_contract(
+                        "Computation",
+                        cli.instance_count,
+                        &ctor_params,
+                        "triangleNumber",
+                        call_params,
+                    )
+                    .await?;
+            }
         }
     }
 

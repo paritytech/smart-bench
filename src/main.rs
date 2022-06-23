@@ -38,6 +38,8 @@ pub enum Contract {
     Incrementer,
     Erc721,
     Erc1155,
+    OddProduct,
+    TriangleNumber,
 }
 
 #[tokio::main]
