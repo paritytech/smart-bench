@@ -7,6 +7,6 @@ contract BenchERC721 is ERC721 {
     }
 
     function mint(uint256 tokenId) public {
-        _mint(msg.sender, tokenId);
+        _safeMint(msg.sender, tokenId);
     }
 }

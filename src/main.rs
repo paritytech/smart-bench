@@ -25,13 +25,6 @@ pub struct Cli {
     call_count: u32,
 }
 
-impl Cli {
-    pub fn should_bench_contract(&self, contract: Contract) -> bool {
-        matches!(&self.contracts[..], &[Contract::All])
-            || self.contracts.iter().any(|c| c == &contract)
-    }
-}
-
 #[derive(clap::ArgEnum, Debug, Clone)]
 pub enum TargetPlatform {
     Wasm,
@@ -40,7 +33,6 @@ pub enum TargetPlatform {
 
 #[derive(clap::ArgEnum, Debug, Clone, Eq, PartialEq)]
 pub enum Contract {
-    All,
     Erc20,
     Flipper,
     Incrementer,
