@@ -113,6 +113,15 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
                     )
                     .await?;
             }
+            Contract::StorageRead => {
+                todo!()
+            }
+            Contract::StorageWrite => {
+                todo!()
+            }
+            Contract::StorageReadWrite => {
+                todo!()
+            }
         }
     }
 

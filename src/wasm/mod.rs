@@ -30,6 +30,7 @@ smart_bench_macro::contract!("./contracts/incrementer.contract");
 smart_bench_macro::contract!("./contracts/erc721.contract");
 smart_bench_macro::contract!("./contracts/erc1155.contract");
 smart_bench_macro::contract!("./contracts/computation.contract");
+smart_bench_macro::contract!("./contracts/storage.contract");
 
 pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
     let alice = PairSigner::new(AccountKeyring::Alice.pair());
@@ -108,6 +109,16 @@ pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
                         computation_triangle_number,
                     )
                     .await?;
+            }
+            Contract::StorageRead => {
+                let storage_new = storage::constructors::new();
+                let storage_read = || storage::messages::read()
+            }
+            Contract::StorageWrite => {
+                todo!()
+            }
+            Contract::StorageReadWrite => {
+                todo!()
             }
         }
     }

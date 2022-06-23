@@ -40,6 +40,9 @@ pub enum Contract {
     Erc1155,
     OddProduct,
     TriangleNumber,
+    StorageRead,
+    StorageWrite,
+    StorageReadWrite,
 }
 
 #[tokio::main]
