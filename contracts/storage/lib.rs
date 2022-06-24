@@ -39,6 +39,15 @@ mod storage {
                 self.balances.insert(account, &(x + 1));
             }
         }
+
+        #[ink(message)]
+        pub fn read_write_raw(&mut self, account: AccountId, count: u32) {
+            let account_key = ink_primitives::Key::new(*account.as_ref());
+            for _ in 0..count {
+                let x = ink_env::get_contract_storage(&account_key).unwrap().unwrap_or(0);
+                ink_env::set_contract_storage(&account_key, &(x + 1));
+            }
+        }
     }
 
     /// Unit tests in Rust are normally defined within such a `#[cfg(test)]`
