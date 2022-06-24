@@ -113,6 +113,48 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
                     )
                     .await?;
             }
+            Contract::StorageRead => {
+                let address = (&keyring::balthazar()).address();
+                let ctor_params = ().into_tokens();
+                let call_params = || (address, 10).into_tokens();
+                runner
+                    .prepare_contract(
+                        "Storage",
+                        cli.instance_count,
+                        &ctor_params,
+                        "read",
+                        call_params,
+                    )
+                    .await?;
+            }
+            Contract::StorageWrite => {
+                let address = (&keyring::balthazar()).address();
+                let ctor_params = ().into_tokens();
+                let call_params = || (address, 10).into_tokens();
+                runner
+                    .prepare_contract(
+                        "Storage",
+                        cli.instance_count,
+                        &ctor_params,
+                        "write",
+                        call_params,
+                    )
+                    .await?;
+            }
+            Contract::StorageReadWrite => {
+                let address = (&keyring::balthazar()).address();
+                let ctor_params = ().into_tokens();
+                let call_params = || (address, 10).into_tokens();
+                runner
+                    .prepare_contract(
+                        "Storage",
+                        cli.instance_count,
+                        &ctor_params,
+                        "readWrite",
+                        call_params,
+                    )
+                    .await?;
+            }
         }
     }
 

@@ -30,6 +30,7 @@ smart_bench_macro::contract!("./contracts/incrementer.contract");
 smart_bench_macro::contract!("./contracts/erc721.contract");
 smart_bench_macro::contract!("./contracts/erc1155.contract");
 smart_bench_macro::contract!("./contracts/computation.contract");
+smart_bench_macro::contract!("./contracts/storage.contract");
 
 pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
     let alice = PairSigner::new(AccountKeyring::Alice.pair());
@@ -107,6 +108,27 @@ pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
                         cli.instance_count,
                         computation_triangle_number,
                     )
+                    .await?;
+            }
+            Contract::StorageRead => {
+                let storage_new = storage::constructors::new();
+                let storage_read = || storage::messages::read(bob.clone(), 10).into();
+                runner
+                    .prepare_contract("storage", storage_new, cli.instance_count, storage_read)
+                    .await?;
+            }
+            Contract::StorageWrite => {
+                let storage_new = storage::constructors::new();
+                let storage_read = || storage::messages::write(bob.clone(), 10).into();
+                runner
+                    .prepare_contract("storage", storage_new, cli.instance_count, storage_read)
+                    .await?;
+            }
+            Contract::StorageReadWrite => {
+                let storage_new = storage::constructors::new();
+                let storage_read = || storage::messages::read_write(bob.clone(), 10).into();
+                runner
+                    .prepare_contract("storage", storage_new, cli.instance_count, storage_read)
                     .await?;
             }
         }
