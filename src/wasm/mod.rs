@@ -112,13 +112,24 @@ pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
             }
             Contract::StorageRead => {
                 let storage_new = storage::constructors::new();
-                let storage_read = || storage::messages::read()
+                let storage_read = || storage::messages::read(bob.clone(), 10).into();
+                runner
+                    .prepare_contract("storage", storage_new, cli.instance_count, storage_read)
+                    .await?;
             }
             Contract::StorageWrite => {
-                todo!()
+                let storage_new = storage::constructors::new();
+                let storage_read = || storage::messages::write(bob.clone(), 10).into();
+                runner
+                    .prepare_contract("storage", storage_new, cli.instance_count, storage_read)
+                    .await?;
             }
             Contract::StorageReadWrite => {
-                todo!()
+                let storage_new = storage::constructors::new();
+                let storage_read = || storage::messages::read_write(bob.clone(), 10).into();
+                runner
+                    .prepare_contract("storage", storage_new, cli.instance_count, storage_read)
+                    .await?;
             }
         }
     }
