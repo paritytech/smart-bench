@@ -1,4 +1,4 @@
-# smart-bench :brain: :bench:
+# smart-bench :brain:
 
 > Measure the end-to-end throughput of smart contracts.
 
