@@ -33,7 +33,7 @@ impl BenchRunner {
     async fn set_nonce(&mut self) -> color_eyre::Result<()> {
         let nonce = self
             .api
-            .api
+            .client
             .client
             .rpc()
             .system_account_next_index(self.signer.account_id())
@@ -123,7 +123,7 @@ impl BenchRunner {
         };
 
         let mut failed_or_instantiated_events =
-            self.api.api.events().subscribe().await?.filter_events::<(
+            self.api.client.events().subscribe().await?.filter_events::<(
                 xts::api::system::events::ExtrinsicFailed,
                 xts::api::contracts::events::Instantiated,
             )>();
@@ -154,7 +154,7 @@ impl BenchRunner {
                         subxt::HasModuleError::module_error_data(&failed.dispatch_error)
                             .ok_or(eyre::eyre!("Failed to find error details for {failed:?},"))?;
                     let description = {
-                        let metadata = self.api.api.client.metadata();
+                        let metadata = self.api.client.client.metadata();
                         let locked_metadata = metadata.read();
                         let details = locked_metadata
                             .error(error_data.pallet_index, error_data.error_index())?;
@@ -238,7 +238,7 @@ impl BenchRunner {
             .map_err(|e| eyre::eyre!("Block stats subscription error: {e:?}"))
             .and_then(|stats| {
                 tracing::debug!("{stats:?}");
-                let client = self.api.api.client.clone();
+                let client = self.api.client.client.clone();
                 async move {
                     let block = client.rpc().block(Some(stats.hash)).await?;
                     let extrinsics = block

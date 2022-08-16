@@ -1,6 +1,6 @@
 use super::transaction::Transaction;
 use impl_serde::serialize::to_hex;
-use subxt::{ClientBuilder, DefaultConfig, PolkadotExtrinsicParams};
+use subxt::{OnlineClient, PolkadotConfig as DefaultConfig};
 use web3::{
     signing::Key,
     transports::ws,
@@ -11,12 +11,12 @@ use web3::{
 #[subxt::subxt(runtime_metadata_path = "metadata/moonbeam.scale")]
 pub mod api {
     #[subxt(substitute_type = "primitive_types::H160")]
-    use sp_core::H160;
+    use ::sp_core::H160;
 }
 
 pub struct MoonbeamApi {
     web3: Web3<ws::WebSocket>,
-    pub api: api::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>,
+    pub client: OnlineClient<DefaultConfig>,
     gas_price: U256,
     chain_id: U256,
 }
@@ -24,20 +24,20 @@ pub struct MoonbeamApi {
 impl MoonbeamApi {
     pub async fn new(url: &str) -> color_eyre::Result<Self> {
         let transport = ws::WebSocket::new(url).await?;
-        let client = ClientBuilder::new().set_url(url).build().await?;
+        let client = OnlineClient::from_url(url).await?;
         let web3 = Web3::new(transport);
         let gas_price = web3.eth().gas_price().await?;
         let chain_id = web3.eth().chain_id().await?;
         Ok(Self {
             web3,
-            api: client.to_runtime_api(),
+            client: client.to_runtime_api(),
             gas_price,
             chain_id,
         })
     }
 
-    pub fn api(&self) -> &api::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>> {
-        &self.api
+    pub fn client(&self) -> &OnlineClient<DefaultConfig> {
+        &self.client
     }
 
     pub async fn fetch_nonce(&self, address: Address) -> color_eyre::Result<U256> {

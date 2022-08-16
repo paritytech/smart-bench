@@ -110,7 +110,7 @@ impl MoonbeamRunner {
         let mut nonce = self.api.fetch_nonce(self.address).await?;
         let mut events = self
             .api
-            .api()
+            .client()
             .events()
             .subscribe()
             .await?
@@ -138,7 +138,7 @@ impl MoonbeamRunner {
                             eyre::eyre!("Failed to find error details for {:?},", failed),
                         )?;
                     let description = {
-                        let metadata = self.api.api().client.metadata();
+                        let metadata = self.api.client().client.metadata();
                         let locked_metadata = metadata.read();
                         let details = locked_metadata
                             .error(error_data.pallet_index, error_data.error_index())?;
@@ -233,7 +233,7 @@ impl MoonbeamRunner {
             .map_err(|e| eyre::eyre!("Block stats subscription error: {e:?}"))
             .and_then(|stats| {
                 tracing::debug!("{stats:?}");
-                let client = self.api.api.client.clone();
+                let client = self.api.client.client.clone();
                 async move {
                     let block = client.rpc().block(Some(stats.hash)).await?;
                     let extrinsics = block

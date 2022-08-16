@@ -7,7 +7,7 @@ use jsonrpsee::{
 use pallet_contracts_primitives::{ContractResult, ExecReturnValue, InstantiateReturnValue};
 use serde::Serialize;
 use sp_core::{Bytes, H256};
-use subxt::{rpc::NumberOrHex, Config, DefaultConfig, PolkadotExtrinsicParams};
+use subxt::{rpc::NumberOrHex, Config, PolkadotConfig as DefaultConfig, OnlineClient};
 
 const DRY_RUN_GAS_LIMIT: u64 = 500_000_000_000;
 
@@ -26,18 +26,16 @@ pub mod api {}
 
 use api::DispatchError as RuntimeDispatchError;
 
-type RuntimeApi = api::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
 
 pub struct ContractsApi {
-    pub api: RuntimeApi,
+    pub client: OnlineClient<DefaultConfig>,
     ws_client: WsClient,
 }
 
 impl ContractsApi {
-    pub async fn new(client: subxt::Client<DefaultConfig>, url: &str) -> color_eyre::Result<Self> {
-        let api = client.to_runtime_api::<RuntimeApi>();
+    pub async fn new(client: OnlineClient<DefaultConfig>, url: &str) -> color_eyre::Result<Self> {
         let ws_client = WsClientBuilder::default().build(&url).await?;
-        Ok(Self { api, ws_client })
+        Ok(Self { client, ws_client })
     }
 
     /// Submit extrinsic to instantiate a contract with the given code.
@@ -81,7 +79,7 @@ impl ContractsApi {
         signer: &Signer,
     ) -> color_eyre::Result<H256> {
         let tx_hash = self
-            .api
+            .client
             .tx()
             .contracts()
             .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt)?
@@ -125,7 +123,7 @@ impl ContractsApi {
         signer: &Signer,
     ) -> color_eyre::Result<Hash> {
         let tx_hash = self
-            .api
+            .client
             .tx()
             .contracts()
             .call(
