@@ -78,12 +78,13 @@ impl ContractsApi {
         salt: Vec<u8>,
         signer: &Signer,
     ) -> color_eyre::Result<H256> {
+        let call = api::tx().contracts()
+            .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt);
+
         let tx_hash = self
             .client
             .tx()
-            .contracts()
-            .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt)?
-            .sign_and_submit_default(signer)
+            .sign_and_submit_default(&call, signer)
             .await?;
 
         Ok(tx_hash)
@@ -122,18 +123,19 @@ impl ContractsApi {
         data: Vec<u8>,
         signer: &Signer,
     ) -> color_eyre::Result<Hash> {
-        let tx_hash = self
-            .client
-            .tx()
-            .contracts()
+        let call = api::tx().contracts()
             .call(
                 contract.into(),
                 value,
                 gas_limit,
                 storage_deposit_limit,
                 data,
-            )?
-            .sign_and_submit_default(signer)
+            );
+
+        let tx_hash = self
+            .client
+            .tx()
+            .sign_and_submit_default(&call, signer)
             .await?;
 
         Ok(tx_hash)
