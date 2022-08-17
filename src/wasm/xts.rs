@@ -13,18 +13,8 @@ const DRY_RUN_GAS_LIMIT: u64 = 500_000_000_000;
 
 #[subxt::subxt(
     runtime_metadata_path = "metadata/contracts-node.scale",
-    derive_for_type(type = "sp_runtime::DispatchError", derive = "::serde::Deserialize"),
-    derive_for_type(type = "sp_runtime::ModuleError", derive = "::serde::Deserialize"),
-    derive_for_type(type = "sp_runtime::TokenError", derive = "::serde::Deserialize"),
-    derive_for_type(type = "sp_runtime::ArithmeticError", derive = "::serde::Deserialize"),
-    derive_for_type(
-        type = "sp_runtime::TransactionalError",
-        derive = "::serde::Deserialize"
-    )
 )]
 pub mod api {}
-
-use api::DispatchError as RuntimeDispatchError;
 
 pub struct ContractsApi {
     pub client: OnlineClient<DefaultConfig>,
@@ -146,10 +136,10 @@ impl ContractsApi {
     }
 }
 
-type ContractExecResult = ContractResult<Result<ExecReturnValue, RuntimeDispatchError>, Balance>;
+type ContractExecResult = ContractResult<Result<ExecReturnValue, serde_json::Value>, Balance>;
 
 type ContractInstantiateResult = ContractResult<
-    Result<InstantiateReturnValue<<DefaultConfig as Config>::AccountId>, RuntimeDispatchError>,
+    Result<InstantiateReturnValue<<DefaultConfig as Config>::AccountId>, serde_json::Value>,
     Balance,
 >;
 
