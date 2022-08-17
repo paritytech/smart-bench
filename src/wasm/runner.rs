@@ -16,7 +16,7 @@ pub struct BenchRunner {
 
 impl BenchRunner {
     pub async fn new(signer: Signer, url: &str) -> color_eyre::Result<Self> {
-        let client = subxt::ClientBuilder::new().set_url(url).build().await?;
+        let client = subxt::OnlineClient::from_url(url).await?;
 
         let api = ContractsApi::new(client, url).await?;
 
@@ -33,7 +33,6 @@ impl BenchRunner {
     async fn set_nonce(&mut self) -> color_eyre::Result<()> {
         let nonce = self
             .api
-            .client
             .client
             .rpc()
             .system_account_next_index(self.signer.account_id())
@@ -122,11 +121,8 @@ impl BenchRunner {
             dry_run.gas_required
         };
 
-        let mut failed_or_instantiated_events =
-            self.api.client.events().subscribe().await?.filter_events::<(
-                xts::api::system::events::ExtrinsicFailed,
-                xts::api::contracts::events::Instantiated,
-            )>();
+        let mut event_sub =
+            self.api.client.events().subscribe().await?;
 
         let mut accounts = Vec::new();
         for i in unique_code_salt..unique_code_salt + count as u128 {
@@ -147,29 +143,20 @@ impl BenchRunner {
             self.signer.increment_nonce();
         }
 
-        while let Some(Ok(info)) = failed_or_instantiated_events.next().await {
-            match info.event {
-                (Some(failed), None) => {
-                    let error_data =
-                        subxt::HasModuleError::module_error_data(&failed.dispatch_error)
-                            .ok_or(eyre::eyre!("Failed to find error details for {failed:?},"))?;
-                    let description = {
-                        let metadata = self.api.client.client.metadata();
-                        let locked_metadata = metadata.read();
-                        let details = locked_metadata
-                            .error(error_data.pallet_index, error_data.error_index())?;
-                        details.description().to_vec()
-                    };
-
-                    return Err(eyre::eyre!("Instantiate Extrinsic Failed: {description:?}"));
-                }
-                (None, Some(instantiated)) => {
+        while let Some(Ok(events)) = event_sub.next().await {
+            for event in events.iter() {
+                let event = event?;
+                if let Some(instantiated) = event.as_event::<xts::api::contracts::events::Instantiated>()? {
                     accounts.push(instantiated.contract);
                     if accounts.len() == count as usize {
                         break;
                     }
+                } else if event.as_event::<xts::api::system::events::ExtrinsicFailed>()?.is_some() {
+                    let metadata = self.api.client.metadata();
+                    let dispatch_error =
+                        subxt::error::DispatchError::decode_from(event.field_bytes(), &metadata);
+                    return Err(eyre::eyre!("Instantiate Extrinsic Failed: {:?}", dispatch_error));
                 }
-                _ => return Err(eyre::eyre!("Events should be XOR, got {:?}", info.event)),
             }
         }
 
@@ -238,7 +225,7 @@ impl BenchRunner {
             .map_err(|e| eyre::eyre!("Block stats subscription error: {e:?}"))
             .and_then(|stats| {
                 tracing::debug!("{stats:?}");
-                let client = self.api.client.client.clone();
+                let client = self.api.client.clone();
                 async move {
                     let block = client.rpc().block(Some(stats.hash)).await?;
                     let extrinsics = block

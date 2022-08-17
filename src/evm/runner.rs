@@ -113,8 +113,7 @@ impl MoonbeamRunner {
             .client()
             .events()
             .subscribe()
-            .await?
-            .filter_events::<(api::system::events::ExtrinsicFailed, Executed)>();
+            .await?;
 
         let gas = self
             .api
@@ -130,24 +129,10 @@ impl MoonbeamRunner {
         }
 
         let mut addresses = Vec::new();
-        while let Some(Ok(info)) = events.next().await {
-            match info.event {
-                (Some(failed), None) => {
-                    let error_data =
-                        subxt::HasModuleError::module_error_data(&failed.dispatch_error).ok_or(
-                            eyre::eyre!("Failed to find error details for {:?},", failed),
-                        )?;
-                    let description = {
-                        let metadata = self.api.client().client.metadata();
-                        let locked_metadata = metadata.read();
-                        let details = locked_metadata
-                            .error(error_data.pallet_index, error_data.error_index())?;
-                        details.description().to_vec()
-                    };
-
-                    return Err(eyre::eyre!("Deploy Extrinsic Failed: {:?}", description));
-                }
-                (None, Some(Executed(from, contract_address, tx, exit_reason))) => {
+        while let Some(Ok(events)) = events.next().await {
+            for event in events.iter() {
+                let event = event?;
+                if let Some(Executed(from, contract_address, tx, exit_reason)) = event.as_event::<Executed>()? {
                     tracing::debug!("Contract {contract_address} executed");
                     if from.as_ref() == Key::address(&SecretKeyRef::from(&self.signer)).as_ref() {
                         match exit_reason {
@@ -170,8 +155,12 @@ impl MoonbeamRunner {
                             }
                         }
                     }
+                } else if event.as_event::<api::system::events::ExtrinsicFailed>()?.is_some() {
+                    let metadata = self.api.client.metadata();
+                    let dispatch_error =
+                        subxt::error::DispatchError::decode_from(event.field_bytes(), &metadata);
+                    return Err(eyre::eyre!("Deploy Extrinsic Failed: {:?}", dispatch_error));
                 }
-                _ => unreachable!("Only a single event should be emitted at a time"),
             }
         }
         Ok(addresses)
@@ -233,7 +222,7 @@ impl MoonbeamRunner {
             .map_err(|e| eyre::eyre!("Block stats subscription error: {e:?}"))
             .and_then(|stats| {
                 tracing::debug!("{stats:?}");
-                let client = self.api.client.client.clone();
+                let client = self.api.client.clone();
                 async move {
                     let block = client.rpc().block(Some(stats.hash)).await?;
                     let extrinsics = block

@@ -30,7 +30,7 @@ impl MoonbeamApi {
         let chain_id = web3.eth().chain_id().await?;
         Ok(Self {
             web3,
-            client: client.to_runtime_api(),
+            client,
             gas_price,
             chain_id,
         })

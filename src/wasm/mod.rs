@@ -6,6 +6,7 @@ use futures::{future, TryStreamExt};
 use sp_core::sr25519;
 use sp_keyring::AccountKeyring;
 use xts::ContractsApi;
+use subxt::{PolkadotConfig as DefaultConfig, tx::PairSigner};
 
 pub type Balance = u128;
 pub type Gas = u64;
