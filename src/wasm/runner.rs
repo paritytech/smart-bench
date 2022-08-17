@@ -150,7 +150,7 @@ impl BenchRunner {
                 {
                     accounts.push(instantiated.contract);
                     if accounts.len() == count as usize {
-                        break;
+                        return Ok(accounts);
                     }
                 } else if event
                     .as_event::<xts::api::system::events::ExtrinsicFailed>()?
@@ -166,8 +166,11 @@ impl BenchRunner {
                 }
             }
         }
-
-        Ok(accounts)
+        Err(eyre::eyre!(
+            "Expected {} Instantiated events, received {}",
+            count,
+            accounts.len()
+        ))
     }
 
     /// Call each contract instance `call_count` times. Wait for all txs to be included in a block

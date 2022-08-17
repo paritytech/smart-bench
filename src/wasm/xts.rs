@@ -11,9 +11,7 @@ use subxt::{rpc::NumberOrHex, Config, OnlineClient, PolkadotConfig as DefaultCon
 
 const DRY_RUN_GAS_LIMIT: u64 = 500_000_000_000;
 
-#[subxt::subxt(
-    runtime_metadata_path = "metadata/contracts-node.scale",
-)]
+#[subxt::subxt(runtime_metadata_path = "metadata/contracts-node.scale")]
 pub mod api {}
 
 pub struct ContractsApi {

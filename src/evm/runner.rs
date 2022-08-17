@@ -137,7 +137,7 @@ impl MoonbeamRunner {
                                 tracing::debug!("Deployed contract {contract_address}");
                                 addresses.push(Address::from_slice(contract_address.as_ref()));
                                 if addresses.len() == instance_count as usize {
-                                    break;
+                                    return Ok(addresses);
                                 }
                             }
                             ExitReason::Error(error) => {
@@ -163,7 +163,11 @@ impl MoonbeamRunner {
                 }
             }
         }
-        Ok(addresses)
+        Err(eyre::eyre!(
+            "Expected {} Executed Success events, received {}",
+            instance_count,
+            addresses.len()
+        ))
     }
 
     /// Call each contract instance `call_count` times. Wait for all txs to be included in a block
