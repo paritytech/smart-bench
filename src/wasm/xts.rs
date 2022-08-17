@@ -7,7 +7,7 @@ use jsonrpsee::{
 use pallet_contracts_primitives::{ContractResult, ExecReturnValue, InstantiateReturnValue};
 use serde::Serialize;
 use sp_core::{Bytes, H256};
-use subxt::{rpc::NumberOrHex, Config, PolkadotConfig as DefaultConfig, OnlineClient};
+use subxt::{rpc::NumberOrHex, Config, OnlineClient, PolkadotConfig as DefaultConfig};
 
 const DRY_RUN_GAS_LIMIT: u64 = 500_000_000_000;
 
@@ -25,7 +25,6 @@ const DRY_RUN_GAS_LIMIT: u64 = 500_000_000_000;
 pub mod api {}
 
 use api::DispatchError as RuntimeDispatchError;
-
 
 pub struct ContractsApi {
     pub client: OnlineClient<DefaultConfig>,
@@ -78,8 +77,14 @@ impl ContractsApi {
         salt: Vec<u8>,
         signer: &Signer,
     ) -> color_eyre::Result<H256> {
-        let call = api::tx().contracts()
-            .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt);
+        let call = api::tx().contracts().instantiate_with_code(
+            value,
+            gas_limit,
+            storage_deposit_limit,
+            code,
+            data,
+            salt,
+        );
 
         let tx_hash = self
             .client
@@ -123,14 +128,13 @@ impl ContractsApi {
         data: Vec<u8>,
         signer: &Signer,
     ) -> color_eyre::Result<Hash> {
-        let call = api::tx().contracts()
-            .call(
-                contract.into(),
-                value,
-                gas_limit,
-                storage_deposit_limit,
-                data,
-            );
+        let call = api::tx().contracts().call(
+            contract.into(),
+            value,
+            gas_limit,
+            storage_deposit_limit,
+            data,
+        );
 
         let tx_hash = self
             .client

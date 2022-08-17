@@ -108,12 +108,7 @@ impl MoonbeamRunner {
         instance_count: u32,
     ) -> color_eyre::Result<Vec<Address>> {
         let mut nonce = self.api.fetch_nonce(self.address).await?;
-        let mut events = self
-            .api
-            .client()
-            .events()
-            .subscribe()
-            .await?;
+        let mut events = self.api.client().events().subscribe().await?;
 
         let gas = self
             .api
@@ -132,7 +127,9 @@ impl MoonbeamRunner {
         while let Some(Ok(events)) = events.next().await {
             for event in events.iter() {
                 let event = event?;
-                if let Some(Executed(from, contract_address, tx, exit_reason)) = event.as_event::<Executed>()? {
+                if let Some(Executed(from, contract_address, tx, exit_reason)) =
+                    event.as_event::<Executed>()?
+                {
                     tracing::debug!("Contract {contract_address} executed");
                     if from.as_ref() == Key::address(&SecretKeyRef::from(&self.signer)).as_ref() {
                         match exit_reason {
@@ -155,7 +152,10 @@ impl MoonbeamRunner {
                             }
                         }
                     }
-                } else if event.as_event::<api::system::events::ExtrinsicFailed>()?.is_some() {
+                } else if event
+                    .as_event::<api::system::events::ExtrinsicFailed>()?
+                    .is_some()
+                {
                     let metadata = self.api.client.metadata();
                     let dispatch_error =
                         subxt::error::DispatchError::decode_from(event.field_bytes(), &metadata);

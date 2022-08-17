@@ -121,8 +121,7 @@ impl BenchRunner {
             dry_run.gas_required
         };
 
-        let mut event_sub =
-            self.api.client.events().subscribe().await?;
+        let mut event_sub = self.api.client.events().subscribe().await?;
 
         let mut accounts = Vec::new();
         for i in unique_code_salt..unique_code_salt + count as u128 {
@@ -146,16 +145,24 @@ impl BenchRunner {
         while let Some(Ok(events)) = event_sub.next().await {
             for event in events.iter() {
                 let event = event?;
-                if let Some(instantiated) = event.as_event::<xts::api::contracts::events::Instantiated>()? {
+                if let Some(instantiated) =
+                    event.as_event::<xts::api::contracts::events::Instantiated>()?
+                {
                     accounts.push(instantiated.contract);
                     if accounts.len() == count as usize {
                         break;
                     }
-                } else if event.as_event::<xts::api::system::events::ExtrinsicFailed>()?.is_some() {
+                } else if event
+                    .as_event::<xts::api::system::events::ExtrinsicFailed>()?
+                    .is_some()
+                {
                     let metadata = self.api.client.metadata();
                     let dispatch_error =
                         subxt::error::DispatchError::decode_from(event.field_bytes(), &metadata);
-                    return Err(eyre::eyre!("Instantiate Extrinsic Failed: {:?}", dispatch_error));
+                    return Err(eyre::eyre!(
+                        "Instantiate Extrinsic Failed: {:?}",
+                        dispatch_error
+                    ));
                 }
             }
         }
