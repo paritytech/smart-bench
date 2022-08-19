@@ -7,37 +7,22 @@ use jsonrpsee::{
 use pallet_contracts_primitives::{ContractResult, ExecReturnValue, InstantiateReturnValue};
 use serde::Serialize;
 use sp_core::{Bytes, H256};
-use subxt::{rpc::NumberOrHex, Config, DefaultConfig, PolkadotExtrinsicParams};
+use subxt::{rpc::NumberOrHex, Config, OnlineClient, PolkadotConfig as DefaultConfig};
 
 const DRY_RUN_GAS_LIMIT: u64 = 500_000_000_000;
 
-#[subxt::subxt(
-    runtime_metadata_path = "metadata/contracts-node.scale",
-    derive_for_type(type = "sp_runtime::DispatchError", derive = "::serde::Deserialize"),
-    derive_for_type(type = "sp_runtime::ModuleError", derive = "::serde::Deserialize"),
-    derive_for_type(type = "sp_runtime::TokenError", derive = "::serde::Deserialize"),
-    derive_for_type(type = "sp_runtime::ArithmeticError", derive = "::serde::Deserialize"),
-    derive_for_type(
-        type = "sp_runtime::TransactionalError",
-        derive = "::serde::Deserialize"
-    )
-)]
+#[subxt::subxt(runtime_metadata_path = "metadata/contracts-node.scale")]
 pub mod api {}
 
-use api::DispatchError as RuntimeDispatchError;
-
-type RuntimeApi = api::RuntimeApi<DefaultConfig, PolkadotExtrinsicParams<DefaultConfig>>;
-
 pub struct ContractsApi {
-    pub api: RuntimeApi,
+    pub client: OnlineClient<DefaultConfig>,
     ws_client: WsClient,
 }
 
 impl ContractsApi {
-    pub async fn new(client: subxt::Client<DefaultConfig>, url: &str) -> color_eyre::Result<Self> {
-        let api = client.to_runtime_api::<RuntimeApi>();
+    pub async fn new(client: OnlineClient<DefaultConfig>, url: &str) -> color_eyre::Result<Self> {
         let ws_client = WsClientBuilder::default().build(&url).await?;
-        Ok(Self { api, ws_client })
+        Ok(Self { client, ws_client })
     }
 
     /// Submit extrinsic to instantiate a contract with the given code.
@@ -80,12 +65,19 @@ impl ContractsApi {
         salt: Vec<u8>,
         signer: &Signer,
     ) -> color_eyre::Result<H256> {
+        let call = api::tx().contracts().instantiate_with_code(
+            value,
+            gas_limit,
+            storage_deposit_limit,
+            code,
+            data,
+            salt,
+        );
+
         let tx_hash = self
-            .api
+            .client
             .tx()
-            .contracts()
-            .instantiate_with_code(value, gas_limit, storage_deposit_limit, code, data, salt)?
-            .sign_and_submit_default(signer)
+            .sign_and_submit_default(&call, signer)
             .await?;
 
         Ok(tx_hash)
@@ -124,28 +116,28 @@ impl ContractsApi {
         data: Vec<u8>,
         signer: &Signer,
     ) -> color_eyre::Result<Hash> {
+        let call = api::tx().contracts().call(
+            contract.into(),
+            value,
+            gas_limit,
+            storage_deposit_limit,
+            data,
+        );
+
         let tx_hash = self
-            .api
+            .client
             .tx()
-            .contracts()
-            .call(
-                contract.into(),
-                value,
-                gas_limit,
-                storage_deposit_limit,
-                data,
-            )?
-            .sign_and_submit_default(signer)
+            .sign_and_submit_default(&call, signer)
             .await?;
 
         Ok(tx_hash)
     }
 }
 
-type ContractExecResult = ContractResult<Result<ExecReturnValue, RuntimeDispatchError>, Balance>;
+type ContractExecResult = ContractResult<Result<ExecReturnValue, serde_json::Value>, Balance>;
 
 type ContractInstantiateResult = ContractResult<
-    Result<InstantiateReturnValue<<DefaultConfig as Config>::AccountId>, RuntimeDispatchError>,
+    Result<InstantiateReturnValue<<DefaultConfig as Config>::AccountId>, serde_json::Value>,
     Balance,
 >;
 

@@ -5,7 +5,7 @@ use crate::{Cli, Contract};
 use futures::{future, TryStreamExt};
 use sp_core::sr25519;
 use sp_keyring::AccountKeyring;
-use subxt::{DefaultConfig, PairSigner};
+use subxt::{tx::PairSigner, PolkadotConfig as DefaultConfig};
 use xts::ContractsApi;
 
 pub type Balance = u128;
