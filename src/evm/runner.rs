@@ -6,11 +6,11 @@ use super::xts::{
     },
     MoonbeamApi,
 };
+use crate::BlockInfo;
 use color_eyre::{eyre, Section as _};
-use futures::{future, StreamExt, TryStream, TryStreamExt};
+use futures::{StreamExt, TryStream};
 use impl_serde::serialize::from_hex;
 use secp256k1::SecretKey;
-use sp_runtime::traits::{BlakeTwo256, Hash as _};
 use web3::{
     ethabi::Token,
     signing::{Key, SecretKeyRef},
@@ -216,36 +216,13 @@ impl MoonbeamRunner {
 
         println!("Submitted {} total contract calls", tx_hashes.len());
 
-        let mut remaining_hashes: std::collections::HashSet<sp_core::H256> = tx_hashes
+        let remaining_hashes: std::collections::HashSet<sp_core::H256> = tx_hashes
             .iter()
             .map(|hash| sp_core::H256::from_slice(hash.as_ref()))
             .collect();
 
-        // todo: this can probably be extracted and duplication with bench runner removed
-        let wait_for_txs = block_stats
-            .map_err(|e| eyre::eyre!("Block stats subscription error: {e:?}"))
-            .and_then(|stats| {
-                tracing::debug!("{stats:?}");
-                let client = self.api.client.clone();
-                async move {
-                    let block = client.rpc().block(Some(stats.hash)).await?;
-                    let extrinsics = block
-                        .unwrap_or_else(|| panic!("block {} not found", stats.hash))
-                        .block
-                        .extrinsics
-                        .iter()
-                        .map(BlakeTwo256::hash_of)
-                        .collect();
-                    Ok(BlockInfo { extrinsics, stats })
-                }
-            })
-            .try_take_while(move |block_info| {
-                let some_remaining_txs = !remaining_hashes.is_empty();
-                for xt in &block_info.extrinsics {
-                    remaining_hashes.remove(xt);
-                }
-                future::ready(Ok(some_remaining_txs))
-            });
+        let wait_for_txs =
+            crate::collect_block_stats(&self.api.client, block_stats, remaining_hashes);
 
         Ok(wait_for_txs)
     }
@@ -256,9 +233,4 @@ struct Call {
     contract: Address,
     data: Vec<u8>,
     gas_limit: U256,
-}
-
-pub struct BlockInfo {
-    pub stats: blockstats::BlockStats,
-    pub extrinsics: Vec<sp_core::H256>,
 }
