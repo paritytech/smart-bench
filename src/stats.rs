@@ -34,10 +34,10 @@ pub fn collect_block_stats<'a>(
                 }
             })
             .try_take_while(move |block_info| {
-                let some_remaining_txs = !remaining_hashes.is_empty();
                 for xt in &block_info.extrinsics {
                     remaining_hashes.remove(xt);
                 }
+                let some_remaining_txs = !remaining_hashes.is_empty();
                 future::ready(Ok(some_remaining_txs))
             }),
     )
