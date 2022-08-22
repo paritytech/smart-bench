@@ -1,8 +1,8 @@
 use super::*;
+use crate::BlockInfo;
 use codec::Encode;
 use color_eyre::eyre;
-use futures::{future, StreamExt, TryStream, TryStreamExt};
-use sp_runtime::traits::{BlakeTwo256, Hash as _};
+use futures::{StreamExt, TryStream};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<Balance> = None;
@@ -228,33 +228,10 @@ impl BenchRunner {
 
         println!("Submitted {} total contract calls", tx_hashes.len());
 
-        let mut remaining_hashes: std::collections::HashSet<Hash> =
-            tx_hashes.iter().cloned().collect();
+        let remaining_hashes: std::collections::HashSet<Hash> = tx_hashes.iter().cloned().collect();
 
-        let wait_for_txs = block_stats
-            .map_err(|e| eyre::eyre!("Block stats subscription error: {e:?}"))
-            .and_then(|stats| {
-                tracing::debug!("{stats:?}");
-                let client = self.api.client.clone();
-                async move {
-                    let block = client.rpc().block(Some(stats.hash)).await?;
-                    let extrinsics = block
-                        .unwrap_or_else(|| panic!("block {} not found", stats.hash))
-                        .block
-                        .extrinsics
-                        .iter()
-                        .map(BlakeTwo256::hash_of)
-                        .collect();
-                    Ok(BlockInfo { extrinsics, stats })
-                }
-            })
-            .try_take_while(move |block_info| {
-                let some_remaining_txs = !remaining_hashes.is_empty();
-                for xt in &block_info.extrinsics {
-                    remaining_hashes.remove(xt);
-                }
-                future::ready(Ok(some_remaining_txs))
-            });
+        let wait_for_txs =
+            crate::collect_block_stats(&self.api.client, block_stats, remaining_hashes);
 
         Ok(wait_for_txs)
     }
@@ -292,9 +269,4 @@ where
 pub struct Call {
     contract_account: AccountId,
     call_data: EncodedMessage,
-}
-
-pub struct BlockInfo {
-    pub stats: blockstats::BlockStats,
-    pub extrinsics: Vec<Hash>,
 }
