@@ -73,7 +73,7 @@ fn generate_constructors(
     metadata: &ink_metadata::InkProject,
     type_gen: &TypeGenerator,
 ) -> Vec<proc_macro2::TokenStream> {
-    let trait_path = syn::parse_quote!(crate::InkConstructor);
+    let trait_path = syn::parse_quote!(ink_env::e2e::InkConstructor);
     metadata
         .spec()
         .constructors()
@@ -94,7 +94,7 @@ fn generate_messages(
     metadata: &ink_metadata::InkProject,
     type_gen: &TypeGenerator,
 ) -> Vec<proc_macro2::TokenStream> {
-    let trait_path = syn::parse_quote!(crate::InkMessage);
+    let trait_path = syn::parse_quote!(ink_env::e2e::InkMessage);
     metadata
         .spec()
         .messages()
@@ -135,7 +135,7 @@ fn generate_message_impl(
         .unzip();
     let selector_bytes = hex_lits(selector);
     quote::quote! (
-        #[derive(::codec::Encode)]
+        #[derive(::scale::Encode)]
         pub struct #struct_ident {
             #( #args ), *
         }
