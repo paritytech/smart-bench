@@ -17,11 +17,13 @@ pub type Signer = PairSigner<DefaultConfig, sr25519::Pair>;
 /// Trait implemented by [`smart_bench_macro::contract`] for all contract constructors.
 pub trait InkConstructor: codec::Encode {
     const SELECTOR: [u8; 4];
+    const CONTRACT_PATH: &'static str;
 }
 
 /// Trait implemented by [`smart_bench_macro::contract`] for all contract messages.
 pub trait InkMessage: codec::Encode {
     const SELECTOR: [u8; 4];
+    const CONTRACT_PATH: &'static str;
 }
 
 smart_bench_macro::contract!("./contracts/erc20.contract");

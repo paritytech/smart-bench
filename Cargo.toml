@@ -10,13 +10,13 @@ edition = "2021"
 smart-bench-macro = { version = "0.1.0", path = "./macro" }
 tokio = { version = "1.18.2", features = ["rt-multi-thread"] }
 color-eyre = "0.6.1"
-codec = { package = "parity-scale-codec", version = "3.1.2", default-features = false }
+codec = { package = "parity-scale-codec", version = "3.2.0", default-features = false }
 contract-metadata = "1"
 impl-serde = { version = "0.3.1", default-features = false }
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 serde_json = "1.0.81"
 clap = { version = "3.1.17", features = ["derive"] }
-subxt = "0.23.0"
+subxt = { git = "https://github.com/paritytech/subxt" }
 futures = "0.3.21"
 parity-wasm = "0.45"
 blockstats = "0.2.0"
