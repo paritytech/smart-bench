@@ -408,6 +408,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "contract-metadata"
+version = "2.0.0-alpha.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f147e69e493d56c4db4caa3c8a78648800ad39c6899cca95c2b31ec9f363de66"
+dependencies = [
+ "impl-serde",
+ "semver",
+ "serde",
+ "serde_json",
+ "url",
+]
+
+[[package]]
 name = "convert_case"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1244,9 +1257,8 @@ dependencies = [
 
 [[package]]
 name = "ink_metadata"
-version = "3.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d442f4f5dcbf120aa84cae9e399065ad99d143d5a920b06d3da286e91c03ec70"
+version = "4.0.0"
+source = "git+https://github.com/paritytech/ink?branch=cmichi-add-e2e-testing-mvp#f20b1f1182c15f90e2f208fa23ba290b9d18dac1"
 dependencies = [
  "derive_more",
  "impl-serde",
@@ -1258,18 +1270,16 @@ dependencies = [
 
 [[package]]
 name = "ink_prelude"
-version = "3.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e38d71af62cfec3425727d28665a947d636c3be6ae71ac3a79868ef8a08633f3"
+version = "4.0.0"
+source = "git+https://github.com/paritytech/ink?branch=cmichi-add-e2e-testing-mvp#f20b1f1182c15f90e2f208fa23ba290b9d18dac1"
 dependencies = [
  "cfg-if",
 ]
 
 [[package]]
 name = "ink_primitives"
-version = "3.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea7afd5330a9d3be1533222a48b8ab44b3a3356a5e6bb090bff0790aa562b418"
+version = "4.0.0"
+source = "git+https://github.com/paritytech/ink?branch=cmichi-add-e2e-testing-mvp#f20b1f1182c15f90e2f208fa23ba290b9d18dac1"
 dependencies = [
  "cfg-if",
  "ink_prelude",
@@ -2548,18 +2558,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.143"
+version = "1.0.144"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53e8e5d5b70924f74ff5c6d64d9a5acd91422117c60f48c4e07855238a254553"
+checksum = "0f747710de3dcd43b88c9168773254e809d8ddbdf9653b84e2554ab219f17860"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.143"
+version = "1.0.144"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3d8e8de557aee63c26b85b947f5e59b690d0454c753f3adeb5cd7835ab88391"
+checksum = "94ed3a816fb1d101812f83e789f888322c34e291f894f19590dc310963e87a00"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2568,9 +2578,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.83"
+version = "1.0.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38dd04e3c8279e75b31ef29dbdceebfe5ad89f4d0937213c53f7d49d01b3d5a7"
+checksum = "e55a28e3aaef9d5ce0506d0a14dbba8054ddc7e499ef522dd8b26859ec9d4a44"
 dependencies = [
  "itoa 1.0.3",
  "ryu",
@@ -2706,7 +2716,7 @@ dependencies = [
  "blockstats",
  "clap",
  "color-eyre",
- "contract-metadata",
+ "contract-metadata 1.5.0",
  "futures",
  "impl-serde",
  "jsonrpsee 0.14.0",
@@ -2735,7 +2745,7 @@ dependencies = [
 name = "smart-bench-macro"
 version = "0.1.0"
 dependencies = [
- "contract-metadata",
+ "contract-metadata 2.0.0-alpha.1",
  "heck 0.4.0",
  "ink_metadata",
  "proc-macro-error",

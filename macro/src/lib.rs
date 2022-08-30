@@ -2,7 +2,7 @@ extern crate proc_macro;
 
 use contract_metadata::ContractMetadata;
 use heck::ToUpperCamelCase as _;
-use ink_metadata::{InkProject, MetadataVersioned, Selector};
+use ink_metadata::{InkProject, MetadataVersion, Selector};
 use proc_macro::TokenStream;
 use proc_macro_error::{abort_call_site, proc_macro_error};
 use subxt_codegen::TypeGenerator;
@@ -15,17 +15,24 @@ pub fn contract(input: TokenStream) -> TokenStream {
     let root = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into());
     let metadata_path: std::path::PathBuf = [&root, &contract_path.value()].iter().collect();
 
-    let reader = std::fs::File::open(metadata_path)
+    let reader = std::fs::File::open(metadata_path.clone())
         .unwrap_or_else(|e| abort_call_site!("Failed to read metadata file: {}", e));
     let metadata: ContractMetadata = serde_json::from_reader(reader)
         .unwrap_or_else(|e| abort_call_site!("Failed to deserialize contract metadata: {}", e));
+
     let contract_name = metadata.contract.name;
-    let metadata: MetadataVersioned = serde_json::from_value(metadata.abi.into())
-        .unwrap_or_else(|e| abort_call_site!("Failed to deserialize metadata file: {}", e));
-    if let MetadataVersioned::V3(ink_project) = metadata {
+    let version: MetadataVersion =
+        serde_json::from_value(metadata.abi.get("version").expect("version").clone())
+            .unwrap_or_else(|e| abort_call_site!("Failed to deserialize metadata file: {}", e));
+    if version == MetadataVersion::V4 {
+        let reader = std::fs::File::open(metadata_path)
+            .unwrap_or_else(|e| abort_call_site!("Failed to read metadata file: {}", e));
+        let ink_project: InkProject = serde_json::from_reader(reader)
+            .unwrap_or_else(|e| abort_call_site!("Failed to deserialize contract metadata: {}", e));
         let contract_mod = generate_contract_mod(contract_name, ink_project);
         contract_mod.into()
     } else {
+        // TODO better message
         abort_call_site!("Invalid contract metadata version")
     }
 }
