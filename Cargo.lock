@@ -1258,7 +1258,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=cmichi-add-e2e-testing-mvp#f20b1f1182c15f90e2f208fa23ba290b9d18dac1"
+source = "git+https://github.com/paritytech/ink?branch=cmichi-e2e-testing-mvp#f20b1f1182c15f90e2f208fa23ba290b9d18dac1"
 dependencies = [
  "derive_more",
  "impl-serde",
@@ -1271,7 +1271,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=cmichi-add-e2e-testing-mvp#f20b1f1182c15f90e2f208fa23ba290b9d18dac1"
+source = "git+https://github.com/paritytech/ink?branch=cmichi-e2e-testing-mvp#f20b1f1182c15f90e2f208fa23ba290b9d18dac1"
 dependencies = [
  "cfg-if",
 ]
@@ -1279,7 +1279,7 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=cmichi-add-e2e-testing-mvp#f20b1f1182c15f90e2f208fa23ba290b9d18dac1"
+source = "git+https://github.com/paritytech/ink?branch=cmichi-e2e-testing-mvp#f20b1f1182c15f90e2f208fa23ba290b9d18dac1"
 dependencies = [
  "cfg-if",
  "ink_prelude",
