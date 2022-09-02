@@ -24,7 +24,7 @@ pub fn contract(input: TokenStream) -> TokenStream {
 
     eprintln!("existing canonical metadata_path in `smart-bench-macro`: {:?}", metadata_path);
 
-    let reader = std::fs::File::open(std::path::Path::new(metadata_path.clone()))
+    let reader = std::fs::File::open(std::path::Path::new(&metadata_path.clone()))
         .unwrap_or_else(|e| abort_call_site!("Failed to read metadata file: {}", e));
     let metadata: ContractMetadata = serde_json::from_reader(reader)
         .unwrap_or_else(|e| abort_call_site!("Failed to deserialize contract metadata: {}", e));
