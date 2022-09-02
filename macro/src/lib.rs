@@ -13,8 +13,8 @@ pub fn contract(input: TokenStream) -> TokenStream {
     let contract_path = syn::parse_macro_input!(input as syn::LitStr);
 
     let metadata_path = contract_path.value();
-    let metadata_path = std::path::PathBuf::from(metadata_path);
-    eprintln!("metadata_path in `smart-bench-macro`: {:?}", metadata_path);
+    let metadata_path = std::path::PathBuf::from(metadata_path).canonicalize().expect("canonicalize must work");
+    eprintln!("canonical metadata_path in `smart-bench-macro`: {:?}", metadata_path);
 
     std::path::Path::new(&metadata_path.clone())
         .try_exists()
@@ -22,7 +22,9 @@ pub fn contract(input: TokenStream) -> TokenStream {
             panic!("path does not exist: {:?}", err);
         });
 
-    let reader = std::fs::File::open(metadata_path.clone())
+    eprintln!("existing canonical metadata_path in `smart-bench-macro`: {:?}", metadata_path);
+
+    let reader = std::fs::File::open(std::path::Path::new(metadata_path.clone()))
         .unwrap_or_else(|e| abort_call_site!("Failed to read metadata file: {}", e));
     let metadata: ContractMetadata = serde_json::from_reader(reader)
         .unwrap_or_else(|e| abort_call_site!("Failed to deserialize contract metadata: {}", e));
