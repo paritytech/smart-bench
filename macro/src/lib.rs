@@ -13,9 +13,10 @@ pub fn contract(input: TokenStream) -> TokenStream {
     let contract_path = syn::parse_macro_input!(input as syn::LitStr);
 
     let metadata_path = contract_path.value();
+    let metadata_path = std::path::PathBuf::from(metadata_path);
     eprintln!("metadata_path in `smart-bench-macro`: {:?}", metadata_path);
 
-    let reader = std::fs::File::open(std::path::PathBuf::from(metadata_path.clone()))
+    let reader = std::fs::File::open(metadata_path.clone())
         .unwrap_or_else(|e| abort_call_site!("Failed to read metadata file: {}", e));
     let metadata: ContractMetadata = serde_json::from_reader(reader)
         .unwrap_or_else(|e| abort_call_site!("Failed to deserialize contract metadata: {}", e));
@@ -26,9 +27,9 @@ pub fn contract(input: TokenStream) -> TokenStream {
             .unwrap_or_else(|e| abort_call_site!("Failed to deserialize metadata file: {}", e));
     if version == MetadataVersion::V4 {
         let reader = std::fs::File::open(metadata_path.clone())
-            .unwrap_or_else(|e| abort_call_site!("Failed to read metadata file: {}", e));
+            .unwrap_or_else(|e| abort_call_site!("Failed to read metadata file for version: {}", e));
         let ink_project: InkProject = serde_json::from_reader(reader)
-            .unwrap_or_else(|e| abort_call_site!("Failed to deserialize contract metadata: {}", e));
+            .unwrap_or_else(|e| abort_call_site!("Failed to deserialize contract metadata for version: {}", e));
         let contract_mod = generate_contract_mod(contract_name, ink_project);
         contract_mod.into()
     } else {
