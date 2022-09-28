@@ -9,7 +9,7 @@ proc-macro = true
 [dependencies]
 heck = "0.4.0"
 subxt-codegen = "0.23.0"
-ink_metadata = { package = "ink_metadata", git = "https://github.com/paritytech/ink", branch = "cmichi-mvp-e2e-testing", features = ["derive"] }
+ink_metadata = { package = "ink_metadata", git = "https://github.com/paritytech/ink", features = ["derive"] }
 contract-metadata = "2.0.0-alpha.1"
 proc-macro2 = "1.0.36"
 proc-macro-error = { version = "1.0.4", default-features = false }
