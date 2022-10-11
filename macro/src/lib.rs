@@ -237,7 +237,7 @@ fn generate_message_impl(
         }
 
         impl #impl_trait for #struct_ident {
-            type RETURN = #return_type;
+            type RETURN_TYPE = #return_type;
             const SELECTOR: [u8; 4] = [ #( #selector_bytes ),* ];
             const CONTRACT_PATH: &'static str = #path;
         }
