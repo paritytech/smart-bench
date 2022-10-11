@@ -90,7 +90,7 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
     quote::quote!(
         pub mod #contract_name {
             //pub const PATH: &'static str = "target/ink/accumulator/accumulator.contract";
-    pub const PATH: &'static str = #path;
+    pub const CONTRACT_PATH: &'static str = #path;
             #types_mod
 
             //pub const _ink_contract_path: &str = "target/ink/accumulator/accumulator.contract";
