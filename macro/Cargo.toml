@@ -8,7 +8,8 @@ proc-macro = true
 
 [dependencies]
 heck = "0.4.0"
-subxt-codegen = { git = "https://github.com/paritytech/subxt" }
+#subxt-codegen = { git = "https://github.com/paritytech/subxt" }
+subxt-codegen = { path = "../../subxt/codegen" }
 ink_metadata = { package = "ink_metadata", git = "https://github.com/paritytech/ink", features = ["derive"] }
 contract-metadata = "2.0.0-alpha.4"
 proc-macro2 = "1.0.36"
@@ -17,3 +18,4 @@ serde = "1.0.136"
 serde_json = "1.0.78"
 syn = "1.0.86"
 quote = "1.0.15"
+scale-info = { version = "2", default-features = false, features = ["derive"] }

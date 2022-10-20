@@ -4,10 +4,13 @@ use contract_metadata::ContractMetadata;
 use heck::ToUpperCamelCase as _;
 use ink_metadata::{InkProject, MetadataVersion, Selector};
 use proc_macro::TokenStream;
+use std::any::Any;
 use std::path::PathBuf;
 use proc_macro_error::{abort_call_site, proc_macro_error};
 use subxt_codegen::{DerivesRegistry, TypeGenerator};
-use syn::ReturnType;
+use syn::{ReturnType};
+use syn::visit_mut::visit_return_type_mut;
+use scale_info::{PortableRegistry, IntoPortable};
 
 #[proc_macro]
 #[proc_macro_error]
@@ -40,6 +43,7 @@ pub fn contract(input: TokenStream) -> TokenStream {
         let ink_project: InkProject = serde_json::from_reader(reader)
             .unwrap_or_else(|e| abort_call_site!("Failed to deserialize contract metadata for version: {}", e));
         let contract_mod = generate_contract_mod(metadata, ink_project, &metadata_path);
+        eprintln!("{}", quote::quote! { #contract_mod });
         contract_mod.into()
     } else {
         // TODO better message
@@ -80,10 +84,17 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
     //let path = String::from("::ink::env::e2e::subxt");
     let types_mod = type_generator.generate_types_mod();
     let types_mod_ident = types_mod.ident();
-
     let contract_name = quote::format_ident!("{}", contract_name);
+
+    let import = if types_mod.children().next().is_none() {
+        quote::quote!( )
+    } else {
+        quote::quote!( use super::#types_mod_ident::#contract_name::#contract_name::*; )
+    };
+
     let constructors = generate_constructors(&metadata, &type_generator, &metadata_path);
-    let messages = generate_messages(&metadata, &type_generator, &metadata_path);
+    let registry = metadata.registry();
+    let messages = generate_messages(&metadata, &type_generator, &metadata_path, registry);
 
     let path = metadata_path.clone().into_os_string().into_string().expect("conversion failed");
 
@@ -103,6 +114,7 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
 
             pub mod messages {
                 use super::#types_mod_ident;
+                #import
                 #( #messages )*
             }
         }
@@ -135,7 +147,7 @@ fn generate_constructors(
             //let return_type: String = return_type.display_name().segments().join("::");
             //let return_type = Some("Self"); //&String::from("Self"));
             let return_type = Some(String::from("Self"));
-            let return_type = None;
+            let return_type = quote::quote!{ Self };
             /*
             let return_type = message.return_type().opt_type().map(|return_type| {
                 return_type.display_name().segments().join("::")
@@ -150,6 +162,7 @@ fn generate_messages(
     metadata: &ink_metadata::InkProject,
     type_gen: &TypeGenerator,
     metadata_path: &PathBuf,
+    registry: &PortableRegistry,
 ) -> Vec<proc_macro2::TokenStream> {
     let trait_path = syn::parse_quote!(::ink_e2e::InkMessage);
     metadata
@@ -174,10 +187,49 @@ fn generate_messages(
                 None => String::from("bool"),
             };
              */
+            // TODO: resolve the path instead to super::contract_tyoes::mother::mother::*
+            //let return_type = (*message.return_type()).into_portable(registry);
+            //eprintln!("return_type {:?}", return_type);
+
+
             let return_type = message.return_type().opt_type().map(|return_type| {
-                return_type.display_name().segments().join("::")
+                //let portable = IntoPortable::into_portable(return_type, registry);
+                //return_type.
+                let id = return_type.ty().type_id();
+                //eprintln!("...... return_type: {:?}", return_type.ty().id());
+                let typ = registry.resolve(return_type.ty().id()).expect("type not found");
+
+                //eprintln!("...... return_type: {:?}", typ.path());
+                //eprintln!("...... return_type: {:?}", typ.type_def());
+                //eprintln!("...... return_type: {:?}", typ.type_params());
+
+                let foo = type_gen.resolve_type_path(return_type.ty().id());
+                //eprintln!("\n ...... foo: {}\n", quote::quote!{ #foo });
+
+                //typ.display_name().segments().join("::")
+                //return_type.display_name().segments().join("::")
+                foo
             });
+            let return_type = match return_type {
+                Some(return_type) => {
+                    //syn::parse_str::<syn::Type>(&return_type).expect("oh no path")
+                    quote::quote!{ #return_type }
+                    //syn::parse_quote!( #return_type )
+                    //ReturnType::parse(return_type)
+                    //quote::quote!( #return_type )
+                },
+                None => {
+                    //syn::parse_str::<syn::Type>("()").expect("oh no path")
+                    //syn::parse_quote!( () )
+                    quote::quote!{ () }
+                    //ReturnType::Default
+                }
+                //None =>  syn::parse_str::<syn::ReturnType>("()").expect("oh no ()"),
+                //None =>  ReturnType::Default,
+            };
             //let return_type = return_type.ty().into();
+
+            eprintln!("return_type {:?}", return_type);
 
             //eprintln!("args {:?}", args);
             generate_message_impl(type_gen, name, args, message.selector(), &trait_path, metadata_path, return_type)
@@ -193,28 +245,33 @@ fn generate_message_impl(
     impl_trait: &syn::Path,
     metadata_path: &PathBuf,
     //return_type: &syn::Path,
-    return_type: Option<String>,
+    return_type: proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
     /*
     let return_type = return_type.map(|return_type| {
         syn::parse_str::<syn::Path>(&return_type).expect("oh no path")
     });
      */
-    let return_type: syn::Type = match return_type {
+    /*
+    let return_type = match return_type {
         Some(return_type) => {
-            syn::parse_str::<syn::Type>(&return_type).expect("oh no path")
+            //syn::parse_str::<syn::Type>(&return_type).expect("oh no path")
+            quote::quote!{ #return_type }
             //syn::parse_quote!( #return_type )
             //ReturnType::parse(return_type)
             //quote::quote!( #return_type )
         },
         None => {
-            syn::parse_str::<syn::Type>("()").expect("oh no path")
+            //syn::parse_str::<syn::Type>("()").expect("oh no path")
             //syn::parse_quote!( () )
+            quote::quote!{ () }
             //ReturnType::Default
         }
         //None =>  syn::parse_str::<syn::ReturnType>("()").expect("oh no ()"),
         //None =>  ReturnType::Default,
     };
+
+     */
     let struct_ident = quote::format_ident!("{}", name.to_upper_camel_case());
     //eprintln!("\nstruct_ident {:?}", struct_ident);
     let fn_ident = quote::format_ident!("{}", name);
