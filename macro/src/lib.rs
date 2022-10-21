@@ -8,7 +8,7 @@ use std::any::Any;
 use std::path::PathBuf;
 use proc_macro_error::{abort_call_site, proc_macro_error};
 use subxt_codegen::{DerivesRegistry, TypeGenerator};
-use syn::{ReturnType};
+use syn::{ReturnType, TypePath};
 use syn::visit_mut::visit_return_type_mut;
 use scale_info::{PortableRegistry, IntoPortable};
 
@@ -54,6 +54,14 @@ pub fn contract(input: TokenStream) -> TokenStream {
 fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProject, metadata_path: &PathBuf,) -> proc_macro2::TokenStream {
     let contract_name = contract_metadata.contract.name;
     let type_substitutes = [
+        /*
+        (
+            //"mother::mother",
+            //syn::parse_quote!(Auction),
+            //TypePath::from_string("")
+        ),
+         */
+        /*
         (
             "mother::mother::Auction",
             syn::parse_quote!(Auction),
@@ -62,6 +70,7 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
             "mother::mother::Failure",
             syn::parse_quote!(Failure),
         ),
+         */
         (
             "ink::env::types::AccountId",
             syn::parse_quote!(::sp_core::crypto::AccountId32),
@@ -84,6 +93,7 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
     let type_generator = TypeGenerator::new(
         metadata.registry(),
         "contract_types",
+        //"",
         //"ink::primitives",
         type_substitutes,
         //DerivesRegistry::default_with_crate_path(&crate_path),
@@ -95,7 +105,6 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
     let types_mod = type_generator.generate_types_mod();
     let types_mod_ident = types_mod.ident();
 
-    let contract_name = quote::format_ident!("{}", contract_name);
 
     /*
     let import = if types_mod.children().next().is_none() {
@@ -105,19 +114,22 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
     };
      */
 
-    let constructors = generate_constructors(&metadata, &type_generator, &metadata_path);
+    let constructors = generate_constructors(&contract_name, &metadata, &type_generator, &metadata_path);
     let registry = metadata.registry();
-    let messages = generate_messages(&metadata, &type_generator, &metadata_path, registry);
+    let messages = generate_messages(&contract_name, &metadata, &type_generator, &metadata_path, registry);
 
     let path = metadata_path.clone().into_os_string().into_string().expect("conversion failed");
 
+    let contract_name = quote::format_ident!("{}", contract_name);
     quote::quote!(
         pub mod #contract_name {
             //use crate::mother::*;
             use super::*;
             //pub const PATH: &'static str = "target/ink/accumulator/accumulator.contract";
     pub const CONTRACT_PATH: &'static str = #path;
-            //#types_mod
+            #types_mod
+
+            pub use contract_types::*;
 
             //pub const _ink_contract_path: &str = "target/ink/accumulator/accumulator.contract";
             //pub const _ink_hash: Hash = ;
@@ -146,6 +158,7 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
 }
 
 fn generate_constructors(
+    contract_name: &str,
     metadata: &ink_metadata::InkProject,
     type_gen: &TypeGenerator,
     metadata_path: &PathBuf,
@@ -173,12 +186,13 @@ fn generate_constructors(
                 return_type.display_name().segments().join("::")
             });
              */
-            generate_message_impl(type_gen, name, args, constructor.selector(), &trait_path, metadata_path, return_type)
+            generate_message_impl(&contract_name, type_gen, name, args, constructor.selector(), &trait_path, metadata_path, return_type)
         })
         .collect()
 }
 
 fn generate_messages(
+    contract_name: &str,
     metadata: &ink_metadata::InkProject,
     type_gen: &TypeGenerator,
     metadata_path: &PathBuf,
@@ -235,8 +249,13 @@ fn generate_messages(
             let return_type = match return_type {
                 Some(return_type) => {
                     //syn::parse_str::<syn::Type>(&return_type).expect("oh no path")
-                    quote::quote!{ #return_type }
-                    //syn::parse_quote!( #return_type )
+                    //let ty = quote::quote!{ #ty };
+                    let ty = quote::quote!{ #return_type };
+                    let ty = ty.to_string().replace(&format!("contract_types :: {} :: {} ::", contract_name, contract_name), "");
+                    let ty = ty.to_string().replace("contract_types ::","super ::");
+                    let ty = syn::parse_str::<syn::Type>(&ty).expect("oh no 253");
+                    let ty = syn::parse_quote!( #ty );
+                    ty
                     //ReturnType::parse(return_type)
                     //quote::quote!( #return_type )
                 },
@@ -251,15 +270,16 @@ fn generate_messages(
             };
             //let return_type = return_type.ty().into();
 
-            eprintln!("return_type {:?}", return_type);
+            //eprintln!("return_type {:?}", return_type);
 
             //eprintln!("args {:?}", args);
-            generate_message_impl(type_gen, name, args, message.selector(), &trait_path, metadata_path, return_type)
+            generate_message_impl(contract_name, type_gen, name, args, message.selector(), &trait_path, metadata_path, return_type)
         })
         .collect()
 }
 
 fn generate_message_impl(
+    contract_name: &str,
     type_gen: &TypeGenerator,
     name: &str,
     args: Vec<(&str, u32)>,
@@ -303,9 +323,13 @@ fn generate_message_impl(
             let name = quote::format_ident!("{}", name);
 
             let ty = type_gen.resolve_type_path(*type_id);
-            //let ty = quote::quote!{ #ty };
-            //eprintln!(">>>>>>>>>>>> {}", ty);
+            let ty = quote::quote!{ #ty };
+            let ty = ty.to_string().replace(&format!("contract_types :: {} :: {} ::", contract_name, contract_name), "");
 
+            let ty = ty.to_string().replace("contract_types ::","super ::");
+            let ty = syn::parse_str::<syn::Type>(&ty).expect("oh no 327");
+            //let ty = syn::parse_quote!( #ty );
+            //eprintln!(">>>>>>>>>>>> {}", ty);
 //            let ty = type_gen.type_id(*type_id);
             //eprintln!(">>>>>>>>>>>> {:?}", ty);
 
