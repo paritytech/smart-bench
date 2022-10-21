@@ -55,6 +55,14 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
     let contract_name = contract_metadata.contract.name;
     let type_substitutes = [
         (
+            "mother::mother::Auction",
+            syn::parse_quote!(Auction),
+        ),
+        (
+            "mother::mother::Failure",
+            syn::parse_quote!(Failure),
+        ),
+        (
             "ink::env::types::AccountId",
             syn::parse_quote!(::sp_core::crypto::AccountId32),
         ),
@@ -71,6 +79,8 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
 
     //let crate_path: syn::Path = parse_quote!(::ink::env::e2e::subxt);
     let crate_path = String::from("::ink_e2e::subxt").into();
+
+
     let type_generator = TypeGenerator::new(
         metadata.registry(),
         "contract_types",
@@ -84,13 +94,16 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
     //let path = String::from("::ink::env::e2e::subxt");
     let types_mod = type_generator.generate_types_mod();
     let types_mod_ident = types_mod.ident();
+
     let contract_name = quote::format_ident!("{}", contract_name);
 
+    /*
     let import = if types_mod.children().next().is_none() {
         quote::quote!( )
     } else {
         quote::quote!( use super::#types_mod_ident::#contract_name::#contract_name::*; )
     };
+     */
 
     let constructors = generate_constructors(&metadata, &type_generator, &metadata_path);
     let registry = metadata.registry();
@@ -100,21 +113,28 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
 
     quote::quote!(
         pub mod #contract_name {
+            //use crate::mother::*;
+            use super::*;
             //pub const PATH: &'static str = "target/ink/accumulator/accumulator.contract";
     pub const CONTRACT_PATH: &'static str = #path;
-            #types_mod
+            //#types_mod
 
             //pub const _ink_contract_path: &str = "target/ink/accumulator/accumulator.contract";
             //pub const _ink_hash: Hash = ;
 
             pub mod constructors {
-                use super::#types_mod_ident;
+            //use crate::#contract_ident::*;
+            use super::*;
+                //use super::#types_mod_ident;
                 #( #constructors )*
             }
 
             pub mod messages {
-                use super::#types_mod_ident;
-                #import
+            //use crate::#contract_ident::*;
+            use super::*;
+            //use crate::*;
+                //use super::#types_mod_ident;
+                //#import
                 #( #messages )*
             }
         }
@@ -181,16 +201,9 @@ fn generate_messages(
                 .map(|arg| (arg.label().as_str(), arg.ty().ty().id()))
                 .collect::<Vec<_>>();
 
-            /*
-            let return_type = match message.return_type().opt_type() {
-                Some(return_type) => return_type.display_name().segments().join("::"),
-                None => String::from("bool"),
-            };
-             */
             // TODO: resolve the path instead to super::contract_tyoes::mother::mother::*
             //let return_type = (*message.return_type()).into_portable(registry);
             //eprintln!("return_type {:?}", return_type);
-
 
             let return_type = message.return_type().opt_type().map(|return_type| {
                 //let portable = IntoPortable::into_portable(return_type, registry);
@@ -210,6 +223,15 @@ fn generate_messages(
                 //return_type.display_name().segments().join("::")
                 foo
             });
+            /*
+            let return_type = match message.return_type().opt_type() {
+                Some(return_type) => return_type.display_name().segments().join("::"),
+                None => String::from("bool"),
+            };
+            eprintln!("return_type {:?}", return_type);
+            let return_type = syn::parse_str::<syn::Ident>(&return_type).expect("oh no ()");
+            let return_type = quote::quote!{ #return_type };
+            */
             let return_type = match return_type {
                 Some(return_type) => {
                     //syn::parse_str::<syn::Type>(&return_type).expect("oh no path")
@@ -279,8 +301,15 @@ fn generate_message_impl(
         .iter()
         .map(|(name, type_id)| {
             let name = quote::format_ident!("{}", name);
-            //let ty = type_gen.resolve_type_path(*type_id, &[]);
+
             let ty = type_gen.resolve_type_path(*type_id);
+            //let ty = quote::quote!{ #ty };
+            //eprintln!(">>>>>>>>>>>> {}", ty);
+
+//            let ty = type_gen.type_id(*type_id);
+            //eprintln!(">>>>>>>>>>>> {:?}", ty);
+
+            //let ty = type_gen.resolve_type_path(*type_id, &[]);
             (quote::quote!( #name: #ty ), name)
         })
         .unzip();
