@@ -4,13 +4,13 @@ use contract_metadata::ContractMetadata;
 use heck::ToUpperCamelCase as _;
 use ink_metadata::{InkProject, MetadataVersion, Selector};
 use proc_macro::TokenStream;
+use proc_macro_error::{abort_call_site, proc_macro_error};
+use scale_info::{IntoPortable, PortableRegistry};
 use std::any::Any;
 use std::path::PathBuf;
-use proc_macro_error::{abort_call_site, proc_macro_error};
 use subxt_codegen::{DerivesRegistry, TypeGenerator};
-use syn::{ReturnType, TypePath};
 use syn::visit_mut::visit_return_type_mut;
-use scale_info::{PortableRegistry, IntoPortable};
+use syn::{ReturnType, TypePath};
 
 #[proc_macro]
 #[proc_macro_error]
@@ -18,8 +18,13 @@ pub fn contract(input: TokenStream) -> TokenStream {
     let contract_path = syn::parse_macro_input!(input as syn::LitStr);
 
     let metadata_path = contract_path.value();
-    let metadata_path = std::path::PathBuf::from(metadata_path).canonicalize().expect("canonicalize must work");
-    eprintln!("canonical metadata_path in `smart-bench-macro`: {:?}", metadata_path);
+    let metadata_path = std::path::PathBuf::from(metadata_path)
+        .canonicalize()
+        .expect("canonicalize must work");
+    eprintln!(
+        "canonical metadata_path in `smart-bench-macro`: {:?}",
+        metadata_path
+    );
 
     std::path::Path::new(&metadata_path.clone())
         .try_exists()
@@ -27,7 +32,10 @@ pub fn contract(input: TokenStream) -> TokenStream {
             panic!("path does not exist: {:?}", err);
         });
 
-    eprintln!("existing canonical metadata_path in `smart-bench-macro`: {:?}", metadata_path);
+    eprintln!(
+        "existing canonical metadata_path in `smart-bench-macro`: {:?}",
+        metadata_path
+    );
 
     let reader = std::fs::File::open(std::path::Path::new(&metadata_path.clone()))
         .unwrap_or_else(|e| abort_call_site!("Failed to read metadata file: {}", e));
@@ -38,10 +46,12 @@ pub fn contract(input: TokenStream) -> TokenStream {
         serde_json::from_value(metadata.abi.get("version").expect("version").clone())
             .unwrap_or_else(|e| abort_call_site!("Failed to deserialize metadata file: {}", e));
     if version == MetadataVersion::V4 {
-        let reader = std::fs::File::open(metadata_path.clone())
-            .unwrap_or_else(|e| abort_call_site!("Failed to read metadata file for version: {}", e));
-        let ink_project: InkProject = serde_json::from_reader(reader)
-            .unwrap_or_else(|e| abort_call_site!("Failed to deserialize contract metadata for version: {}", e));
+        let reader = std::fs::File::open(metadata_path.clone()).unwrap_or_else(|e| {
+            abort_call_site!("Failed to read metadata file for version: {}", e)
+        });
+        let ink_project: InkProject = serde_json::from_reader(reader).unwrap_or_else(|e| {
+            abort_call_site!("Failed to deserialize contract metadata for version: {}", e)
+        });
         let contract_mod = generate_contract_mod(metadata, ink_project, &metadata_path);
         eprintln!("{}", quote::quote! { #contract_mod });
         contract_mod.into()
@@ -51,7 +61,11 @@ pub fn contract(input: TokenStream) -> TokenStream {
     }
 }
 
-fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProject, metadata_path: &PathBuf,) -> proc_macro2::TokenStream {
+fn generate_contract_mod(
+    contract_metadata: ContractMetadata,
+    metadata: InkProject,
+    metadata_path: &PathBuf,
+) -> proc_macro2::TokenStream {
     let contract_name = contract_metadata.contract.name;
     let type_substitutes = [
         /*
@@ -89,7 +103,6 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
     //let crate_path: syn::Path = parse_quote!(::ink::env::e2e::subxt);
     let crate_path = String::from("::ink_e2e::subxt").into();
 
-
     let type_generator = TypeGenerator::new(
         metadata.registry(),
         "contract_types",
@@ -105,7 +118,6 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
     let types_mod = type_generator.generate_types_mod();
     let types_mod_ident = types_mod.ident();
 
-
     /*
     let import = if types_mod.children().next().is_none() {
         quote::quote!( )
@@ -114,11 +126,22 @@ fn generate_contract_mod(contract_metadata: ContractMetadata, metadata: InkProje
     };
      */
 
-    let constructors = generate_constructors(&contract_name, &metadata, &type_generator, &metadata_path);
+    let constructors =
+        generate_constructors(&contract_name, &metadata, &type_generator, &metadata_path);
     let registry = metadata.registry();
-    let messages = generate_messages(&contract_name, &metadata, &type_generator, &metadata_path, registry);
+    let messages = generate_messages(
+        &contract_name,
+        &metadata,
+        &type_generator,
+        &metadata_path,
+        registry,
+    );
 
-    let path = metadata_path.clone().into_os_string().into_string().expect("conversion failed");
+    let path = metadata_path
+        .clone()
+        .into_os_string()
+        .into_string()
+        .expect("conversion failed");
 
     let contract_name = quote::format_ident!("{}", contract_name);
     quote::quote!(
@@ -180,13 +203,22 @@ fn generate_constructors(
             //let return_type: String = return_type.display_name().segments().join("::");
             //let return_type = Some("Self"); //&String::from("Self"));
             let return_type = Some(String::from("Self"));
-            let return_type = quote::quote!{ Self };
+            let return_type = quote::quote! { Self };
             /*
             let return_type = message.return_type().opt_type().map(|return_type| {
                 return_type.display_name().segments().join("::")
             });
              */
-            generate_message_impl(&contract_name, type_gen, name, args, constructor.selector(), &trait_path, metadata_path, return_type)
+            generate_message_impl(
+                &contract_name,
+                type_gen,
+                name,
+                args,
+                constructor.selector(),
+                &trait_path,
+                metadata_path,
+                return_type,
+            )
         })
         .collect()
 }
@@ -323,14 +355,20 @@ fn generate_message_impl(
             let name = quote::format_ident!("{}", name);
 
             let ty = type_gen.resolve_type_path(*type_id);
-            let ty = quote::quote!{ #ty };
-            let ty = ty.to_string().replace(&format!("contract_types :: {} :: {} ::", contract_name, contract_name), "");
+            let ty = quote::quote! { #ty };
+            let ty = ty.to_string().replace(
+                &format!(
+                    "contract_types :: {} :: {} ::",
+                    contract_name, contract_name
+                ),
+                "",
+            );
 
-            let ty = ty.to_string().replace("contract_types ::","super ::");
+            let ty = ty.to_string().replace("contract_types ::", "super ::");
             let ty = syn::parse_str::<syn::Type>(&ty).expect("oh no 327");
             //let ty = syn::parse_quote!( #ty );
             //eprintln!(">>>>>>>>>>>> {}", ty);
-//            let ty = type_gen.type_id(*type_id);
+            //            let ty = type_gen.type_id(*type_id);
             //eprintln!(">>>>>>>>>>>> {:?}", ty);
 
             //let ty = type_gen.resolve_type_path(*type_id, &[]);
@@ -338,7 +376,11 @@ fn generate_message_impl(
         })
         .unzip();
     let selector_bytes = hex_lits(selector);
-    let path = metadata_path.clone().into_os_string().into_string().expect("conversion failed");
+    let path = metadata_path
+        .clone()
+        .into_os_string()
+        .into_string()
+        .expect("conversion failed");
     //eprintln!("arg_names {:?}", arg_names);
     quote::quote! (
         #[derive(::scale::Encode)]
