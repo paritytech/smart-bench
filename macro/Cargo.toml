@@ -8,8 +8,7 @@ proc-macro = true
 
 [dependencies]
 heck = "0.4.0"
-subxt-codegen = { git = "https://github.com/paritytech/subxt", branch = "master", package = "subxt-codegen" }
-#subxt-codegen = { path = "../../subxt/codegen" }
+subxt-codegen = "0.25.0"
 ink_metadata = { package = "ink_metadata", git = "https://github.com/paritytech/ink", features = ["derive"] }
 contract-metadata = "2.0.0-alpha.4"
 proc-macro2 = "1.0.36"
