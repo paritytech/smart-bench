@@ -19,7 +19,7 @@ clap = { version = "3.1.17", features = ["derive"] }
 subxt = "0.25.0"
 futures = "0.3.21"
 parity-wasm = "0.45"
-blockstats = "0.2.0"
+blockstats = { git = "https://github.com/paritytech/blockstats", branch = "master" }
 jsonrpsee = { version = "0.14.0", features = ["ws-client"] }
 pallet-contracts-primitives = "7.0.0"
 tracing = "0.1.34"
