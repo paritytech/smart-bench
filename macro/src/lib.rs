@@ -5,7 +5,7 @@ use heck::ToUpperCamelCase as _;
 use ink_metadata::{InkProject, MetadataVersioned, Selector};
 use proc_macro::TokenStream;
 use proc_macro_error::{abort_call_site, proc_macro_error};
-use subxt_codegen::TypeGenerator;
+use subxt_codegen::{CratePath, DerivesRegistry, TypeGenerator};
 
 #[proc_macro]
 #[proc_macro_error]
@@ -39,11 +39,13 @@ fn generate_contract_mod(contract_name: String, metadata: InkProject) -> proc_ma
     .map(|(path, substitute): &(&str, syn::TypePath)| (path.to_string(), substitute.clone()))
     .collect();
 
+    let crate_path = CratePath::default();
     let type_generator = TypeGenerator::new(
         metadata.registry(),
         "contract_types",
         type_substitutes,
-        Default::default(),
+        DerivesRegistry::new(&crate_path),
+        crate_path
     );
     let types_mod = type_generator.generate_types_mod();
     let types_mod_ident = types_mod.ident();
@@ -129,7 +131,7 @@ fn generate_message_impl(
         .iter()
         .map(|(name, type_id)| {
             let name = quote::format_ident!("{}", name);
-            let ty = type_gen.resolve_type_path(*type_id, &[]);
+            let ty = type_gen.resolve_type_path(*type_id);
             (quote::quote!( #name: #ty ), name)
         })
         .unzip();
