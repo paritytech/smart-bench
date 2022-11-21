@@ -87,7 +87,7 @@ fn generate_contract_mod(
          */
         (
             "ink_primitives::types::AccountId",
-            syn::parse_quote!(::ink::primitives::AccountId),
+            syn::parse_quote!(::sp_runtime::AccountId32),
         ),
         (
             //"ink::env::types::Hash",
