@@ -86,7 +86,7 @@ fn generate_contract_mod(
         ),
          */
         (
-            "ink::env::types::AccountId",
+            "ink_primitives::types::AccountId",
             syn::parse_quote!(::sp_core::crypto::AccountId32),
         ),
         (
