@@ -21,6 +21,13 @@ jobs:
           toolchain: stable
           override: true
 
+      - name: Install Rust nightly toolchain
+        uses: actions-rs/toolchain@b2417cde72dcf67f306c0ae8e0828a81bf0b189f # v1.0.7
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
       - name: Cache Dependencies & Build Outputs
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
@@ -42,7 +49,7 @@ jobs:
 
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
 
-      - name: Install cargo-audit
+      - name: Install cargo-contract and build contract
         shell: bash
         run: |
           cargo install --git https://github.com/paritytech/cargo-contract --locked --branch master --force
