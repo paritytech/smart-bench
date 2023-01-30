@@ -26,7 +26,7 @@ variables:
   INK_EXAMPLES_PATH:               "./ink/examples"
 
 
-.default-refs:                      &default-refs
+.default-refs:
   rules:
   - if: $CI_PIPELINE_SOURCE == "web"
   - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -41,19 +41,13 @@ variables:
   - rustup +nightly show
   - cargo +nightly --version
   - bash --version
-  - sccache -s
 
 .docker-env:                       &docker-env
   image:                           "${CI_IMAGE}"
   before_script:
     - *rust-info-script
   tags:
-    - linux-docker
-
-.kubernetes-env:                   &kubernetes-env
-  image:                           "${CI_IMAGE}"
-  tags:
-    - kubernetes-parity-build
+    - linux-docker-vm-c2
 
 .clone-repo:                       &clone-repo
   - git clone --verbose --depth 1 https://github.com/paritytech/ink.git
