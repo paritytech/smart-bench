@@ -48,12 +48,16 @@ jobs:
         with:
           crate: dylint-link
 
+      - name: Install cargo-contract
+        uses: baptiste0928/cargo-install@bf6758885262d0e6f61089a9d8c8790d3ac3368f #v1.3.0
+        with:
+          crate: cargo-contract
+
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
 
       - name: Install cargo-contract and build contract
         shell: bash
         run: |
-          cargo install --git https://github.com/paritytech/cargo-contract --locked --branch master --force
           git clone --verbose --depth 1 https://github.com/paritytech/ink.git
           mv Cargo.toml _Cargo.toml
           ./scripts/ci/build-contract.sh ./ink/examples/erc20
