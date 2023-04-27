@@ -108,7 +108,7 @@ impl MoonbeamRunner {
         instance_count: u32,
     ) -> color_eyre::Result<Vec<Address>> {
         let mut nonce = self.api.fetch_nonce(self.address).await?;
-        let mut events = self.api.client().events().subscribe().await?;
+        let mut block_sub = self.api.client().blocks().subscribe_finalized().await?;
 
         let gas = self
             .api
@@ -124,17 +124,19 @@ impl MoonbeamRunner {
         }
 
         let mut addresses = Vec::new();
-        while let Some(Ok(events)) = events.next().await {
+
+        while let Some(Ok(block)) = block_sub.next().await {
+            let events = block.events().await?;
             for event in events.iter() {
                 let event = event?;
                 if let Some(Executed(from, contract_address, tx, exit_reason)) =
                     event.as_event::<Executed>()?
                 {
-                    tracing::debug!("Contract {contract_address} executed");
+                    tracing::debug!("Contract {} executed", contract_address.0);
                     if from.as_ref() == Key::address(&SecretKeyRef::from(&self.signer)).as_ref() {
                         match exit_reason {
                             ExitReason::Succeed(ExitSucceed::Returned) => {
-                                tracing::debug!("Deployed contract {contract_address}");
+                                tracing::debug!("Deployed contract {}", contract_address.0);
                                 addresses.push(Address::from_slice(contract_address.as_ref()));
                                 if addresses.len() == instance_count as usize {
                                     return Ok(addresses);
@@ -158,7 +160,7 @@ impl MoonbeamRunner {
                 {
                     let metadata = self.api.client.metadata();
                     let dispatch_error =
-                        subxt::error::DispatchError::decode_from(event.field_bytes(), &metadata);
+                        subxt::error::DispatchError::decode_from(event.field_bytes(), metadata);
                     return Err(eyre::eyre!("Deploy Extrinsic Failed: {:?}", dispatch_error));
                 }
             }

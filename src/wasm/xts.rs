@@ -1,28 +1,25 @@
 use super::*;
-use jsonrpsee::{
-    core::client::ClientT,
-    rpc_params,
-    ws_client::{WsClient, WsClientBuilder},
-};
-use pallet_contracts_primitives::{ContractResult, ExecReturnValue, InstantiateReturnValue};
-use serde::Serialize;
+use codec::{Decode, Encode, MaxEncodedLen};
+use pallet_contracts_primitives::{ContractExecResult, ContractInstantiateResult};
+use serde::{Deserialize, Serialize};
 use sp_core::{Bytes, H256};
-use subxt::{rpc::NumberOrHex, Config, OnlineClient, PolkadotConfig as DefaultConfig};
+use subxt::{
+    ext::scale_encode::EncodeAsType, rpc_params, utils::MultiAddress, OnlineClient,
+    PolkadotConfig as DefaultConfig,
+};
 
-const DRY_RUN_GAS_LIMIT: u64 = 500_000_000_000;
+const DRY_RUN_GAS_LIMIT: Option<Weight> = None;
 
 #[subxt::subxt(runtime_metadata_path = "metadata/contracts-node.scale")]
 pub mod api {}
 
 pub struct ContractsApi {
     pub client: OnlineClient<DefaultConfig>,
-    ws_client: WsClient,
 }
 
 impl ContractsApi {
-    pub async fn new(client: OnlineClient<DefaultConfig>, url: &str) -> color_eyre::Result<Self> {
-        let ws_client = WsClientBuilder::default().build(&url).await?;
-        Ok(Self { client, ws_client })
+    pub async fn new(client: OnlineClient<DefaultConfig>) -> color_eyre::Result<Self> {
+        Ok(Self { client })
     }
 
     /// Submit extrinsic to instantiate a contract with the given code.
@@ -34,45 +31,55 @@ impl ContractsApi {
         data: Vec<u8>,
         salt: Vec<u8>,
         signer: &Signer,
-    ) -> color_eyre::Result<ContractInstantiateResult> {
-        let storage_deposit_limit = storage_deposit_limit.map(|n| NumberOrHex::Hex(n.into()));
-        let code = Code::Upload(code.into());
+    ) -> ContractInstantiateResult<AccountId, Balance> {
+        let code = Code::Upload(code);
         let call_request = InstantiateRequest {
-            origin: signer.account_id().clone(),
-            value: NumberOrHex::Hex(value.into()),
-            gas_limit: NumberOrHex::Number(DRY_RUN_GAS_LIMIT),
+            origin: subxt::tx::Signer::account_id(signer).clone(),
+            value,
+            gas_limit: DRY_RUN_GAS_LIMIT,
             storage_deposit_limit,
             code,
-            data: data.into(),
-            salt: salt.into(),
+            data,
+            salt,
         };
-        let params = rpc_params![call_request];
-        let result: ContractInstantiateResult = self
-            .ws_client
-            .request("contracts_instantiate", params)
-            .await?;
-        Ok(result)
+        let func = "ContractsApi_instantiate";
+        let params = rpc_params![func, Bytes(Encode::encode(&call_request))];
+        let bytes: Bytes = self
+            .client
+            .rpc()
+            .request("state_call", params)
+            .await
+            .unwrap_or_else(|err| {
+                panic!("error on ws request `contracts_instantiate`: {err:?}");
+            });
+        Decode::decode(&mut bytes.as_ref())
+            .unwrap_or_else(|err| panic!("decoding ContractInstantiateResult failed: {err}"))
     }
 
     /// Submit extrinsic to instantiate a contract with the given code.
     pub async fn instantiate_with_code(
         &self,
         value: Balance,
-        gas_limit: Gas,
+        gas_limit: Weight,
         storage_deposit_limit: Option<Balance>,
         code: Vec<u8>,
         data: Vec<u8>,
         salt: Vec<u8>,
         signer: &Signer,
     ) -> color_eyre::Result<H256> {
-        let call = api::tx().contracts().instantiate_with_code(
-            value,
-            gas_limit,
-            storage_deposit_limit,
-            code,
-            data,
-            salt,
-        );
+        let call = subxt::tx::Payload::new(
+            "Contracts",
+            "instantiate_with_code",
+            InstantiateWithCode {
+                value,
+                gas_limit,
+                storage_deposit_limit,
+                code,
+                data,
+                salt,
+            },
+        )
+        .unvalidated();
 
         let tx_hash = self
             .client
@@ -89,20 +96,29 @@ impl ContractsApi {
         contract: AccountId,
         value: Balance,
         storage_deposit_limit: Option<Balance>,
-        data: Vec<u8>,
+        input_data: Vec<u8>,
         signer: &Signer,
-    ) -> color_eyre::Result<ContractExecResult> {
-        let storage_deposit_limit = storage_deposit_limit.map(|n| NumberOrHex::Hex(n.into()));
+    ) -> color_eyre::Result<ContractExecResult<Balance>> {
         let call_request = RpcCallRequest {
             origin: signer.account_id().clone(),
             dest: contract,
-            value: NumberOrHex::Hex(value.into()),
-            gas_limit: NumberOrHex::Number(DRY_RUN_GAS_LIMIT),
+            value,
+            gas_limit: DRY_RUN_GAS_LIMIT,
             storage_deposit_limit,
-            input_data: Bytes(data),
+            input_data,
         };
-        let params = rpc_params![call_request];
-        let result: ContractExecResult = self.ws_client.request("contracts_call", params).await?;
+        let params = rpc_params!["ContractsApi_call", Bytes(Encode::encode(&call_request))];
+        let bytes: Bytes = self
+            .client
+            .rpc()
+            .request("state_call", params)
+            .await
+            .unwrap_or_else(|err| {
+                panic!("error on ws request `contracts_call`: {err:?}");
+            });
+        let result: ContractExecResult<Balance> = Decode::decode(&mut bytes.as_ref())
+            .unwrap_or_else(|err| panic!("decoding ContractExecResult failed: {err}"));
+
         Ok(result)
     }
 
@@ -111,18 +127,23 @@ impl ContractsApi {
         &self,
         contract: AccountId,
         value: Balance,
-        gas_limit: Gas,
+        gas_limit: Weight,
         storage_deposit_limit: Option<Balance>,
         data: Vec<u8>,
         signer: &Signer,
     ) -> color_eyre::Result<Hash> {
-        let call = api::tx().contracts().call(
-            contract.into(),
-            value,
-            gas_limit,
-            storage_deposit_limit,
-            data,
-        );
+        let call = subxt::tx::Payload::new(
+            "Contracts",
+            "call",
+            Call {
+                dest: contract.into(),
+                value,
+                gas_limit,
+                storage_deposit_limit,
+                data,
+            },
+        )
+        .unvalidated();
 
         let tx_hash = self
             .client
@@ -134,32 +155,90 @@ impl ContractsApi {
     }
 }
 
-type ContractExecResult = ContractResult<Result<ExecReturnValue, serde_json::Value>, Balance>;
+/// A raw call to `pallet-contracts`'s `call`.
+#[derive(Debug, Decode, Encode, EncodeAsType)]
+#[encode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_encode")]
+pub struct Call {
+    dest: MultiAddress<AccountId, ()>,
+    #[codec(compact)]
+    value: Balance,
+    gas_limit: Weight,
+    storage_deposit_limit: Option<Balance>,
+    data: Vec<u8>,
+}
 
-type ContractInstantiateResult = ContractResult<
-    Result<InstantiateReturnValue<<DefaultConfig as Config>::AccountId>, serde_json::Value>,
-    Balance,
->;
+/// A raw call to `pallet-contracts`'s `instantiate_with_code`.
+#[derive(Debug, Encode, Decode, EncodeAsType)]
+#[encode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_encode")]
+pub struct InstantiateWithCode {
+    #[codec(compact)]
+    value: Balance,
+    gas_limit: Weight,
+    storage_deposit_limit: Option<Balance>,
+    code: Vec<u8>,
+    data: Vec<u8>,
+    salt: Vec<u8>,
+}
+
+/// Copied from `sp_weight` to additionally implement `scale_encode::EncodeAsType`.
+#[derive(
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Debug,
+    Default,
+    Encode,
+    Decode,
+    MaxEncodedLen,
+    EncodeAsType,
+    Serialize,
+    Deserialize,
+)]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub struct Weight {
+    #[codec(compact)]
+    /// The weight of computational time used based on some reference hardware.
+    ref_time: u64,
+    #[codec(compact)]
+    /// The weight of storage space used by proof of validity.
+    proof_size: u64,
+}
+
+impl From<sp_weights::Weight> for Weight {
+    fn from(weight: sp_weights::Weight) -> Self {
+        Self {
+            ref_time: weight.ref_time(),
+            proof_size: weight.proof_size(),
+        }
+    }
+}
+
+impl From<Weight> for sp_weights::Weight {
+    fn from(weight: Weight) -> Self {
+        sp_weights::Weight::from_parts(weight.ref_time, weight.proof_size)
+    }
+}
 
 /// A struct that encodes RPC parameters required to instantiate a new smart contract.
-#[derive(Serialize)]
+#[derive(Serialize, Encode)]
 #[serde(rename_all = "camelCase")]
 struct InstantiateRequest {
     origin: AccountId,
-    value: NumberOrHex,
-    gas_limit: NumberOrHex,
-    storage_deposit_limit: Option<NumberOrHex>,
+    value: Balance,
+    gas_limit: Option<Weight>,
+    storage_deposit_limit: Option<Balance>,
     code: Code,
-    data: Bytes,
-    salt: Bytes,
+    data: Vec<u8>,
+    salt: Vec<u8>,
 }
 
 /// Reference to an existing code hash or a new Wasm module.
-#[derive(Serialize)]
+#[derive(Serialize, Encode)]
 #[serde(rename_all = "camelCase")]
 enum Code {
     /// A Wasm module as raw bytes.
-    Upload(Bytes),
+    Upload(Vec<u8>),
     #[allow(unused)]
     /// The code hash of an on-chain Wasm blob.
     Existing(H256),
@@ -167,14 +246,14 @@ enum Code {
 
 /// A struct that encodes RPC parameters required for a call to a smart contract.
 ///
-/// Copied from `pallet-contracts-rpc`.
-#[derive(Serialize)]
+/// Copied from [`pallet-contracts-rpc`].
+#[derive(Serialize, Encode)]
 #[serde(rename_all = "camelCase")]
-pub struct RpcCallRequest {
+struct RpcCallRequest {
     origin: AccountId,
     dest: AccountId,
-    value: NumberOrHex,
-    gas_limit: NumberOrHex,
-    storage_deposit_limit: Option<NumberOrHex>,
-    input_data: Bytes,
+    value: Balance,
+    gas_limit: Option<Weight>,
+    storage_deposit_limit: Option<Balance>,
+    input_data: Vec<u8>,
 }

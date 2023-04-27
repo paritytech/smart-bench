@@ -27,7 +27,7 @@ pub fn collect_block_stats<'a>(
                     .block
                     .extrinsics
                     .iter()
-                    .map(BlakeTwo256::hash_of)
+                    .map(|e| BlakeTwo256::hash_of(&e.0))
                     .collect();
                 Ok(BlockInfo { extrinsics, stats })
             }

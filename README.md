@@ -62,11 +62,10 @@ binaries, and make sure they are present in the `launch/bin` directory.
 The above will create 10 instances of each of the `erc20` and `erc1155` contracts, and call each of those instances 20 times (400 total calls). Once all the calls have been submitted, the block stats should appear on the console e.g.
 
 ```
-0019: PoV Size=0100KiB(003%) Weight=0000042ms(008%) Witness=0005KiB Block=0094KiB NumExtrinsics=0012
-0020: PoV Size=0415KiB(016%) Weight=0000374ms(074%) Witness=0111KiB Block=0303KiB NumExtrinsics=0164
-0021: PoV Size=0145KiB(005%) Weight=0000376ms(075%) Witness=0110KiB Block=0034KiB NumExtrinsics=0177
-0022: PoV Size=0126KiB(004%) Weight=0000160ms(032%) Witness=0110KiB Block=0016KiB NumExtrinsics=0075
-
+0005: PoV Size=0130KiB(005%) Weight RefTime=0000088ms(017%) Weight ProofSize=3277KiB(064%) Witness=0119KiB Block=0011KiB NumExtrinsics=0048
+0006: PoV Size=0130KiB(005%) Weight RefTime=0000088ms(017%) Weight ProofSize=3277KiB(064%) Witness=0118KiB Block=0011KiB NumExtrinsics=0048
+0007: PoV Size=0130KiB(005%) Weight RefTime=0000088ms(017%) Weight ProofSize=3277KiB(064%) Witness=0119KiB Block=0011KiB NumExtrinsics=0048
+0008: PoV Size=0130KiB(005%) Weight RefTime=0000088ms(017%) Weight ProofSize=3277KiB(064%) Witness=0118KiB Block=0011KiB NumExtrinsics=0048
 ```
 One row per block, showing the % usage of the PoV size and the block weight, as well as the number of extrinsics executed per block. Note the Weight % is expected to max out at 75%, since that is the ratio of the total block weight assigned to "normal" i.e. the user submitted/non-operational class of extrinsics.
 
