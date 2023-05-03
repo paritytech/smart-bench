@@ -42,16 +42,14 @@ impl ContractsApi {
             data,
             salt,
         };
-        let func = "ContractsApi_instantiate";
-        let params = rpc_params![func, Bytes(Encode::encode(&call_request))];
-        let bytes: Bytes = self
-            .client
-            .rpc()
-            .request("state_call", params)
+        let bytes = self
+            .state_call(
+                "ContractsApi_instantiate",
+                Bytes(Encode::encode(&call_request)),
+            )
             .await
-            .unwrap_or_else(|err| {
-                panic!("error on ws request `contracts_instantiate`: {err:?}");
-            });
+            .unwrap_or_else(|err| panic!("error on ws request `contracts_instantiate`: {err:?}"));
+
         Decode::decode(&mut bytes.as_ref())
             .unwrap_or_else(|err| panic!("decoding ContractInstantiateResult failed: {err}"))
     }
@@ -107,15 +105,10 @@ impl ContractsApi {
             storage_deposit_limit,
             input_data,
         };
-        let params = rpc_params!["ContractsApi_call", Bytes(Encode::encode(&call_request))];
-        let bytes: Bytes = self
-            .client
-            .rpc()
-            .request("state_call", params)
+        let bytes = self
+            .state_call("ContractsApi_call", Bytes(Encode::encode(&call_request)))
             .await
-            .unwrap_or_else(|err| {
-                panic!("error on ws request `contracts_call`: {err:?}");
-            });
+            .unwrap_or_else(|err| panic!("error on ws request `contract_call`: {err:?}"));
         let result: ContractExecResult<Balance> = Decode::decode(&mut bytes.as_ref())
             .unwrap_or_else(|err| panic!("decoding ContractExecResult failed: {err}"));
 
@@ -152,6 +145,13 @@ impl ContractsApi {
             .await?;
 
         Ok(tx_hash)
+    }
+
+    async fn state_call(&self, function: &str, payload: Bytes) -> color_eyre::Result<Bytes> {
+        let params = rpc_params![function, payload];
+
+        let val = self.client.rpc().request("state_call", params).await?;
+        Ok(val)
     }
 }
 
