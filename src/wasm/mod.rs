@@ -5,7 +5,7 @@ use crate::{Cli, Contract};
 use futures::{future, TryStreamExt};
 use sp_core::sr25519;
 use sp_keyring::AccountKeyring;
-use subxt::{tx::PairSigner, PolkadotConfig as DefaultConfig};
+use subxt::{tx::PairSigner, utils::AccountId32, PolkadotConfig as DefaultConfig};
 use xts::ContractsApi;
 
 pub type Balance = u128;
@@ -33,7 +33,7 @@ smart_bench_macro::contract!("./contracts/storage.contract");
 
 pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
     let alice = PairSigner::new(AccountKeyring::Alice.pair());
-    let bob = AccountKeyring::Bob.to_account_id();
+    let bob: AccountId32 = AccountKeyring::Bob.to_account_id().into();
 
     let mut runner = runner::BenchRunner::new(alice, &cli.url).await?;
 

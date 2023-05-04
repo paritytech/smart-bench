@@ -5,7 +5,7 @@ use heck::ToUpperCamelCase as _;
 use ink_metadata::{InkProject, MetadataVersioned, Selector};
 use proc_macro::TokenStream;
 use proc_macro_error::{abort_call_site, proc_macro_error};
-use subxt_codegen::{CratePath, DerivesRegistry, TypeGenerator};
+use subxt_codegen::{AbsolutePath, CratePath, DerivesRegistry, TypeGenerator, TypeSubstitutes};
 
 #[proc_macro]
 #[proc_macro_error]
@@ -31,23 +31,28 @@ pub fn contract(input: TokenStream) -> TokenStream {
 }
 
 fn generate_contract_mod(contract_name: String, metadata: InkProject) -> proc_macro2::TokenStream {
-    let type_substitutes = [(
-        "ink_env::types::AccountId",
-        syn::parse_quote!(::sp_core::crypto::AccountId32),
-    )]
-    .iter()
-    .map(|(path, substitute): &(&str, syn::TypePath)| (path.to_string(), substitute.clone()))
-    .collect();
-
     let crate_path = CratePath::default();
+    let mut type_substitutes = TypeSubstitutes::new(&crate_path);
+
+    //FIXME: AbsolutePath type is private - to check how to use this api
+    type_substitutes
+        .insert(
+            syn::parse_quote!(ink_env::types::AccountId),
+            AbsolutePath(syn::parse_quote!(#crate_path::utils::AccountId32)),
+        )
+        .expect("Error in type substitutions");
+
     let type_generator = TypeGenerator::new(
         metadata.registry(),
         "contract_types",
         type_substitutes,
         DerivesRegistry::new(&crate_path),
         crate_path,
+        true,
     );
-    let types_mod = type_generator.generate_types_mod();
+    let types_mod = type_generator
+        .generate_types_mod()
+        .expect("Error in type generation");
     let types_mod_ident = types_mod.ident();
 
     let contract_name = quote::format_ident!("{}", contract_name);
