@@ -18,27 +18,15 @@ impl BenchRunner {
     pub async fn new(signer: Signer, url: &str) -> color_eyre::Result<Self> {
         let client = subxt::OnlineClient::from_url(url).await?;
 
-        let api = ContractsApi::new(client, url).await?;
+        let api = ContractsApi::new(client).await?;
 
-        let mut runner = Self {
+        let runner = Self {
             url: url.to_string(),
             api,
             signer,
             calls: Vec::new(),
         };
-        runner.set_nonce().await?;
         Ok(runner)
-    }
-
-    async fn set_nonce(&mut self) -> color_eyre::Result<()> {
-        let nonce = self
-            .api
-            .client
-            .rpc()
-            .system_account_next_index(self.signer.account_id())
-            .await?;
-        self.signer.set_nonce(nonce);
-        Ok(())
     }
 
     /// Upload and instantiate instances of contract, and build calls for benchmarking
@@ -66,8 +54,6 @@ impl BenchRunner {
             .ok_or_else(|| eyre::eyre!("contract bundle missing source Wasm"))?;
 
         println!("{}KiB", code.0.len() / 1024);
-
-        self.set_nonce().await?;
 
         let contract_accounts = self
             .exec_instantiate(0, code.0, &constructor, instance_count)
@@ -117,11 +103,11 @@ impl BenchRunner {
                     Vec::new(),
                     &self.signer,
                 )
-                .await?;
+                .await;
             dry_run.gas_required
         };
 
-        let mut event_sub = self.api.client.events().subscribe().await?;
+        let mut block_sub = self.api.client.blocks().subscribe_finalized().await?;
 
         let mut accounts = Vec::new();
         for i in unique_code_salt..unique_code_salt + count as u128 {
@@ -131,7 +117,7 @@ impl BenchRunner {
             self.api
                 .instantiate_with_code(
                     value,
-                    gas_limit,
+                    gas_limit.into(),
                     DEFAULT_STORAGE_DEPOSIT_LIMIT,
                     code,
                     data.clone(),
@@ -139,10 +125,10 @@ impl BenchRunner {
                     &mut self.signer,
                 )
                 .await?;
-            self.signer.increment_nonce();
         }
 
-        while let Some(Ok(events)) = event_sub.next().await {
+        while let Some(Ok(block)) = block_sub.next().await {
+            let events = block.events().await?;
             for event in events.iter() {
                 let event = event?;
                 if let Some(instantiated) =
@@ -158,7 +144,7 @@ impl BenchRunner {
                 {
                     let metadata = self.api.client.metadata();
                     let dispatch_error =
-                        subxt::error::DispatchError::decode_from(event.field_bytes(), &metadata);
+                        subxt::error::DispatchError::decode_from(event.field_bytes(), metadata);
                     return Err(eyre::eyre!(
                         "Instantiate Extrinsic Failed: {:?}",
                         dispatch_error
@@ -213,13 +199,12 @@ impl BenchRunner {
                             .call(
                                 contract_call.contract_account.clone(),
                                 0,
-                                gas_limit,
+                                gas_limit.into(),
                                 DEFAULT_STORAGE_DEPOSIT_LIMIT,
                                 contract_call.call_data.0.clone(),
                                 &self.signer,
                             )
                             .await?;
-                        self.signer.increment_nonce();
                         tx_hashes.push(tx_hash)
                     }
                 }

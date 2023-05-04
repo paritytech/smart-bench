@@ -8,11 +8,14 @@ use web3::{
     Web3,
 };
 
-#[subxt::subxt(runtime_metadata_path = "metadata/moonbeam.scale")]
-pub mod api {
-    #[subxt(substitute_type = "primitive_types::H160")]
-    use ::sp_core::H160;
-}
+#[subxt::subxt(
+    runtime_metadata_path = "metadata/moonbeam.scale",
+    substitute_type(
+        type = "primitive_types::H160",
+        with = "::subxt::utils::Static<::sp_core::H160>"
+    )
+)]
+pub mod api {}
 
 pub struct MoonbeamApi {
     web3: Web3<ws::WebSocket>,

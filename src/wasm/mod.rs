@@ -9,7 +9,6 @@ use subxt::{tx::PairSigner, PolkadotConfig as DefaultConfig};
 use xts::ContractsApi;
 
 pub type Balance = u128;
-pub type Gas = u64;
 pub type AccountId = <DefaultConfig as subxt::Config>::AccountId;
 pub type Hash = <DefaultConfig as subxt::Config>::Hash;
 pub type Signer = PairSigner<DefaultConfig, sr25519::Pair>;
