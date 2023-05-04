@@ -5,7 +5,7 @@ use heck::ToUpperCamelCase as _;
 use ink_metadata::{InkProject, MetadataVersioned, Selector};
 use proc_macro::TokenStream;
 use proc_macro_error::{abort_call_site, proc_macro_error};
-use subxt_codegen::{AbsolutePath, CratePath, DerivesRegistry, TypeGenerator, TypeSubstitutes};
+use subxt_codegen::{CratePath, DerivesRegistry, TypeGenerator, TypeSubstitutes};
 
 #[proc_macro]
 #[proc_macro_error]
@@ -34,11 +34,12 @@ fn generate_contract_mod(contract_name: String, metadata: InkProject) -> proc_ma
     let crate_path = CratePath::default();
     let mut type_substitutes = TypeSubstitutes::new(&crate_path);
 
-    //FIXME: AbsolutePath type is private - to check how to use this api
+    let path: syn::Path = syn::parse_quote!(#crate_path::utils::AccountId32);
+
     type_substitutes
         .insert(
             syn::parse_quote!(ink_env::types::AccountId),
-            AbsolutePath(syn::parse_quote!(#crate_path::utils::AccountId32)),
+            path.try_into().unwrap(),
         )
         .expect("Error in type substitutions");
 
