@@ -91,7 +91,7 @@ fn generate_constructors(
             let args = constructor
                 .args()
                 .iter()
-                .map(|arg| (arg.label().as_str(), arg.ty().ty().id()))
+                .map(|arg| (arg.label().as_str(), arg.ty().ty().id))
                 .collect::<Vec<_>>();
             generate_message_impl(type_gen, name, args, constructor.selector(), &trait_path)
         })
@@ -116,7 +116,7 @@ fn generate_messages(
             let args = message
                 .args()
                 .iter()
-                .map(|arg| (arg.label().as_str(), arg.ty().ty().id()))
+                .map(|arg| (arg.label().as_str(), arg.ty().ty().id))
                 .collect::<Vec<_>>();
 
             generate_message_impl(type_gen, name, args, message.selector(), &trait_path)
