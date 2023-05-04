@@ -3135,7 +3135,7 @@ dependencies = [
  "parity-scale-codec 3.4.0",
  "parity-wasm",
  "rlp",
- "secp256k1 0.21.3",
+ "secp256k1 0.24.3",
  "serde",
  "serde_json",
  "sha3 0.10.7",
