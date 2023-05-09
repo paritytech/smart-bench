@@ -5,7 +5,7 @@ use heck::ToUpperCamelCase as _;
 use ink_metadata::{InkProject, MetadataVersioned, Selector};
 use proc_macro::TokenStream;
 use proc_macro_error::{abort_call_site, proc_macro_error};
-use subxt_codegen::{CratePath, DerivesRegistry, TypeGenerator};
+use subxt_codegen::{CratePath, DerivesRegistry, TypeGenerator, TypeSubstitutes};
 
 #[proc_macro]
 #[proc_macro_error]
@@ -31,23 +31,29 @@ pub fn contract(input: TokenStream) -> TokenStream {
 }
 
 fn generate_contract_mod(contract_name: String, metadata: InkProject) -> proc_macro2::TokenStream {
-    let type_substitutes = [(
-        "ink_env::types::AccountId",
-        syn::parse_quote!(::sp_core::crypto::AccountId32),
-    )]
-    .iter()
-    .map(|(path, substitute): &(&str, syn::TypePath)| (path.to_string(), substitute.clone()))
-    .collect();
-
     let crate_path = CratePath::default();
+    let mut type_substitutes = TypeSubstitutes::new(&crate_path);
+
+    let path: syn::Path = syn::parse_quote!(#crate_path::utils::AccountId32);
+
+    type_substitutes
+        .insert(
+            syn::parse_quote!(ink_env::types::AccountId),
+            path.try_into().unwrap(),
+        )
+        .expect("Error in type substitutions");
+
     let type_generator = TypeGenerator::new(
         metadata.registry(),
         "contract_types",
         type_substitutes,
         DerivesRegistry::new(&crate_path),
         crate_path,
+        false,
     );
-    let types_mod = type_generator.generate_types_mod();
+    let types_mod = type_generator
+        .generate_types_mod()
+        .expect("Error in type generation");
     let types_mod_ident = types_mod.ident();
 
     let contract_name = quote::format_ident!("{}", contract_name);
@@ -85,7 +91,7 @@ fn generate_constructors(
             let args = constructor
                 .args()
                 .iter()
-                .map(|arg| (arg.label().as_str(), arg.ty().ty().id()))
+                .map(|arg| (arg.label().as_str(), arg.ty().ty().id))
                 .collect::<Vec<_>>();
             generate_message_impl(type_gen, name, args, constructor.selector(), &trait_path)
         })
@@ -110,7 +116,7 @@ fn generate_messages(
             let args = message
                 .args()
                 .iter()
-                .map(|arg| (arg.label().as_str(), arg.ty().ty().id()))
+                .map(|arg| (arg.label().as_str(), arg.ty().ty().id))
                 .collect::<Vec<_>>();
 
             generate_message_impl(type_gen, name, args, message.selector(), &trait_path)
