@@ -49,7 +49,7 @@ fn generate_contract_mod(contract_name: String, metadata: InkProject) -> proc_ma
         type_substitutes,
         DerivesRegistry::new(&crate_path),
         crate_path,
-        true,
+        false,
     );
     let types_mod = type_generator
         .generate_types_mod()
