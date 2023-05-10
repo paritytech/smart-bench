@@ -2,7 +2,7 @@ extern crate proc_macro;
 
 use contract_metadata::ContractMetadata;
 use heck::ToUpperCamelCase as _;
-use ink_metadata::{InkProject, MetadataVersioned, Selector};
+use ink_metadata::{InkProject, MetadataVersion, Selector};
 use proc_macro::TokenStream;
 use proc_macro_error::{abort_call_site, proc_macro_error};
 use subxt_codegen::{CratePath, DerivesRegistry, TypeGenerator, TypeSubstitutes};
@@ -20,10 +20,10 @@ pub fn contract(input: TokenStream) -> TokenStream {
     let metadata: ContractMetadata = serde_json::from_reader(reader)
         .unwrap_or_else(|e| abort_call_site!("Failed to deserialize contract metadata: {}", e));
     let contract_name = metadata.contract.name;
-    let metadata: MetadataVersioned = serde_json::from_value(metadata.abi.into())
-        .unwrap_or_else(|e| abort_call_site!("Failed to deserialize metadata file: {}", e));
-    if let MetadataVersioned::V3(ink_project) = metadata {
-        let contract_mod = generate_contract_mod(contract_name, ink_project);
+    let ink_metadata: InkProject = serde_json::from_value(serde_json::Value::Object(metadata.abi))
+        .unwrap_or_else(|e| abort_call_site!("Failed to deserialize ink metadata: {}", e));
+    if &MetadataVersion::V4 == ink_metadata.version() {
+        let contract_mod = generate_contract_mod(contract_name, ink_metadata);
         contract_mod.into()
     } else {
         abort_call_site!("Invalid contract metadata version")
@@ -38,7 +38,7 @@ fn generate_contract_mod(contract_name: String, metadata: InkProject) -> proc_ma
 
     type_substitutes
         .insert(
-            syn::parse_quote!(ink_env::types::AccountId),
+            syn::parse_quote!(ink_primitives::types::AccountId),
             path.try_into().unwrap(),
         )
         .expect("Error in type substitutions");
