@@ -9,8 +9,8 @@ proc-macro = true
 [dependencies]
 heck = "0.4.0"
 subxt-codegen = "0.28.0"
-ink_metadata = "3.0.0-rc8"
-contract-metadata = "1"
+ink_metadata = "4.1.0"
+contract-metadata = "2.1.0"
 proc-macro2 = "1.0.56"
 proc-macro-error = { version = "1.0.4", default-features = false }
 serde = "1.0.137"

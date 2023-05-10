@@ -1,13 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use ink_lang as ink;
-
 #[ink::contract]
 mod storage {
-    use ink_storage::{Mapping, traits::SpreadAllocate};
+    use ink::storage::Mapping;
 
     #[ink(storage)]
-    #[derive(Default, SpreadAllocate)]
+    #[derive(Default)]
     pub struct Storage {
         balances: Mapping<AccountId, Balance>,
     }
@@ -15,7 +13,9 @@ mod storage {
     impl Storage {
         #[ink(constructor)]
         pub fn new() -> Self {
-            ink_lang::utils::initialize_contract(|_| {})
+            Self {
+                balances: Mapping::default()
+            }
         }
 
         #[ink(message)]
@@ -42,10 +42,10 @@ mod storage {
 
         #[ink(message)]
         pub fn read_write_raw(&mut self, account: AccountId, count: u32) {
-            let account_key = ink_primitives::Key::new(*account.as_ref());
+            let account_key = ink::primitives::KeyComposer::from_bytes(account.as_ref());
             for _ in 0..count {
-                let x = ink_env::get_contract_storage(&account_key).unwrap().unwrap_or(0);
-                ink_env::set_contract_storage(&account_key, &(x + 1));
+                let x = ink::env::get_contract_storage(&account_key).unwrap().unwrap_or(0);
+                ink::env::set_contract_storage(&account_key, &(x + 1));
             }
         }
     }
@@ -57,9 +57,6 @@ mod storage {
     mod tests {
         /// Imports all the definitions from the outer scope so we can use them here.
         use super::*;
-
-        /// Imports `ink_lang` so we can use `#[ink::test]`.
-        use ink_lang as ink;
 
         /// We test if the default constructor does its job.
         #[ink::test]
