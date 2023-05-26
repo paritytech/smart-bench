@@ -29,7 +29,8 @@ pub struct Cli {
 
 #[derive(clap::ArgEnum, Debug, Clone)]
 pub enum TargetPlatform {
-    Wasm,
+    InkWasm,
+    SolWasm,
     Evm,
 }
 
@@ -54,7 +55,8 @@ async fn main() -> color_eyre::Result<()> {
     tracing_subscriber::fmt::init();
 
     match cli.chain {
-        TargetPlatform::Wasm => wasm::exec(cli).await,
+        TargetPlatform::InkWasm => wasm::exec(cli).await,
+        TargetPlatform::SolWasm => wasm::exec(cli).await,
         TargetPlatform::Evm => evm::exec(&cli).await,
     }
 }

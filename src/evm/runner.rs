@@ -52,7 +52,7 @@ impl MoonbeamRunner {
 
         let root = std::env::var("CARGO_MANIFEST_DIR")?;
         let metadata_path =
-            format!("{root}/contracts/solidity/artifacts/contracts/{name}.sol/{name}.json");
+            format!("{root}/contracts/solidity/evm/contracts/{name}.sol/{name}.json");
 
         let metadata_reader = std::fs::File::open(metadata_path)?;
         let json: serde_json::Map<String, serde_json::Value> =

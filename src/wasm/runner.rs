@@ -32,6 +32,7 @@ impl BenchRunner {
     /// Upload and instantiate instances of contract, and build calls for benchmarking
     pub async fn prepare_contract<C, F>(
         &mut self,
+        path: &str,
         name: &str,
         constructor: C,
         instance_count: u32,
@@ -44,7 +45,7 @@ impl BenchRunner {
         print!("Preparing {name}...");
 
         let root = std::env::var("CARGO_MANIFEST_DIR")?;
-        let contract_path = format!("contracts/{name}.contract");
+        let contract_path = format!("{path}/{name}.contract");
         let metadata_path: std::path::PathBuf = [&root, &contract_path].iter().collect();
         let reader = std::fs::File::open(metadata_path)?;
         let contract: contract_metadata::ContractMetadata = serde_json::from_reader(reader)?;
