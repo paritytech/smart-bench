@@ -15,7 +15,7 @@ USAGE:
     smart-bench [OPTIONS] --instance-count <INSTANCE_COUNT> --call-count <CALL_COUNT> <CHAIN> [CONTRACTS]...
 
 ARGS:
-    <CHAIN>           the smart contract platform to benchmark [possible values: wasm, evm]
+    <CHAIN>           the smart contract platform to benchmark [possible values: ink-wasm, sol-wasm, evm]
     <CONTRACTS>...    the list of contracts to benchmark with [possible values: erc20, flipper,
                       incrementer, erc721, erc1155, odd-product, triangle-number, storage-read,
                       storage-write, storage-read-write]
@@ -57,7 +57,7 @@ binaries, and make sure they are present in the `launch/bin` directory.
 
 `smart-bench` works on a pre-defined set of contracts, and the user can specify which contract(s) should be tested, and how many instances and number of calls should be executed. e.g.
 
-`cargo run --release -- wasm erc20 erc1155 --instance-count 10 --call-count 20 --url ws://localhost:9988`
+`cargo run --release -- ink-wasm erc20 erc1155 --instance-count 10 --call-count 20 --url ws://localhost:9988`
 
 The above will create 10 instances of each of the `erc20` and `erc1155` contracts, and call each of those instances 20 times (400 total calls). Once all the calls have been submitted, the block stats should appear on the console e.g.
 

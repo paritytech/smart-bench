@@ -34,12 +34,27 @@ fn generate_contract_mod(contract_name: String, metadata: InkProject) -> proc_ma
     let crate_path = CratePath::default();
     let mut type_substitutes = TypeSubstitutes::new(&crate_path);
 
-    let path: syn::Path = syn::parse_quote!(#crate_path::utils::AccountId32);
+    let path_account: syn::Path = syn::parse_quote!(#crate_path::utils::AccountId32);
+    let path_u256: syn::Path = syn::parse_quote!(::primitive_types::U256);
 
     type_substitutes
         .insert(
             syn::parse_quote!(ink_primitives::types::AccountId),
-            path.try_into().unwrap(),
+            path_account.clone().try_into().unwrap(),
+        )
+        .expect("Error in type substitutions");
+
+    type_substitutes
+        .insert(
+            syn::parse_quote!(ink_env::types::AccountId),
+            path_account.try_into().unwrap(),
+        )
+        .expect("Error in type substitutions");
+
+    type_substitutes
+        .insert(
+            syn::parse_quote!(ink_env::types::U256),
+            path_u256.try_into().unwrap(),
         )
         .expect("Error in type substitutions");
 
