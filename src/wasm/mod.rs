@@ -23,16 +23,18 @@ pub trait InkMessage: codec::Encode {
     const SELECTOR: [u8; 4];
 }
 
+/// Solang compiled contracts to wasm generated API
 mod solidity_contracts {
     smart_bench_macro::contract!("./contracts/solidity/wasm/BenchERC20.contract");
     smart_bench_macro::contract!("./contracts/solidity/wasm/flipper.contract");
     smart_bench_macro::contract!("./contracts/solidity/wasm/incrementer.contract");
-    //smart_bench_macro::contract!("./contracts/solidity/wasm/BenchERC721.contract");
-    //smart_bench_macro::contract!("./contracts/solidity/wasm/BenchERC1155.contract");
+    smart_bench_macro::contract!("./contracts/solidity/wasm/BenchERC721.contract");
+    smart_bench_macro::contract!("./contracts/solidity/wasm/BenchERC1155.contract");
     smart_bench_macro::contract!("./contracts/solidity/wasm/Computation.contract");
     smart_bench_macro::contract!("./contracts/solidity/wasm/Storage.contract");
 }
 
+/// Ink contracts generated API
 mod ink_contracts {
     smart_bench_macro::contract!("./contracts/ink/erc20.contract");
     smart_bench_macro::contract!("./contracts/ink/flipper.contract");
@@ -116,11 +118,11 @@ pub async fn prepare_solidity_contracts(
                     )
                     .await?;
             }
-            /*Contract::Erc721 => {
+            Contract::Erc721 => {
                 let erc721_new = BenchERC721::constructors::new();
                 let mut token_id = 0;
                 let erc721_mint = || {
-                    let mint = BenchERC721::messages::mint(token_id);
+                    let mint = BenchERC721::messages::mint(token_id.into());
                     token_id += 1;
                     mint.into()
                 };
@@ -130,11 +132,11 @@ pub async fn prepare_solidity_contracts(
             }
             Contract::Erc1155 => {
                 let erc1155_new = BenchERC1155::constructors::new();
-                let erc1155_create = || BenchERC1155::messages::create(1_000_000).into();
+                let erc1155_create = || BenchERC1155::messages::create(1_000_000.into()).into();
                 runner
                     .prepare_contract(path, "BenchERC1155", erc1155_new, cli.instance_count, erc1155_create)
                     .await?;
-            }*/
+            }
             Contract::OddProduct => {
                 let computation_new = Computation::constructors::new();
                 let computation_odd_product = || Computation::messages::oddProduct(1000).into();
@@ -201,7 +203,6 @@ pub async fn prepare_solidity_contracts(
                     )
                     .await?;
             }
-            _ => panic!("Not supported contract type"),
         }
     }
     Ok(())
