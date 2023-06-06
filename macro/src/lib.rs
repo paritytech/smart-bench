@@ -189,3 +189,88 @@ fn hex_lits(selector: &ink_metadata::Selector) -> [syn::LitInt; 4] {
         .collect::<Vec<_>>();
     hex_lits.try_into().expect("Invalid selector bytes length")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ink_metadata::{
+        layout::{Layout, StructLayout},
+        ConstructorSpec, ContractSpec, MessageParamSpec, MessageSpec, ReturnTypeSpec, TypeSpec,
+    };
+    use ink_primitives::AccountId;
+    use scale_info::{IntoPortable, Registry};
+
+    // Helper for creating a InkProject with custom MessageSpec
+    fn ink_project_with_custom_message(message: MessageSpec) -> InkProject {
+        let mut registry = Registry::default();
+        let spec = ContractSpec::new()
+            .constructors([ConstructorSpec::from_label("New")
+                .selector(Default::default())
+                .payable(true)
+                .args(Vec::new())
+                .docs(Vec::new())
+                .returns(ReturnTypeSpec::new(None))
+                .done()])
+            .messages([message])
+            .docs(Vec::new())
+            .done()
+            .into_portable(&mut registry);
+        let layout =
+            Layout::Struct(StructLayout::new("Struct", Vec::new())).into_portable(&mut registry);
+        InkProject::new_portable(layout, spec, registry.into())
+    }
+
+    #[test]
+    fn test_contract_mod_with_ink_types_success() {
+        let message = MessageSpec::from_label("set")
+            .selector(Default::default())
+            .mutates(false)
+            .payable(true)
+            .args(vec![MessageParamSpec::new("to")
+                .of_type(TypeSpec::with_name_segs::<AccountId, _>(
+                    ::core::iter::Iterator::map(
+                        ::core::iter::IntoIterator::into_iter(["AccountId"]),
+                        ::core::convert::AsRef::as_ref,
+                    ),
+                ))
+                .done()])
+            .returns(ReturnTypeSpec::new(None))
+            .docs(Vec::new())
+            .done();
+        let metadata = ink_project_with_custom_message(message);
+        let expected_output = quote::quote!(
+            pub mod Test {
+                pub mod contract_types {
+                    use super::contract_types;
+                }
+                pub mod constructors {
+                    use super::contract_types;
+                    #[derive(:: codec :: Encode)]
+                    pub struct New {}
+                    impl crate::InkConstructor for New {
+                        const SELECTOR: [u8; 4] = [0x00_u8, 0x00_u8, 0x00_u8, 0x00_u8];
+                    }
+                    pub fn New() -> New {
+                        New {}
+                    }
+                }
+                pub mod messages {
+                    use super::contract_types;
+                    #[derive(:: codec :: Encode)]
+                    pub struct Set {
+                        to: ::subxt::utils::AccountId32,
+                    }
+                    impl crate::InkMessage for Set {
+                        const SELECTOR: [u8; 4] = [0x00_u8, 0x00_u8, 0x00_u8, 0x00_u8];
+                    }
+                    pub fn set(to: ::subxt::utils::AccountId32) -> Set {
+                        Set { to }
+                    }
+                }
+            }
+        );
+
+        let generated_output = generate_contract_mod("Test".to_string(), metadata).to_string();
+        assert_eq!(generated_output, expected_output.to_string())
+    }
+}
