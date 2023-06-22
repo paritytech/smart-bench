@@ -110,7 +110,7 @@ impl BenchRunner {
             dry_run.gas_required
         };
 
-        let mut block_sub = self.api.client.blocks().subscribe_finalized().await?;
+        let mut block_sub = self.api.client.blocks().subscribe_best().await?;
 
         let mut accounts = Vec::new();
         for i in unique_code_salt..unique_code_salt + count as u128 {
