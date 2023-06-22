@@ -17,6 +17,7 @@ Usage: ${SCRIPT_NAME} OPTION -- ARGUMENTS_TO_SMART_BENCH
 OPTION
  -b, --binaries-dir   Path to directory that contains all required binaries (eg. polkadot, zombienet, moonbeam)
                       List of required binaries depends on config provided
+ -t, --contracts-dir  Path to directory that contains compiled smart contracts
  -c, --config         Path to zombienet config file
  -h, --help           Print this help message
 
@@ -24,7 +25,8 @@ ARGUMENTS_TO_SMART_BENCH
   smart-bench specific parameters (NOTE: do not provide --url param as it is managed by this tool)
 
 EXAMPLES
-${SCRIPT_NAME} --binaries-dir="bin/" --config="configs/network_native_moonbeam.toml" -- evm erc20 --instance-count 1 --call-count 10
+${SCRIPT_NAME} --binaries-dir="bin/" --contracts-dir="../contracts" --config="configs/network_native_moonbeam.toml" -- evm erc20 --instance-count 1 --call-count 10
+${SCRIPT_NAME} --binaries-dir="bin/" --contracts-dir="../contracts" --config="configs/network_native_ink.toml" -- ink-wasm erc20 --instance-count 1 --call-count 10
 
 
 EOF
@@ -43,6 +45,10 @@ function parse_args {
          echoerr "BINARIES_DIR path=[${BINARIES_DIR}] doesn't exist"
          exit 2
       }
+      CONTRACTS_DIR=$(realpath -qe "${CONTRACTS_DIR}") || {
+         echoerr "CONTRACTS_DIR path=[${CONTRACTS_DIR}] doesn't exist"
+         exit 2
+      }
       CONFIG=$(realpath -qe "${CONFIG}") || {
          echoerr "CONFIG path=[${CONFIG}] doesn't exist"
          exit 2
@@ -50,7 +56,7 @@ function parse_args {
   }
 
   # shellcheck disable=SC2214
-  while getopts b:c:h:-: OPT; do
+  while getopts b:c:t:h:-: OPT; do
     # support long options: https://stackoverflow.com/a/28466267/519360
     if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
       OPT="${OPTARG%%=*}"       # extract long option name
@@ -59,6 +65,7 @@ function parse_args {
     fi
     case "$OPT" in
       b | binaries-dir)         needs_arg; BINARIES_DIR="${OPTARG}";;
+      t | contracts-dir)        needs_arg; CONTRACTS_DIR="${OPTARG}";;
       c | config)               needs_arg; CONFIG="${OPTARG}";;
       h | help )                usage; exit 0;;
       ??* )                     echoerr "Illegal option --$OPT"; exit 2;;  # bad long option
@@ -80,7 +87,10 @@ parse_args "$@"
 
 container_dir="/usr/local/"
 container_zombienet_config="${container_dir}/etc/config.toml"
+container_contracts="${container_dir}/etc/contracts"
+
 volume_args="-v ${CONFIG}:${container_zombienet_config}"
+volume_args="${volume_args} -v ${CONTRACTS_DIR}:${container_contracts}"
 for file in "${BINARIES_DIR}"/*; do
     volume_args="${volume_args} -v ${file}:${container_dir}/bin/$(basename "${file}")"
 done
@@ -90,4 +100,5 @@ docker run --rm -it \
   ${volume_args} \
   "${IMAGE}" \
   "${container_zombienet_config}" \
+  "${container_contracts}" \
   "${OTHERARGS[@]}"

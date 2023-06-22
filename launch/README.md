@@ -13,6 +13,7 @@ Usage: ./run.sh OPTION -- ARGUMENTS_TO_SMART_BENCH
 OPTION
  -b, --binaries-dir   Path to directory that contains all required binaries (eg. polkadot, zombienet, moonbeam)
                       List of required binaries depends on config provided
+ -t, --contracts-dir  Path to directory that contains compiled smart contracts
  -c, --config         Path to zombienet config file
  -h, --help           Print this help message
 
@@ -20,5 +21,6 @@ ARGUMENTS_TO_SMART_BENCH
   smart-bench specific parameters (NOTE: do not provide --url param as it is managed by this tool)
 
 EXAMPLES
-./run.sh --binaries-dir="bin/" --config="configs/network_native_moonbeam.toml" -- evm erc20 --instance-count 1 --call-count 10
+./run.sh --binaries-dir="bin/" --contracts-dir="../contracts" --config="configs/network_native_moonbeam.toml" -- evm erc20 --instance-count 1 --call-count 10
+./run.sh --binaries-dir="bin/" --contracts-dir="../contracts" --config="configs/network_native_ink.toml" -- ink-wasm erc20 --instance-count 1 --call-count 10
 ```

@@ -6,7 +6,8 @@ exec 2>&3
 exec > /dev/null
 
 ZOMBIENET_CONFIG=$(realpath -s "$1")
-shift 1
+CONTRACTS_DIR=$(realpath -s "$2")
+shift 2
 
 parachain_ws_port=$(grep ws_port "${ZOMBIENET_CONFIG}" | tr -d '[:space:]' | cut -f2 -d'=')
 zombienet -p native spawn "${ZOMBIENET_CONFIG}" &

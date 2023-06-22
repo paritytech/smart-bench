@@ -18,9 +18,7 @@ RUN apt-get update \
         && apt-get clean \
         && rm -rf /var/lib/apt/lists/*
 
-ENV CONTRACTS_DIR /smart-bench/contracts
 COPY --from=builder /smart-bench/target/release/smart-bench /usr/local/bin
-COPY contracts $CONTRACTS_DIR
 COPY $DOCKERFILE_DIR/entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT [ "./entrypoint.sh" ]
