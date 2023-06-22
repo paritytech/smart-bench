@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::xts::{
     api::{
         self,
@@ -117,10 +119,10 @@ impl MoonbeamRunner {
             .await
             .note("Error estimating gas")?;
 
-        let mut tx_hashes = Vec::new();
+        let mut tx_hashes = HashSet::new();
         for _ in 0..instance_count {
             let tx_hash = self.api.deploy(data, &self.signer, nonce, gas).await?;
-            tx_hashes.push(tx_hash);
+            tx_hashes.insert(tx_hash);
             nonce += 1.into();
         }
 
@@ -137,9 +139,7 @@ impl MoonbeamRunner {
                     // a block related to previous contract's deployment
                     //
                     // make sure we are examining transactions related to current deployment and skip otherwise
-                    if !tx_hashes
-                        .iter()
-                        .any(|x| sp_core::H256::from_slice(x.as_ref()) == tx)
+                    if !tx_hashes.contains(&tx)
                     {
                         continue;
                     };
