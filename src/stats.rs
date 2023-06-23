@@ -1,42 +1,41 @@
-use futures::{future, TryStream, TryStreamExt};
-use sp_runtime::traits::{BlakeTwo256, Hash as _};
+use futures::{future, Future, TryStream, TryStreamExt};
+
 use std::collections::HashSet;
-use subxt::{Error, OnlineClient, PolkadotConfig as DefaultConfig};
 
 pub struct BlockInfo {
     pub stats: blockstats::BlockStats,
-    pub extrinsics: Vec<sp_core::H256>,
+    // list of hashes to look for
+    pub hashes: Vec<sp_core::H256>,
 }
 
 /// Subscribes to block stats, printing the output to the console. Completes once *all* hashes in
 /// `remaining_hashes` have been received.
-pub fn collect_block_stats<'a>(
-    client: &'a OnlineClient<DefaultConfig>,
-    block_stats: impl TryStream<Ok = blockstats::BlockStats, Error = Error> + 'a,
+pub fn collect_block_stats<F, Fut>(
+    block_stats: impl TryStream<Ok = blockstats::BlockStats, Error = subxt::Error>,
     mut remaining_hashes: HashSet<sp_core::H256>,
-) -> impl TryStream<Ok = BlockInfo, Error = color_eyre::Report> + '_ {
+    get_hashes_in_block: F,
+) -> impl TryStream<Ok = BlockInfo, Error = color_eyre::Report>
+where
+    F: Fn(sp_core::H256) -> Fut + Copy,
+    Fut: Future<Output = color_eyre::Result<Vec<sp_core::H256>>>,
+{
     block_stats
         .map_err(|e| color_eyre::eyre::eyre!("Block stats subscription error: {e:?}"))
-        .and_then(|stats| {
+        .and_then(move |stats| {
             tracing::debug!("{stats:?}");
-            let client = client.clone();
             async move {
-                let block = client.rpc().block(Some(stats.hash)).await?;
-                let extrinsics = block
-                    .unwrap_or_else(|| panic!("block {} not found", stats.hash))
-                    .block
-                    .extrinsics
-                    .iter()
-                    .map(|e| BlakeTwo256::hash_of(&e.0))
-                    .collect();
-                Ok(BlockInfo { extrinsics, stats })
+                let hashes = get_hashes_in_block(stats.hash).await?;
+                Ok(BlockInfo { hashes, stats })
             }
         })
         .try_take_while(move |block_info| {
-            for xt in &block_info.extrinsics {
-                remaining_hashes.remove(xt);
+            if !remaining_hashes.is_empty() {
+                for xt in &block_info.hashes {
+                    remaining_hashes.remove(xt);
+                }
+                future::ready(Ok(true))
+            } else {
+                future::ready(Ok(false))
             }
-            let some_remaining_txs = !remaining_hashes.is_empty();
-            future::ready(Ok(some_remaining_txs))
         })
 }

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::xts::{
     api::{
         self,
@@ -11,6 +13,7 @@ use color_eyre::{eyre, Section as _};
 use futures::{StreamExt, TryStream};
 use impl_serde::serialize::from_hex;
 use secp256k1::SecretKey;
+use subxt::{OnlineClient, PolkadotConfig as DefaultConfig};
 use web3::{
     ethabi::Token,
     signing::{Key, SecretKeyRef},
@@ -116,10 +119,10 @@ impl MoonbeamRunner {
             .await
             .note("Error estimating gas")?;
 
-        let mut tx_hashes = Vec::new();
+        let mut tx_hashes = HashSet::new();
         for _ in 0..instance_count {
             let tx_hash = self.api.deploy(data, &self.signer, nonce, gas).await?;
-            tx_hashes.push(tx_hash);
+            tx_hashes.insert(tx_hash);
             nonce += 1.into();
         }
 
@@ -132,7 +135,15 @@ impl MoonbeamRunner {
                 if let Some(Executed(from, contract_address, tx, exit_reason)) =
                     event.as_event::<Executed>()?
                 {
-                    tracing::debug!("Contract {} executed", contract_address.0);
+                    // When deploying multiple contracts (--instance-count >1), it may happen that here we are processing
+                    // a block related to previous contract's deployment
+                    //
+                    // make sure we are examining transactions related to current deployment and skip otherwise
+                    if !tx_hashes.contains(&tx)
+                    {
+                        continue;
+                    };
+
                     if from.as_ref() == Key::address(&SecretKeyRef::from(&self.signer)).as_ref() {
                         match exit_reason {
                             ExitReason::Succeed(ExitSucceed::Returned) => {
@@ -170,6 +181,26 @@ impl MoonbeamRunner {
             instance_count,
             addresses.len()
         ))
+    }
+
+    /// eth_sendRawTransaction rpc response contains ethereum transaction
+    /// hashes instead of extrinsics hashes
+    /// 
+    /// for given block, ethereum transaction hash can be retrieved
+    /// from events of type ethereum.Executed
+    async fn get_eth_hashes_from_events_in_block(
+        client: OnlineClient<DefaultConfig>,
+        block_hash: sp_core::H256,
+    ) -> color_eyre::Result<Vec<sp_core::H256>> {
+        let events = client.events().at(block_hash).await?;
+        let mut tx_hashes = Vec::new();
+        for event in events.iter() {
+            let event = event?;
+            if let Some(Executed(_, _, tx, _)) = event.as_event::<Executed>()? {
+                tx_hashes.push(tx);
+            }
+        }
+        Ok(tx_hashes)
     }
 
     /// Call each contract instance `call_count` times. Wait for all txs to be included in a block
@@ -223,8 +254,10 @@ impl MoonbeamRunner {
             .map(|hash| sp_core::H256::from_slice(hash.as_ref()))
             .collect();
 
-        let wait_for_txs =
-            crate::collect_block_stats(&self.api.client, block_stats, remaining_hashes);
+        let wait_for_txs = crate::collect_block_stats(block_stats, remaining_hashes, |hash| {
+            let client = self.api.client.clone();
+            Self::get_eth_hashes_from_events_in_block(client, hash)
+        });
 
         Ok(wait_for_txs)
     }
