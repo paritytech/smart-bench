@@ -132,14 +132,18 @@ impl MoonbeamRunner {
             let events = block.events().await?;
             for event in events.iter() {
                 let event = event?;
-                if let Some(Executed(from, contract_address, tx, exit_reason)) =
-                    event.as_event::<Executed>()?
+                if let Some(Executed {
+                    from,
+                    to,
+                    transaction_hash,
+                    exit_reason,
+                }) = event.as_event::<Executed>()?
                 {
                     // When deploying multiple contracts (--instance-count >1), it may happen that here we are processing
                     // a block related to previous contract's deployment
                     //
                     // make sure we are examining transactions related to current deployment and skip otherwise
-                    if !tx_hashes.contains(&tx)
+                    if !tx_hashes.contains(&transaction_hash)
                     {
                         continue;
                     };
@@ -147,19 +151,23 @@ impl MoonbeamRunner {
                     if from.as_ref() == Key::address(&SecretKeyRef::from(&self.signer)).as_ref() {
                         match exit_reason {
                             ExitReason::Succeed(ExitSucceed::Returned) => {
-                                tracing::debug!("Deployed contract {}", contract_address.0);
-                                addresses.push(Address::from_slice(contract_address.as_ref()));
+                                tracing::debug!("Deployed contract {}", to.0);
+                                addresses.push(Address::from_slice(to.as_ref()));
                                 if addresses.len() == instance_count as usize {
                                     return Ok(addresses);
                                 }
                             }
                             ExitReason::Error(error) => {
-                                return Err(eyre::eyre!("Error executing tx {:?}: {:?}", tx, error))
+                                return Err(eyre::eyre!(
+                                    "Error executing tx {:?}: {:?}",
+                                    transaction_hash,
+                                    error
+                                ))
                             }
                             _ => {
                                 return Err(eyre::eyre!(
                                     "tx {:?}: exit_reason {:?}",
-                                    tx,
+                                    transaction_hash,
                                     exit_reason
                                 ))
                             }
@@ -196,8 +204,8 @@ impl MoonbeamRunner {
         let mut tx_hashes = Vec::new();
         for event in events.iter() {
             let event = event?;
-            if let Some(Executed(_, _, tx, _)) = event.as_event::<Executed>()? {
-                tx_hashes.push(tx);
+            if let Some(Executed{transaction_hash, ..}) = event.as_event::<Executed>()? {
+                tx_hashes.push(transaction_hash);
             }
         }
         Ok(tx_hashes)
