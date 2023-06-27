@@ -69,9 +69,9 @@ The above will create 10 instances of each of the `erc20` and `erc1155` contract
 ```
 One row per block, showing the % usage of the PoV size and the block weight, as well as the number of extrinsics executed per block. Note the Weight % is expected to max out at 75%, since that is the ratio of the total block weight assigned to "normal" i.e. the user submitted/non-operational class of extrinsics.
 
-#### Wasm contracts
+#### Ink!/Wasm contracts
 
-Currently the Wasm contracts are the `contracts/*.contract` files, some of which have been compiled from https://github.com/paritytech/ink/tree/master/examples and committed to this repository. So in order to modify these they can compiled locally and copied over to the `contracts` dir. There are also two locally defined custom contracts in the `contracts` folder: `computation` and `storage` for testing pure computation and storage operations.
+Currently the Wasm contracts are the `contracts/ink/*.contract` files, some of which have been compiled from https://github.com/paritytech/ink/tree/master/examples and committed to this repository. So in order to modify these they can compiled locally and copied over to the `contracts/ink` dir. There are also two locally defined custom contracts in the `contracts/ink` folder: `computation` and `storage` for testing pure computation and storage operations.
 
 #### Solidity/EVM contracts
 
@@ -83,6 +83,17 @@ Before running the benchmarks against a `pallet-evm` enabled network, the solidi
 Now make sure the target EVM enabled network is up and running as specified above, and this time change the value of the first argument to `evm`:
 
 `cargo run --release -- evm erc20 erc1155 --instance-count 10 --call-count 20 --url ws://localhost:9988`
+
+#### Solang - Solidity/Wasm contracts
+
+Before running benchmark against a `pallet-contract` enabled network, Solang contract needs to be compiled.
+The easiest way to compile the contracts is to do this having Solidity/EVM compiled first.
+After this the `openzeppelin_solang.patch` needs to be applied:
+`cd contracts/solidity/node_modules/@openzeppelin && patch -p1 < ../../openzeppelin_solang.patch`
+Finally a Solang contract can be compiled using command:
+`cd contracts/solidity/wasm/ && solang compile --target substrate --importmap @openzeppelin=../node_modules/@openzeppelin/   ./../contracts/BenchERC1155.sol`
+Currently [`solang`](https://github.com/hyperledger/solang) compiler needs to be built from sources including [`U256 type fix commit`](https://github.com/smiasojed/solang/commit/4396f9c94fd07b230aff285b8fa34ab3a199d762)
+
 
 ### Integration tests
 
