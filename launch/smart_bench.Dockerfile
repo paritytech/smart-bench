@@ -19,6 +19,14 @@ RUN apt-get update \
         && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /smart-bench/target/release/smart-bench /usr/local/bin
+
+ENV CONTRACTS_DIR /usr/local/etc/contracts
+ENV ZOMBIENET_CONFIGS /usr/local/etc/configs
+ENV BINARIES_DIR /usr/local/bin
+
+COPY $DOCKERFILE_DIR/bin/* $BINARIES_DIR/
+COPY $DOCKERFILE_DIR/../contracts $CONTRACTS_DIR
+COPY $DOCKERFILE_DIR/configs/* $ZOMBIENET_CONFIGS/
 COPY $DOCKERFILE_DIR/entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT [ "./entrypoint.sh" ]
