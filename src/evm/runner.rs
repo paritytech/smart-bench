@@ -111,7 +111,7 @@ impl MoonbeamRunner {
         instance_count: u32,
     ) -> color_eyre::Result<Vec<Address>> {
         let mut nonce = self.api.fetch_nonce(self.address).await?;
-        let mut block_sub = self.api.client().blocks().subscribe_finalized().await?;
+        let mut block_sub = self.api.client().blocks().subscribe_best().await?;
 
         let gas = self
             .api
@@ -139,12 +139,12 @@ impl MoonbeamRunner {
                     exit_reason,
                 }) = event.as_event::<Executed>()?
                 {
+                    tracing::debug!("still expecting {:?}, now got {:?}", tx_hashes, transaction_hash);
                     // When deploying multiple contracts (--instance-count >1), it may happen that here we are processing
                     // a block related to previous contract's deployment
                     //
                     // make sure we are examining transactions related to current deployment and skip otherwise
-                    if !tx_hashes.contains(&transaction_hash)
-                    {
+                    if !tx_hashes.remove(&transaction_hash) {
                         continue;
                     };
 
@@ -193,7 +193,7 @@ impl MoonbeamRunner {
 
     /// eth_sendRawTransaction rpc response contains ethereum transaction
     /// hashes instead of extrinsics hashes
-    /// 
+    ///
     /// for given block, ethereum transaction hash can be retrieved
     /// from events of type ethereum.Executed
     async fn get_eth_hashes_from_events_in_block(
@@ -204,7 +204,10 @@ impl MoonbeamRunner {
         let mut tx_hashes = Vec::new();
         for event in events.iter() {
             let event = event?;
-            if let Some(Executed{transaction_hash, ..}) = event.as_event::<Executed>()? {
+            if let Some(Executed {
+                transaction_hash, ..
+            }) = event.as_event::<Executed>()?
+            {
                 tx_hashes.push(transaction_hash);
             }
         }
