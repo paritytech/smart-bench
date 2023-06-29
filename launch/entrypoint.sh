@@ -5,11 +5,16 @@ exec 3>&1
 exec 2>&3
 exec > /dev/null
 
-ZOMBIENET_CONFIG=$(realpath -s "$1")
-shift 1
+if echo "${@}" | grep -q evm; then
+  zombienet_config=$(realpath -s "${CONFIGS_DIR}/network_native_moonbeam.toml")
+elif echo "${@}" | grep -q wasm; then
+  zombienet_config=$(realpath -s "${CONFIGS_DIR}/network_native_wasm.toml")
+else
+  exit 1
+fi
 
-parachain_ws_port=$(grep ws_port "${ZOMBIENET_CONFIG}" | tr -d '[:space:]' | cut -f2 -d'=')
-zombienet -p native spawn "${ZOMBIENET_CONFIG}" &
+parachain_ws_port=$(grep ws_port "${zombienet_config}" | tr -d '[:space:]' | cut -f2 -d'=')
+PATH="${BINARIES_DIR}:${PATH}" zombienet -p native spawn "${zombienet_config}" &
 zombienet_pid=$!
 
 wait_for_parachain_node() {
@@ -24,4 +29,4 @@ wait_for_parachain_node() {
 }
 wait_for_parachain_node "${zombienet_pid}" "${parachain_ws_port}"
 
-CARGO_MANIFEST_DIR=$(dirname "${CONTRACTS_DIR}") smart-bench "${@}" --url "ws://localhost:${parachain_ws_port}" 1>&3
+PATH="${BINARIES_DIR}:${PATH}" CARGO_MANIFEST_DIR=$(dirname "${CONTRACTS_DIR}") smart-bench "${@}" --url "ws://localhost:${parachain_ws_port}" 1>&3

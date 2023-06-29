@@ -20,13 +20,13 @@ RUN apt-get update \
 
 COPY --from=builder /smart-bench/target/release/smart-bench /usr/local/bin
 
-ENV CONTRACTS_DIR /usr/local/etc/contracts
-ENV ZOMBIENET_CONFIGS /usr/local/etc/configs
-ENV BINARIES_DIR /usr/local/bin
+ENV CONTRACTS_DIR /usr/local/smart-bench/contracts
+ENV CONFIGS_DIR /usr/local/smart-bench/config
+ENV BINARIES_DIR /usr/local/smart-bench/bin
 
 COPY $DOCKERFILE_DIR/bin/* $BINARIES_DIR/
 COPY $DOCKERFILE_DIR/../contracts $CONTRACTS_DIR
-COPY $DOCKERFILE_DIR/configs/* $ZOMBIENET_CONFIGS/
+COPY $DOCKERFILE_DIR/configs/* $CONFIGS_DIR/
 COPY $DOCKERFILE_DIR/entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT [ "./entrypoint.sh" ]

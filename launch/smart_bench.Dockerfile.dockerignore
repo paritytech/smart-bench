@@ -7,5 +7,4 @@ Dockerfile
 .dockerignore
 .local
 .env*
-launch/configs
 launch/run.sh

@@ -3,10 +3,9 @@ set -euo pipefail
 
 SCRIPT_NAME="${BASH_SOURCE[0]}"
 SCRIPT_PATH=$(dirname "$(realpath -s "${BASH_SOURCE[0]}")")
-THIS_GIT_REPOSITORY_ROOT=$(git rev-parse --show-toplevel)
-VERSION=$(grep "^version" "${THIS_GIT_REPOSITORY_ROOT}/Cargo.toml" | grep -Eo "([0-9\.]+)")
-NAME=$(grep "^name" "${THIS_GIT_REPOSITORY_ROOT}/Cargo.toml" | tr -d ' ' | tr -d '"' | cut -f2 -d'=')
-IMAGE="${NAME}:v${VERSION}"
+VERSION=${VERSION:-latest}
+NAME=smart-bench
+IMAGE="${NAME}:${VERSION}"
 BINARIES_DIR=""
 CONTRACTS_DIR=""
 CONFIGS_DIR=""
@@ -18,20 +17,22 @@ function usage {
 Usage: ${SCRIPT_NAME} OPTION -- ARGUMENTS_TO_SMART_BENCH
 
 OPTION
- -c, --config         Path to zombienet config file
  -b, --binaries-dir   (Optional) Path to directory that contains binaries to mount into the container (eg. polkadot, zombienet, moonbeam)
                       List of binaries being used depends on config provided. Default set of binaries is available within the image
  -t, --contracts-dir  (Optional) Path to directory that contains compiled smart contracts. Default set of compiled smart contracts is available within the image
- -u, --configs-dir  (Optional) Path to directory that contains zombienet config files. Default set of configs files is available within the image
+ -u, --configs-dir    (Optional) Path to directory that contains zombienet config files. Default set of configs files is available within the image
  -h, --help           Print this help message
 
 ARGUMENTS_TO_SMART_BENCH
   smart-bench specific parameters (NOTE: do not provide --url param as it is managed by this tool)
 
 EXAMPLES
-${SCRIPT_NAME} --binaries-dir="bin/" --contracts-dir="../contracts" --config="configs/network_native_moonbeam.toml" -- evm erc20 --instance-count 1 --call-count 10
-${SCRIPT_NAME} --binaries-dir="bin/" --contracts-dir="../contracts" --config="configs/network_native_ink.toml" -- ink-wasm erc20 --instance-count 1 --call-count 10
-
+${SCRIPT_NAME} -- evm erc20 --instance-count 1 --call-count 10
+${SCRIPT_NAME} -- ink-wasm erc20 --instance-count 1 --call-count 10
+${SCRIPT_NAME} -- sol-wasm erc20 --instance-count 1 --call-count 10
+${SCRIPT_NAME} --binaries-dir=./bin -- sol-wasm erc20 --instance-count 1 --call-count 10
+${SCRIPT_NAME} --contracts-dir=../contracts -- sol-wasm erc20 --instance-count 1 --call-count 10
+${SCRIPT_NAME} --configs-dir=./configs -- sol-wasm erc20 --instance-count 1 --call-count 10
 
 EOF
 }
@@ -68,7 +69,6 @@ function parse_args {
       OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
     fi
     case "$OPT" in
-      c | config)               needs_arg; CONFIG="${OPTARG}";;
       b | binaries-dir)         BINARIES_DIR="${OPTARG}";;
       t | contracts-dir)        CONTRACTS_DIR="${OPTARG}";;
       u | configs-dir)          CONFIGS_DIR="${OPTARG}";;
@@ -84,22 +84,14 @@ function parse_args {
 
 parse_args "$@"
 
-(cd "${THIS_GIT_REPOSITORY_ROOT}" &&
-   DOCKER_BUILDKIT=1 docker build \
-     --build-arg DOCKERFILE_DIR="$(realpath --relative-to="${THIS_GIT_REPOSITORY_ROOT}" "${SCRIPT_PATH}")" \
-     -f "${SCRIPT_PATH}/smart_bench.Dockerfile" -t "${IMAGE}" .
-)
+container_dir="/usr/local"
+container_zombienet_configs="${container_dir}/smart-bench/config"
+container_contracts="${container_dir}/smart-bench/contract"
+container_binaries="${container_dir}/smart-bench/bin"
 
-container_dir="/usr/local/"
-container_zombienet_configs="${container_dir}/etc/configs"
-container_contracts="${container_dir}/etc/contracts"
-
-
-
+volume_args=""
 if [ -n "${CONFIGS_DIR}" ]; then
-  for file in "${CONFIGS_DIR}"/*; do
-    volume_args="${volume_args} -v ${file}:${container_zombienet_configs}/$(basename "${file}")"
-  done
+  volume_args="${volume_args} -v ${CONFIGS_DIR}:${container_zombienet_configs}"
 fi
 
 if [ -n "${CONTRACTS_DIR}" ]; then
@@ -107,14 +99,12 @@ if [ -n "${CONTRACTS_DIR}" ]; then
 fi
 
 if [ -n "${BINARIES_DIR}" ]; then
-  for file in "${BINARIES_DIR}"/*; do
-    volume_args="${volume_args} -v ${file}:${container_dir}/bin/$(basename "${file}")"
-  done
+  volume_args="${volume_args} -v ${BINARIES_DIR}:${container_binaries}"
 fi
 
 # shellcheck disable=SC2086
-docker run --rm -it \
+(set -x; docker run --rm -it --init \
   ${volume_args} \
   "${IMAGE}" \
-  "${container_zombienet_config}" \
   "${OTHERARGS[@]}"
+)
