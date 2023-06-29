@@ -9,12 +9,17 @@ The tools within this directory are also meant to be used by CI pipelines
 ## Usage
 ### Build
 
+downloads dependencies
+```
+./downloads-bins.sh
+```
+
 builds smart-bench:latest image
 ```
 ./build.sh
 ```
 
-builds using manual VERSION, eg. smart-bench:1.0 image
+or build using manual VERSION, eg. smart-bench:1.0 image
 ```
 VERSION=1.0 ./build.sh
 ```
@@ -56,9 +61,9 @@ docker run --rm -it --init -v $PWD/bin:/usr/local/smart-bench/bin smart-bench:la
 ```
 
 Override contracts
-NOTE: please note that smart-bench expects some particular file hierarchy for contracts, you need to re-create such hierarchy to override files within container
+NOTE: please note that smart-bench expects some particular files hierarchy for contracts directory, you need to re-create such hierarchy to override files within container
 ```
-docker run --rm -it --init -v $PWD/contracts:/usr/local/smart-bench/contract smart-bench:latest sol-wasm erc20 --instance-count 1 --call-count 10
+docker run --rm -it --init -v $PWD/../contracts:/usr/local/smart-bench/contracts smart-bench:latest sol-wasm erc20 --instance-count 1 --call-count 10
 ```
 
 Override configs

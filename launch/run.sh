@@ -86,7 +86,7 @@ parse_args "$@"
 
 container_dir="/usr/local"
 container_zombienet_configs="${container_dir}/smart-bench/config"
-container_contracts="${container_dir}/smart-bench/contract"
+container_contracts="${container_dir}/smart-bench/contracts"
 container_binaries="${container_dir}/smart-bench/bin"
 
 volume_args=""
