@@ -84,7 +84,10 @@ Now make sure the target EVM enabled network is up and running as specified abov
 
 `cargo run --release -- evm erc20 erc1155 --instance-count 10 --call-count 20 --url ws://localhost:9988`
 
+### Integration tests
 
-
-
-
+Smart-bench contains integrations tests, which can be run using command `cargo test`.
+Before running tests, smart-bench needs to be build using `cargo build` command.
+Integration tests requires two types of nodes to be installed and available on `PATH`.
+- [`moonbeam`](https://github.com/PureStake/moonbeam/) with enabled [`dev RPC`](https://github.com/paritytech/substrate-contracts-node/blob/539cf0271090f406cb3337e4d97680a6a63bcd2f/node/src/rpc.rs#L60) for Solidity/EVM contracts
+- [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) for Ink! and Solang (Solidity/Wasm) contracts

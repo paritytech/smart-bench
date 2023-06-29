@@ -3,7 +3,9 @@ use crate::BlockInfo;
 use codec::Encode;
 use color_eyre::eyre;
 use futures::{StreamExt, TryStream};
+use sp_runtime::traits::{BlakeTwo256, Hash as _};
 use std::time::{SystemTime, UNIX_EPOCH};
+use subxt::{OnlineClient, PolkadotConfig as DefaultConfig};
 
 pub const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<Balance> = None;
 
@@ -108,7 +110,7 @@ impl BenchRunner {
             dry_run.gas_required
         };
 
-        let mut block_sub = self.api.client.blocks().subscribe_finalized().await?;
+        let mut block_sub = self.api.client.blocks().subscribe_best().await?;
 
         let mut accounts = Vec::new();
         for i in unique_code_salt..unique_code_salt + count as u128 {
@@ -158,6 +160,21 @@ impl BenchRunner {
             count,
             accounts.len()
         ))
+    }
+
+    async fn get_extrinsics_hashes_in_block(
+        client: OnlineClient<DefaultConfig>,
+        block_hash: sp_core::H256,
+    ) -> color_eyre::Result<Vec<sp_core::H256>> {
+        let block = client.rpc().block(Some(block_hash)).await?;
+        let hashes = block
+            .unwrap_or_else(|| panic!("block {} not found", block_hash))
+            .block
+            .extrinsics
+            .iter()
+            .map(|e| BlakeTwo256::hash_of(&e.0))
+            .collect();
+        Ok(hashes)
     }
 
     /// Call each contract instance `call_count` times. Wait for all txs to be included in a block
@@ -216,8 +233,10 @@ impl BenchRunner {
 
         let remaining_hashes: std::collections::HashSet<Hash> = tx_hashes.iter().cloned().collect();
 
-        let wait_for_txs =
-            crate::collect_block_stats(&self.api.client, block_stats, remaining_hashes);
+        let wait_for_txs = crate::collect_block_stats(block_stats, remaining_hashes, |hash| {
+            let client = self.api.client.clone();
+            Self::get_extrinsics_hashes_in_block(client, hash)
+        });
 
         Ok(wait_for_txs)
     }

@@ -1,4 +1,7 @@
 mod evm;
+#[cfg(test)]
+#[cfg(feature = "integration-tests")]
+mod integration_tests;
 mod stats;
 mod wasm;
 
