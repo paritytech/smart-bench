@@ -111,7 +111,7 @@ impl MoonbeamRunner {
         instance_count: u32,
     ) -> color_eyre::Result<Vec<Address>> {
         let mut nonce = self.api.fetch_nonce(self.address).await?;
-        let mut block_sub = self.api.client().blocks().subscribe_finalized().await?;
+        let mut block_sub = self.api.client().blocks().subscribe_best().await?;
 
         let gas = self
             .api
@@ -119,9 +119,14 @@ impl MoonbeamRunner {
             .await
             .note("Error estimating gas")?;
 
+        let gas_price = self.api.get_gas_price().await.note("Error getting gas")?;
+
         let mut tx_hashes = HashSet::new();
         for _ in 0..instance_count {
-            let tx_hash = self.api.deploy(data, &self.signer, nonce, gas).await?;
+            let tx_hash = self
+                .api
+                .deploy(data, &self.signer, nonce, gas, gas_price)
+                .await?;
             tx_hashes.insert(tx_hash);
             nonce += 1.into();
         }
@@ -143,8 +148,7 @@ impl MoonbeamRunner {
                     // a block related to previous contract's deployment
                     //
                     // make sure we are examining transactions related to current deployment and skip otherwise
-                    if !tx_hashes.contains(&transaction_hash)
-                    {
+                    if !tx_hashes.contains(&transaction_hash) {
                         continue;
                     };
 
@@ -204,7 +208,10 @@ impl MoonbeamRunner {
         let mut tx_hashes = Vec::new();
         for event in events.iter() {
             let event = event?;
-            if let Some(Executed{transaction_hash, ..}) = event.as_event::<Executed>()? {
+            if let Some(Executed {
+                transaction_hash, ..
+            }) = event.as_event::<Executed>()?
+            {
                 tx_hashes.push(transaction_hash);
             }
         }
@@ -227,6 +234,7 @@ impl MoonbeamRunner {
             .max()
             .ok_or_else(|| eyre::eyre!("No prepared contracts for benchmarking."))?;
         let mut nonce = self.api.fetch_nonce(self.address).await?;
+        let gas_price = self.api.get_gas_price().await.note("Error getting gas")?;
 
         for _ in 0..call_count {
             for i in 0..max_instance_count {
@@ -246,6 +254,7 @@ impl MoonbeamRunner {
                                 &self.signer,
                                 nonce,
                                 contract_call.gas_limit,
+                                gas_price,
                             )
                             .await?;
                         nonce += 1.into();
