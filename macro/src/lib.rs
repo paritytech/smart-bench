@@ -259,7 +259,7 @@ mod tests {
                     use super::contract_types;
                     #[derive(:: codec :: Encode)]
                     pub struct Set {
-                        to: ::subxt::utils::AccountId32,
+                        to: ::subxt::utils::AccountId32
                     }
                     impl crate::InkMessage for Set {
                         const SELECTOR: [u8; 4] = [0x00_u8, 0x00_u8, 0x00_u8, 0x00_u8];
