@@ -91,8 +91,8 @@ The easiest way to compile the contracts is to do this having Solidity/EVM compi
 After this the `openzeppelin_solang.patch` needs to be applied:
 `cd contracts/solidity/node_modules/@openzeppelin && patch -p1 < ../../openzeppelin_solang.patch`
 Finally a Solang contract can be compiled using command:
-`cd contracts/solidity/wasm/ && solang compile --target substrate --importmap @openzeppelin=../node_modules/@openzeppelin/   ./../contracts/BenchERC1155.sol`
-Currently [`solang`](https://github.com/hyperledger/solang) compiler needs to be built from sources including [`U256 type fix commit`](https://github.com/smiasojed/solang/commit/4396f9c94fd07b230aff285b8fa34ab3a199d762)
+`cd contracts/solidity/wasm/ && solang compile --target polkadot --importmap @openzeppelin=../node_modules/@openzeppelin/   ./../contracts/BenchERC1155.sol`
+Currently [`solang`](https://github.com/hyperledger/solang) compiler needs to be built from sources including [`U256 type fix commit`](https://github.com/smiasojed/solang/commit/467b25ab3d44884e643e3217ac16c56c5788dccc)
 
 
 ### Integration tests

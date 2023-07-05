@@ -40,13 +40,6 @@ fn generate_contract_mod(contract_name: String, metadata: InkProject) -> proc_ma
     type_substitutes
         .insert(
             syn::parse_quote!(ink_primitives::types::AccountId),
-            path_account.clone().try_into().unwrap(),
-        )
-        .expect("Error in type substitutions");
-
-    type_substitutes
-        .insert(
-            syn::parse_quote!(ink_env::types::AccountId),
             path_account.try_into().unwrap(),
         )
         .expect("Error in type substitutions");
@@ -150,8 +143,16 @@ fn generate_message_impl(
     let fn_ident = quote::format_ident!("{}", name);
     let (args, arg_names): (Vec<_>, Vec<_>) = args
         .iter()
-        .map(|(name, type_id)| {
-            let name = quote::format_ident!("{}", name);
+        .enumerate()
+        .map(|(i, (name, type_id))| {
+            // In Solidity, function arguments may not have names.
+            // If an argument without a name is included in the metadata, a name is generated for it
+            let name = if name.is_empty() {
+                format!("arg{i}")
+            } else {
+                name.to_string()
+            };
+            let name = quote::format_ident!("{}", name.as_str());
             let ty = type_gen.resolve_type_path(*type_id);
             (quote::quote!( #name: #ty ), name)
         })
