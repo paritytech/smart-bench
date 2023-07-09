@@ -3,8 +3,10 @@ FROM docker.io/paritytech/ci-linux:production as builder
 
 COPY . /smart-bench
 WORKDIR /smart-bench
-RUN cargo build --locked --release
-
+RUN cargo install --root /usr/local/ --locked --path . \
+	&& cargo clean \
+	&& rm -rf $CARGO_HOME/registry \
+	&& rm -rf $CARGO_HOME/git
 
 # Stage 2: smart-bench
 FROM docker.io/library/ubuntu:20.04
@@ -18,7 +20,7 @@ RUN apt-get update \
         && apt-get clean \
         && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /smart-bench/target/release/smart-bench /usr/local/bin
+COPY --from=builder /usr/local/bin/smart-bench /usr/local/bin
 
 ENV CONTRACTS_DIR /usr/local/smart-bench/contracts
 ENV CONFIGS_DIR /usr/local/smart-bench/config
