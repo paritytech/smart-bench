@@ -22,7 +22,6 @@ parity-wasm = "0.45"
 blockstats = { git = "https://github.com/paritytech/blockstats", branch = "master" }
 tracing = "0.1.34"
 tracing-subscriber = "0.3.11"
-primitive-types = { version = "0.12.1", features = ["fp-conversion"] }
 
 # ethereum
 sha3 = "0.10.8"
@@ -32,6 +31,7 @@ rlp = "0.5.2"
 secp256k1 = { version = "0.27.0", features = ["recovery"] }
 
 # Substrate
+primitive-types = "0.12.1"
 pallet-contracts-primitives = "23.0.0"
 sp-core = "20.0.0"
 sp-keyring = "23.0.0"
