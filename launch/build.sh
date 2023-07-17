@@ -8,6 +8,8 @@ VERSION=${VERSION:-latest}
 NAME=smart-bench
 IMAGE="${NAME}:${VERSION}"
 
+./download-bins.sh
+
 (cd "${THIS_GIT_REPOSITORY_ROOT}" &&
    DOCKER_BUILDKIT=1 docker build \
      --build-arg DOCKERFILE_DIR="$(realpath --relative-to="${THIS_GIT_REPOSITORY_ROOT}" "${SCRIPT_PATH}")" \
