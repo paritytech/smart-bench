@@ -48,13 +48,15 @@ impl MoonbeamApi {
             .map_err(Into::into)
     }
 
+    /// Estimate gas price for transaction
+    ///
+    /// In Moonbeam, the gas price is subject to change from block to block.
+    /// In smart-bench, contract deployment transactions are sent at once and spread over many blocks.
+    /// The same is for contract call extrinsic.
+    /// The gas price estimated at the beginning may not be valid for transactions processed in subsequent blocks.
+    /// Considering that the base fee can increase by a maximum of 12.5% per block if the target block size is exceeded,
+    /// the returned gas price is enlarged by 12.5%.
     pub async fn get_gas_price(&self) -> color_eyre::Result<U256> {
-        // In Moonbeam, the gas price is subject to change from block to block.
-        // In smart-bench, contract deployment transactions are sent at once and spread over many blocks.
-        // The same is for contract call extrinsic.
-        // The gas price estimated at the beginning may not be valid for transactions processed in subsequent blocks.
-        // Considering that the base fee can increase by a maximum of 12.5% per block if the target block size is exceeded,
-        // the returned gas price is enlarged by 12.5%.
         let gas_price = self.web3.eth().gas_price().await?.to_f64_lossy();
         Ok(U256::from_f64_lossy(gas_price * 1.125))
     }
