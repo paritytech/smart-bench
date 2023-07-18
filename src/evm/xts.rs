@@ -20,7 +20,6 @@ pub mod api {}
 pub struct MoonbeamApi {
     web3: Web3<ws::WebSocket>,
     pub client: OnlineClient<DefaultConfig>,
-    gas_price: U256,
     chain_id: U256,
 }
 
@@ -29,12 +28,10 @@ impl MoonbeamApi {
         let transport = ws::WebSocket::new(url).await?;
         let client = OnlineClient::from_url(url).await?;
         let web3 = Web3::new(transport);
-        let gas_price = web3.eth().gas_price().await?;
         let chain_id = web3.eth().chain_id().await?;
         Ok(Self {
             web3,
             client,
-            gas_price,
             chain_id,
         })
     }
@@ -49,6 +46,19 @@ impl MoonbeamApi {
             .transaction_count(address, None)
             .await
             .map_err(Into::into)
+    }
+
+    /// Estimate gas price for transaction
+    ///
+    /// In Moonbeam, the gas price is subject to change from block to block.
+    /// In smart-bench, contract deployment transactions are sent at once and spread over many blocks.
+    /// The same is for contract call extrinsic.
+    /// The gas price estimated at the beginning may not be valid for transactions processed in subsequent blocks.
+    /// Considering that the base fee can increase by a maximum of 12.5% per block if the target block size is exceeded,
+    /// the returned gas price is enlarged by 12.5%.
+    pub async fn get_gas_price(&self) -> color_eyre::Result<U256> {
+        let gas_price = self.web3.eth().gas_price().await?.to_f64_lossy();
+        Ok(U256::from_f64_lossy(gas_price * 1.125))
     }
 
     pub async fn estimate_gas(
@@ -82,8 +92,9 @@ impl MoonbeamApi {
         signer: impl Key,
         nonce: U256,
         gas: U256,
+        gas_price: U256,
     ) -> color_eyre::Result<H256> {
-        self.sign_and_submit_tx(data, signer, nonce, None, gas)
+        self.sign_and_submit_tx(data, signer, nonce, None, gas, gas_price)
             .await
     }
 
@@ -94,8 +105,9 @@ impl MoonbeamApi {
         signer: impl Key,
         nonce: U256,
         gas: U256,
+        gas_price: U256,
     ) -> color_eyre::Result<H256> {
-        self.sign_and_submit_tx(data, signer, nonce, Some(contract), gas)
+        self.sign_and_submit_tx(data, signer, nonce, Some(contract), gas, gas_price)
             .await
     }
 
@@ -106,17 +118,18 @@ impl MoonbeamApi {
         nonce: U256,
         to: Option<Address>,
         gas: U256,
+        gas_price: U256,
     ) -> color_eyre::Result<H256> {
         let tx = Transaction {
             nonce,
             to,
             gas,
-            gas_price: self.gas_price,
+            gas_price,
             value: 0u32.into(),
             data: data.into(),
             transaction_type: None,
             access_list: Default::default(),
-            max_priority_fee_per_gas: self.gas_price,
+            max_priority_fee_per_gas: gas_price,
         };
 
         let signed_tx = tx.sign(signer, self.chain_id.as_u64());
@@ -131,7 +144,6 @@ impl MoonbeamApi {
             "signed_tx.transaction_hash: {:?}",
             signed_tx.transaction_hash
         );
-
         let hash = self
             .web3
             .eth()
