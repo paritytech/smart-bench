@@ -18,7 +18,7 @@ index 7942e6f..0756c90 100644
              }
          } else {
 diff --git a/contracts/utils/Address.sol b/contracts/utils/Address.sol
-index 0791a66..5c0fb59 100644
+index 0791a66..0e373de 100644
 --- a/contracts/utils/Address.sol
 +++ b/contracts/utils/Address.sol
 @@ -2,6 +2,7 @@
@@ -35,7 +35,7 @@ index 0791a66..5c0fb59 100644
          // of the constructor execution.
 -
 -        return account.code.length > 0;
-+	return is_contract(account);
++        return is_contract(account);
      }
  
      /**
@@ -85,21 +85,33 @@ index 0791a66..5c0fb59 100644
      }
  }
 diff --git a/contracts/utils/Strings.sol b/contracts/utils/Strings.sol
-index 657ebd6..4d5bf59 100644
+index 657ebd6..8a9e7e8 100644
 --- a/contracts/utils/Strings.sol
 +++ b/contracts/utils/Strings.sol
-@@ -27,10 +27,10 @@ library Strings {
-             }
-             while (true) {
-                 ptr--;
+@@ -17,25 +17,7 @@ library Strings {
+      * @dev Converts a `uint256` to its ASCII `string` decimal representation.
+      */
+     function toString(uint256 value) internal pure returns (string memory) {
+-        unchecked {
+-            uint256 length = Math.log10(value) + 1;
+-            string memory buffer = new string(length);
+-            uint256 ptr;
+-            /// @solidity memory-safe-assembly
+-            assembly {
+-                ptr := add(buffer, add(32, length))
+-            }
+-            while (true) {
+-                ptr--;
 -                /// @solidity memory-safe-assembly
 -                assembly {
 -                    mstore8(ptr, byte(mod(value, 10), _SYMBOLS))
 -                }
-+              //  /// @solidity memory-safe-assembly
-+              //  assembly {
-+              //     mstore8(ptr, byte(mod(value, 10), _SYMBOLS))
-+              //  }
-                 value /= 10;
-                 if (value == 0) break;
-             }
+-                value /= 10;
+-                if (value == 0) break;
+-            }
+-            return buffer;
+-        }
++        return "{}".format(value);
+     }
+ 
+     /**
