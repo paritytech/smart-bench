@@ -4,6 +4,8 @@
 
 ## Usage
 
+If you're not interested into compilation of this software natively on your PC but would like to leverage dockerized solution please find more information within [launch](./launch/README.md) subdirectory of this project.
+
 ### Installation 
 
 Currently, this tool must be run directly via cargo, because it requires access to the predefined wasm contract binaries in the `contracts` directory. 
@@ -41,17 +43,30 @@ OPTIONS:
 
 ### Node binaries
 
-- For Wasm contracts on a local pallet-contracts enabled parachain, first [download](./launch/download-bins.sh) (or build from source) the `polkadot` and `polkadot-parachain`
-binaries, and make sure they are present in the `launch/bin` directory.
-- For a local `moonbeam` parachain setup for EVM contracts, build the node from source from [this fork](https://github.com/ascjones/moonbeam) which has the required dev RPC endpoint enabled. This will also require building the `polkadot` relay-chain node from source at the same commit as the polkadot dependencies for the `moonbeam` binary. The resulting two binaries should be copied to the `launch/bin/moonbeam` directory.
+- To quickly download node binaries, consider using helper [download](./launch/download-bins.sh) script. It will download all required files with predefined versions in the `launch/bin` directory.
+  ```
+  (cd launch && ./download-bins.sh)
+  ```
+- You can also use binaries provided on your own as long as these are to be found using standard PATH variable based mechanism. In such case you must also consider possible compatibility issues between various versions of binaries used.
+  - Please NOTE: For a local `moonbeam` parachain setup for EVM contracts, `moonbeam` node is required to have dev RPC endpoint enabled. This feature is not part of an official release and requires source code change and compilation (find example changes avaiable at [commit](https://github.com/PureStake/moonbeam/commit/decd8774bdc100670f86f293d8f145720290faef)). This will also require building the `polkadot` relay-chain node from source at the same commit as the polkadot dependencies for the `moonbeam` binary.
 
 ### Launching the local test network
 
-- Install https://github.com/paritytech/polkadot-launch
-- Launch the local network
-  - Wasm contracts with pallet-contracts: `polkadot-launch launch/contracts-rococo-local.json`
-  - EVM contracts on a moonbeam node: `polkadot-launch launch/moonbase-local.json`
-- Wait for `POLKADOT LAUNCH COMPLETE`.
+Eventually, `smart-bench` requires to provide it with URL address of web socket port for running pallet-contracts compatible node. It should work fine as long as you have such node started by any means.
+
+Following are example steps to start the network from scratch using `zombienet` project:
+1. Make sure you have `zombienet` binary available on your local machine. It will be already available at `launch/bin` directory if you decided to use [download](./launch/download-bins.sh) script mentioned above. You could also download existing release or compile from sources by following offical [zombienet](https://github.com/paritytech/zombienet) github page documentation. 
+2. Launch the local network ***(consider changing `PATH` accordingly for any custom usage scenarios)***
+  - Wasm contracts with pallet-contracts: 
+    ```
+    PATH="launch/bin:$PATH" zombienet -p native spawn launch/configs/network_native_wasm.toml
+    ```
+  - EVM contracts on a moonbeam node:
+    ```
+    PATH="launch/bin:$PATH" zombienet -p native spawn launch/configs/network_native_moonbeam.toml
+    ```
+3. Wait for `Network launched 🚀🚀` message
+4. Node is now available at `ws://localhost:9988` (TCP port numer is defined as part of config file)
 
 ### Running benchmarks
 
