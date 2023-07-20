@@ -70,7 +70,7 @@ impl ContractsNodeProcess {
 
         let mut proc = cmd.spawn()?;
         // wait for rpc to be initialized
-        const MAX_ATTEMPTS: u32 = 10;
+        const MAX_ATTEMPTS: u32 = 20;
         let mut attempts = 1;
         let client = loop {
             thread::sleep(time::Duration::from_secs(1));
