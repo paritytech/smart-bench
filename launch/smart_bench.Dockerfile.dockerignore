@@ -1,0 +1,10 @@
+doc
+**target*
+.idea/
+.git/
+.github/
+Dockerfile
+.dockerignore
+.local
+.env*
+launch/run.sh

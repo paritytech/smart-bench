@@ -4,6 +4,8 @@
 
 ## Usage
 
+If you're not interested into compilation of this software natively on your PC but would like to leverage dockerized solution please find more information within [launch](./launch/README.md) subdirectory of this project.
+
 ### Installation 
 
 Currently, this tool must be run directly via cargo, because it requires access to the predefined wasm contract binaries in the `contracts` directory. 
@@ -41,17 +43,30 @@ OPTIONS:
 
 ### Node binaries
 
-- For Wasm contracts on a local pallet-contracts enabled parachain, first [download](./launch/download-bins.sh) (or build from source) the `polkadot` and `polkadot-parachain`
-binaries, and make sure they are present in the `launch/bin` directory.
-- For a local `moonbeam` parachain setup for EVM contracts, build the node from source from [this fork](https://github.com/ascjones/moonbeam) which has the required dev RPC endpoint enabled. This will also require building the `polkadot` relay-chain node from source at the same commit as the polkadot dependencies for the `moonbeam` binary. The resulting two binaries should be copied to the `launch/bin/moonbeam` directory.
+- To quickly download node binaries, consider using helper [download](./launch/download-bins.sh) script. It will download all required files with predefined versions in the `launch/bin` directory.
+  ```
+  (cd launch && ./download-bins.sh)
+  ```
+- You can also use binaries provided on your own as long as these are to be found using standard PATH variable based mechanism. In such case you must also consider possible compatibility issues between various versions of binaries used.
+  - Please NOTE: For a local `moonbeam` parachain setup for EVM contracts, `moonbeam` node is required to have dev RPC endpoint enabled. This feature is not part of an official release and requires source code change and compilation (find example changes avaiable at [commit](https://github.com/PureStake/moonbeam/commit/decd8774bdc100670f86f293d8f145720290faef)). This will also require building the `polkadot` relay-chain node from source at the same commit as the polkadot dependencies for the `moonbeam` binary.
 
 ### Launching the local test network
 
-- Install https://github.com/paritytech/polkadot-launch
-- Launch the local network
-  - Wasm contracts with pallet-contracts: `polkadot-launch launch/contracts-rococo-local.json`
-  - EVM contracts on a moonbeam node: `polkadot-launch launch/moonbase-local.json`
-- Wait for `POLKADOT LAUNCH COMPLETE`.
+Eventually, `smart-bench` requires to provide it with URL address of web socket port for running pallet-contracts compatible node. It should work fine as long as you have such node started by any means.
+
+Following are example steps to start the network from scratch using `zombienet` project:
+1. Make sure you have `zombienet` binary available on your local machine. It will be already available at `launch/bin` directory if you decided to use [download](./launch/download-bins.sh) script mentioned above. You could also download existing release or compile from sources by following offical [zombienet](https://github.com/paritytech/zombienet) github page documentation. 
+2. Launch the local network ***(consider changing `PATH` accordingly for any custom usage scenarios)***
+  - Wasm contracts with pallet-contracts: 
+    ```
+    PATH="launch/bin:$PATH" zombienet -p native spawn launch/configs/network_native_wasm.toml
+    ```
+  - EVM contracts on a moonbeam node:
+    ```
+    PATH="launch/bin:$PATH" zombienet -p native spawn launch/configs/network_native_moonbeam.toml
+    ```
+3. Wait for `Network launched 🚀🚀` message
+4. Node is now available at `ws://localhost:9988` (TCP port numer is defined as part of config file)
 
 ### Running benchmarks
 
@@ -69,9 +84,9 @@ The above will create 10 instances of each of the `erc20` and `erc1155` contract
 ```
 One row per block, showing the % usage of the PoV size and the block weight, as well as the number of extrinsics executed per block. Note the Weight % is expected to max out at 75%, since that is the ratio of the total block weight assigned to "normal" i.e. the user submitted/non-operational class of extrinsics.
 
-#### Wasm contracts
+#### Ink!/Wasm contracts
 
-Currently the Wasm contracts are the `contracts/*.contract` files, some of which have been compiled from https://github.com/paritytech/ink/tree/master/examples and committed to this repository. So in order to modify these they can compiled locally and copied over to the `contracts` dir. There are also two locally defined custom contracts in the `contracts` folder: `computation` and `storage` for testing pure computation and storage operations.
+Currently the Wasm contracts are the `contracts/ink/*.contract` files, some of which have been compiled from https://github.com/paritytech/ink/tree/master/examples and committed to this repository. So in order to modify these they can compiled locally and copied over to the `contracts/ink` dir. There are also two locally defined custom contracts in the `contracts/ink` folder: `computation` and `storage` for testing pure computation and storage operations.
 
 #### Solidity/EVM contracts
 
@@ -83,6 +98,17 @@ Before running the benchmarks against a `pallet-evm` enabled network, the solidi
 Now make sure the target EVM enabled network is up and running as specified above, and this time change the value of the first argument to `evm`:
 
 `cargo run --release -- evm erc20 erc1155 --instance-count 10 --call-count 20 --url ws://localhost:9988`
+
+#### Solang - Solidity/Wasm contracts
+
+Before running benchmark against a `pallet-contract` enabled network, Solang contract needs to be compiled.
+The easiest way to compile the contracts is to do this having Solidity/EVM compiled first.
+After this the `openzeppelin_solang.patch` needs to be applied:
+`cd contracts/solidity/node_modules/@openzeppelin && patch -p1 < ../../openzeppelin_solang.patch`
+Finally a Solang contract can be compiled using command:
+`cd contracts/solidity/wasm/ && solang compile --target polkadot --importmap @openzeppelin=../node_modules/@openzeppelin/   ./../contracts/BenchERC1155.sol`
+Currently [`solang`](https://github.com/hyperledger/solang) compiler needs to be built from sources including [`U256 type fix commit`](https://github.com/smiasojed/solang/commit/467b25ab3d44884e643e3217ac16c56c5788dccc)
+
 
 ### Integration tests
 

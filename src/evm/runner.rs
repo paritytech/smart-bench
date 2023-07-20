@@ -119,9 +119,14 @@ impl MoonbeamRunner {
             .await
             .note("Error estimating gas")?;
 
+        let gas_price = self.api.get_gas_price().await.note("Error getting gas")?;
+
         let mut tx_hashes = HashSet::new();
         for _ in 0..instance_count {
-            let tx_hash = self.api.deploy(data, &self.signer, nonce, gas).await?;
+            let tx_hash = self
+                .api
+                .deploy(data, &self.signer, nonce, gas, gas_price)
+                .await?;
             tx_hashes.insert(tx_hash);
             nonce += 1.into();
         }
@@ -230,6 +235,7 @@ impl MoonbeamRunner {
             .max()
             .ok_or_else(|| eyre::eyre!("No prepared contracts for benchmarking."))?;
         let mut nonce = self.api.fetch_nonce(self.address).await?;
+        let gas_price = self.api.get_gas_price().await.note("Error getting gas")?;
 
         for _ in 0..call_count {
             for i in 0..max_instance_count {
@@ -249,6 +255,7 @@ impl MoonbeamRunner {
                                 &self.signer,
                                 nonce,
                                 contract_call.gas_limit,
+                                gas_price,
                             )
                             .await?;
                         nonce += 1.into();
