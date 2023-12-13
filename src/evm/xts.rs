@@ -11,7 +11,7 @@ use web3::{
 #[subxt::subxt(
     runtime_metadata_path = "metadata/moonbeam.scale",
     substitute_type(
-        type = "primitive_types::H160",
+        path = "primitive_types::H160",
         with = "::subxt::utils::Static<::sp_core::H160>"
     )
 )]

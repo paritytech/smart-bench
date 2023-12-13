@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cumulus_version=0.9.420
-polkadot_version=0.9.42
+cumulus_version=1.0.0
+polkadot_version=1.0.0
 zombienet_version=1.3.58
-moonbeam_version=30_06_2023
+moonbeam_version=13_12_2023
 
 packages_to_download=$(cat << EOF
 [
@@ -30,7 +30,7 @@ packages_to_download=$(cat << EOF
     "target":"moonbeam",
     "url": "https://github.com/karolk91/moonbeam/releases/download/$moonbeam_version/moonbeam.gz",
     "format": "gz",
-    "sha256": "ef23292bbe301b51ed9ecfd34be61c5d26cf68cc7e262fd5bc20987f93eabe72"
+    "sha256": "8402a01a0fdadaf7ffbae59e84982f3186e73de8d3ea9a0cb67aaa81b90a7f48"
   }
 ]
 EOF

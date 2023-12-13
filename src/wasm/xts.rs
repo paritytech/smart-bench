@@ -1,11 +1,13 @@
+use std::{collections::{hash_map::Entry, HashMap}, cell::RefCell};
+
 use super::*;
 use codec::{Decode, Encode, MaxEncodedLen};
 use pallet_contracts_primitives::{ContractExecResult, ContractInstantiateResult};
 use serde::{Deserialize, Serialize};
-use sp_core::{Bytes, H256};
+use sp_core::{H256, Pair};
 use subxt::{
-    ext::scale_encode::EncodeAsType, rpc_params, utils::MultiAddress, OnlineClient,
-    PolkadotConfig as DefaultConfig,
+    ext::scale_encode::EncodeAsType, utils::MultiAddress, OnlineClient,
+    PolkadotConfig as DefaultConfig, backend::{rpc::RpcClient, legacy::LegacyRpcMethods},
 };
 
 const DRY_RUN_GAS_LIMIT: Option<Weight> = None;
@@ -15,11 +17,20 @@ pub mod api {}
 
 pub struct ContractsApi {
     pub client: OnlineClient<DefaultConfig>,
+    pub rpc: LegacyRpcMethods::<DefaultConfig>,
+    nonces_cache: RefCell<HashMap<<sp_core::sr25519::Pair as sp_core::Pair>::Public, u64>>
 }
 
 impl ContractsApi {
-    pub async fn new(client: OnlineClient<DefaultConfig>) -> color_eyre::Result<Self> {
-        Ok(Self { client })
+    pub async fn new(rpc_client: RpcClient) -> color_eyre::Result<Self> {
+        let client = OnlineClient::<DefaultConfig>::from_rpc_client(rpc_client.clone()).await?;
+        let rpc = LegacyRpcMethods::<DefaultConfig>::new(rpc_client.clone());
+
+        Ok(Self { 
+            client,
+            rpc,
+            nonces_cache: Default::default()
+         })
     }
 
     /// Submit extrinsic to instantiate a contract with the given code.
@@ -31,7 +42,7 @@ impl ContractsApi {
         data: Vec<u8>,
         salt: Vec<u8>,
         signer: &Signer,
-    ) -> ContractInstantiateResult<AccountId, Balance> {
+    ) -> ContractInstantiateResult<AccountId, Balance, EventRecord> {
         let code = Code::Upload(code);
         let call_request = InstantiateRequest {
             origin: subxt::tx::Signer::account_id(signer).clone(),
@@ -45,7 +56,7 @@ impl ContractsApi {
         let bytes = self
             .state_call(
                 "ContractsApi_instantiate",
-                Bytes(Encode::encode(&call_request)),
+                Encode::encode(&call_request),
             )
             .await
             .unwrap_or_else(|err| panic!("error on ws request `contracts_instantiate`: {err:?}"));
@@ -78,11 +89,13 @@ impl ContractsApi {
             },
         )
         .unvalidated();
+        let account_nonce = self.get_account_nonce(signer).await?;
 
         let tx_hash = self
             .client
             .tx()
-            .sign_and_submit_default(&call, signer)
+            .create_signed_with_nonce(&call, signer, account_nonce, Default::default())?
+            .submit()
             .await?;
 
         Ok(tx_hash)
@@ -96,7 +109,7 @@ impl ContractsApi {
         storage_deposit_limit: Option<Balance>,
         input_data: Vec<u8>,
         signer: &Signer,
-    ) -> color_eyre::Result<ContractExecResult<Balance>> {
+    ) -> color_eyre::Result<ContractExecResult<Balance, EventRecord>> {
         let call_request = RpcCallRequest {
             origin: signer.account_id().clone(),
             dest: contract,
@@ -106,13 +119,55 @@ impl ContractsApi {
             input_data,
         };
         let bytes = self
-            .state_call("ContractsApi_call", Bytes(Encode::encode(&call_request)))
+            .state_call("ContractsApi_call", Encode::encode(&call_request))
             .await
             .unwrap_or_else(|err| panic!("error on ws request `contract_call`: {err:?}"));
-        let result: ContractExecResult<Balance> = Decode::decode(&mut bytes.as_ref())
+        let result: ContractExecResult<Balance, EventRecord> = Decode::decode(&mut bytes.as_ref())
             .unwrap_or_else(|err| panic!("decoding ContractExecResult failed: {err}"));
 
         Ok(result)
+    }
+
+    async fn get_account_nonce(
+        &self,
+        signer: &Signer,
+    ) -> core::result::Result<u64, subxt::Error>
+    {
+        let mut map = self.nonces_cache.borrow_mut();
+
+        match (*map).entry(signer.signer().public()) {
+            Entry::Occupied(mut o) => {
+                *o.get_mut() += 1;
+                Ok(*o.get())
+            },
+            Entry::Vacant(v) => {
+                let best_block = self.rpc
+                    .chain_get_block_hash(None)
+                    .await?
+                    .ok_or(subxt::Error::Other("Best block not found".into()))?;
+
+                let account_nonce_bytes = self.client
+                    .backend()
+                    .call(
+                        "AccountNonceApi_account_nonce",
+                        Some(&codec::Encode::encode(&signer.account_id())),
+                        best_block,
+                    )
+                    .await?;
+
+                // custom decoding from a u16/u32/u64 into a u64, based on the number of bytes we
+                // got back.
+                let cursor = &mut &account_nonce_bytes[..];
+                let account_nonce: u64 = match account_nonce_bytes.len() {
+                    2 => <u16 as codec::Decode>::decode(cursor)?.into(),
+                    4 => <u32 as codec::Decode>::decode(cursor)?.into(),
+                    8 => <u64 as codec::Decode>::decode(cursor)?,
+                    _ => return Err(subxt::Error::Decode(subxt::error::DecodeError::custom_string(format!("state call AccountNonceApi_account_nonce returned an unexpected number of bytes: {} (expected 2, 4 or 8)", account_nonce_bytes.len()))))
+                };
+                v.insert(account_nonce);
+                Ok(account_nonce)
+            }
+        }
     }
 
     /// Submit extrinsic to call a contract.
@@ -138,19 +193,20 @@ impl ContractsApi {
         )
         .unvalidated();
 
+        let account_nonce = self.get_account_nonce(signer).await?;
+
         let tx_hash = self
             .client
             .tx()
-            .sign_and_submit_default(&call, signer)
+            .create_signed_with_nonce(&call, signer, account_nonce, Default::default())?
+            .submit()
             .await?;
 
         Ok(tx_hash)
     }
 
-    async fn state_call(&self, function: &str, payload: Bytes) -> color_eyre::Result<Bytes> {
-        let params = rpc_params![function, payload];
-
-        let val = self.client.rpc().request("state_call", params).await?;
+    async fn state_call(&self, function: &str, payload: Vec<u8>) -> color_eyre::Result<Vec<u8>> {
+        let val = self.rpc.state_call(function, Some(&payload), None).await?;
         Ok(val)
     }
 }
