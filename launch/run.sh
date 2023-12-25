@@ -65,7 +65,7 @@ function parse_args {
     # support long options: https://stackoverflow.com/a/28466267/519360
     if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
       OPT="${OPTARG%%=*}"       # extract long option name
-      OPTARG="${OPTARG#"$OPT"}" # extract long option argument (may be empty)
+      OPTARG="${OPTARG#"$OPT"}"   # extract long option argument (may be empty)
       OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
     fi
     case "$OPT" in
@@ -103,36 +103,8 @@ if [ -n "${BINARIES_DIR}" ]; then
 fi
 
 # shellcheck disable=SC2086
-command="docker run --rm -it --init \
+(set -x; docker run --rm -it --init \
   ${volume_args} \
   "${IMAGE}" \
   "${OTHERARGS[@]}"
-"
-
-# Run the command and capture its standard output into the 'data' variable
-data="$($command | tee /dev/tty | grep -E '^\d{4}: PoV')"
-
-# Check if the command execution was successful (exit status 0)
-if [ $? -ne 0 ]; then
-  echo "Error: The smart-bench: execution failed."
-  exit 1
-fi
-
-# Initialize variables to calculate the total number of extrinsics and total duration
-total_extrinsics=0
-total_duration=0
-
-# Calculate total number of extrinsics and total duration
-# Asumption SC processing time for block is 0.5s
-while IFS= read -r line
-do
-  num_extrinsics=$(echo "$line" | grep -o 'NumExtrinsics=[0-9]*' | cut -d'=' -f2) # Extract the number of extrinsics
-  total_extrinsics=$(echo "scale=0; $total_extrinsics + $num_extrinsics" | bc -l)
-  total_duration=$(echo "scale=2; $total_duration + 0.5" | bc -l )
-done <<< "$data"
-
-# Calculate the average number of extrinsics per second
-average_extrinsics_per_second=$(echo "scale=2; $total_extrinsics / $total_duration" | bc)
-
-echo "TPS=$average_extrinsics_per_second"
-
+)

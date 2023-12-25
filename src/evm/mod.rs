@@ -6,7 +6,6 @@ use crate::{
     evm::{runner::MoonbeamRunner, xts::MoonbeamApi},
     Cli, Contract,
 };
-use futures::{future, TryStreamExt};
 use web3::{contract::tokens::Tokenize, signing::Key, types::U256};
 
 pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
@@ -159,14 +158,7 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     }
 
     let result = runner.run(cli.call_count).await?;
-
-    println!();
-    result
-        .try_for_each(|block| {
-            println!("{}", block.stats);
-            future::ready(Ok(()))
-        })
-        .await?;
+    crate::print_block_info(result).await?;
 
     Ok(())
 }

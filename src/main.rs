@@ -7,7 +7,7 @@ mod wasm;
 
 // export for use by contract! macro
 use clap::Parser;
-pub use stats::{collect_block_stats, BlockInfo};
+pub use stats::{collect_block_stats, print_block_info, BlockInfo};
 pub use wasm::{InkConstructor, InkMessage};
 
 #[derive(Debug, Parser)]
