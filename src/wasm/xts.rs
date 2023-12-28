@@ -1,13 +1,18 @@
-use std::{collections::{hash_map::Entry, HashMap}, cell::RefCell};
+use std::{
+    cell::RefCell,
+    collections::{hash_map::Entry, HashMap},
+};
 
 use super::*;
 use codec::{Decode, Encode, MaxEncodedLen};
 use pallet_contracts_primitives::{ContractExecResult, ContractInstantiateResult};
 use serde::{Deserialize, Serialize};
-use sp_core::{H256, Pair};
+use sp_core::{Pair, H256};
 use subxt::{
-    ext::scale_encode::EncodeAsType, utils::MultiAddress, OnlineClient,
-    PolkadotConfig as DefaultConfig, backend::{rpc::RpcClient, legacy::LegacyRpcMethods},
+    backend::{legacy::LegacyRpcMethods, rpc::RpcClient},
+    ext::scale_encode::EncodeAsType,
+    utils::MultiAddress,
+    OnlineClient, PolkadotConfig as DefaultConfig,
 };
 
 const DRY_RUN_GAS_LIMIT: Option<Weight> = None;
@@ -17,8 +22,8 @@ pub mod api {}
 
 pub struct ContractsApi {
     pub client: OnlineClient<DefaultConfig>,
-    pub rpc: LegacyRpcMethods::<DefaultConfig>,
-    nonces_cache: RefCell<HashMap<<sp_core::sr25519::Pair as sp_core::Pair>::Public, u64>>
+    pub rpc: LegacyRpcMethods<DefaultConfig>,
+    nonces_cache: RefCell<HashMap<<sp_core::sr25519::Pair as sp_core::Pair>::Public, u64>>,
 }
 
 impl ContractsApi {
@@ -26,11 +31,11 @@ impl ContractsApi {
         let client = OnlineClient::<DefaultConfig>::from_rpc_client(rpc_client.clone()).await?;
         let rpc = LegacyRpcMethods::<DefaultConfig>::new(rpc_client.clone());
 
-        Ok(Self { 
+        Ok(Self {
             client,
             rpc,
-            nonces_cache: Default::default()
-         })
+            nonces_cache: Default::default(),
+        })
     }
 
     /// Submit extrinsic to instantiate a contract with the given code.
@@ -54,10 +59,7 @@ impl ContractsApi {
             salt,
         };
         let bytes = self
-            .state_call(
-                "ContractsApi_instantiate",
-                Encode::encode(&call_request),
-            )
+            .state_call("ContractsApi_instantiate", Encode::encode(&call_request))
             .await
             .unwrap_or_else(|err| panic!("error on ws request `contracts_instantiate`: {err:?}"));
 
@@ -128,25 +130,23 @@ impl ContractsApi {
         Ok(result)
     }
 
-    async fn get_account_nonce(
-        &self,
-        signer: &Signer,
-    ) -> core::result::Result<u64, subxt::Error>
-    {
+    async fn get_account_nonce(&self, signer: &Signer) -> core::result::Result<u64, subxt::Error> {
         let mut map = self.nonces_cache.borrow_mut();
 
         match (*map).entry(signer.signer().public()) {
             Entry::Occupied(mut o) => {
                 *o.get_mut() += 1;
                 Ok(*o.get())
-            },
+            }
             Entry::Vacant(v) => {
-                let best_block = self.rpc
+                let best_block = self
+                    .rpc
                     .chain_get_block_hash(None)
                     .await?
                     .ok_or(subxt::Error::Other("Best block not found".into()))?;
 
-                let account_nonce = self.client
+                let account_nonce = self
+                    .client
                     .blocks()
                     .at(best_block)
                     .await?

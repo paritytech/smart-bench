@@ -5,7 +5,7 @@ use color_eyre::eyre;
 use futures::TryStream;
 use sp_runtime::traits::{BlakeTwo256, Hash as _};
 use std::time::{SystemTime, UNIX_EPOCH};
-use subxt::{OnlineClient, PolkadotConfig as DefaultConfig, backend::rpc::RpcClient};
+use subxt::{backend::rpc::RpcClient, OnlineClient, PolkadotConfig as DefaultConfig};
 
 pub const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<Balance> = None;
 
@@ -169,7 +169,9 @@ impl BenchRunner {
         let block = client.blocks().at(block_hash).await;
         let hashes = block
             .unwrap_or_else(|_| panic!("block {} not found", block_hash))
-            .extrinsics().await.unwrap_or_else(|_| panic!("extrinsics at block {} not found", block_hash))
+            .extrinsics()
+            .await
+            .unwrap_or_else(|_| panic!("extrinsics at block {} not found", block_hash))
             .iter()
             .map(|e| e.unwrap_or_else(|_| panic!("extrinsic error at block {}", block_hash)))
             .map(|e| BlakeTwo256::hash_of(&e.bytes()))

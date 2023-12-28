@@ -142,7 +142,7 @@ impl MoonbeamRunner {
                     to,
                     transaction_hash,
                     exit_reason,
-                    extra_data: _
+                    extra_data: _,
                 }) = event.as_event::<Executed>()?
                 {
                     tracing::debug!(
