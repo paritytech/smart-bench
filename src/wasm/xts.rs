@@ -146,24 +146,12 @@ impl ContractsApi {
                     .await?
                     .ok_or(subxt::Error::Other("Best block not found".into()))?;
 
-                let account_nonce_bytes = self.client
-                    .backend()
-                    .call(
-                        "AccountNonceApi_account_nonce",
-                        Some(&codec::Encode::encode(&signer.account_id())),
-                        best_block,
-                    )
+                let account_nonce = self.client
+                    .blocks()
+                    .at(best_block)
+                    .await?
+                    .account_nonce(signer.account_id())
                     .await?;
-
-                // custom decoding from a u16/u32/u64 into a u64, based on the number of bytes we
-                // got back.
-                let cursor = &mut &account_nonce_bytes[..];
-                let account_nonce: u64 = match account_nonce_bytes.len() {
-                    2 => <u16 as codec::Decode>::decode(cursor)?.into(),
-                    4 => <u32 as codec::Decode>::decode(cursor)?.into(),
-                    8 => <u64 as codec::Decode>::decode(cursor)?,
-                    _ => return Err(subxt::Error::Decode(subxt::error::DecodeError::custom_string(format!("state call AccountNonceApi_account_nonce returned an unexpected number of bytes: {} (expected 2, 4 or 8)", account_nonce_bytes.len()))))
-                };
                 v.insert(account_nonce);
                 Ok(account_nonce)
             }

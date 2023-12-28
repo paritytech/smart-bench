@@ -73,7 +73,7 @@ impl MoonbeamApi {
             gas: None,
             gas_price: None,
             value: None,
-            data: Some(data.clone().into()),
+            data: Some(data.into()),
             transaction_type: None,
             access_list: None,
             max_fee_per_gas: None,

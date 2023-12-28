@@ -16,7 +16,7 @@ impl-serde = { version = "0.4.0", default-features = false }
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 serde_json = "1.0.81"
 clap = { version = "3.1.17", features = ["derive"] }
-subxt = { version = "0.32.1", features = ["substrate-compat"] }
+subxt = { version = "0.33", features = ["substrate-compat"] }
 futures = "0.3.21"
 parity-wasm = "0.45"
 blockstats = { git = "https://github.com/paritytech/blockstats", branch = "master" }
@@ -32,11 +32,11 @@ rlp = "0.5.2"
 secp256k1 = { version = "0.27.0", features = ["recovery"] }
 
 # Substrate
-pallet-contracts-primitives = "27.0.0"
-sp-core = "21.0.0"
-sp-weights = "23.0.0"
-sp-runtime = "24.0.0"
-sp-keyring = "24.0.0"
+pallet-contracts-primitives = "29.0.0"
+sp-core = "26.0.0"
+sp-weights = "25.0.0"
+sp-runtime = "29.0.0"
+sp-keyring = "29.0.0"
 
 
 [dev-dependencies]

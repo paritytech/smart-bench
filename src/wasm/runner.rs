@@ -171,7 +171,8 @@ impl BenchRunner {
             .unwrap_or_else(|_| panic!("block {} not found", block_hash))
             .extrinsics().await.unwrap_or_else(|_| panic!("extrinsics at block {} not found", block_hash))
             .iter()
-            .map(|e| BlakeTwo256::hash_of(&e.unwrap().bytes()))
+            .map(|e| e.unwrap_or_else(|_| panic!("extrinsic error at block {}", block_hash)))
+            .map(|e| BlakeTwo256::hash_of(&e.bytes()))
             .collect();
         Ok(hashes)
     }
