@@ -59,22 +59,14 @@ pub async fn print_block_info(
     block_info
         .try_for_each(|block| {
             println!("{}", block.stats);
-            let total_extrinsics_result = total_extrinsics
-                .checked_add(block.stats.num_extrinsics)
-                .ok_or_else(|| {
-                    color_eyre::Report::msg("Overflow occurred when calculating total extrinsics")
-                });
-            let result = total_extrinsics_result.and_then(|extrinsics| {
-                total_extrinsics = extrinsics;
-                total_blocks = total_blocks.checked_add(1).ok_or_else(|| {
-                    color_eyre::Report::msg("Overflow occurred when calculating total blocks")
-                })?;
-                Ok(())
-            });
-            future::ready(result)
+            total_extrinsics += block.stats.num_extrinsics;
+            total_blocks += 1;
+            future::ready(Ok(()))
         })
         .await?;
     println!("\nSummary:");
+    println!("Total Blocks: {total_blocks}");
+    println!("Total Extrinsics: {total_extrinsics}");
     println!("TPS - Transaction execution time per second, assuming a 0.5-second execution time per block");
     println!(
         "TPS: {}",
