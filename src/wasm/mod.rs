@@ -2,7 +2,6 @@ pub mod runner;
 mod xts;
 
 use crate::{Cli, Contract, TargetPlatform};
-use futures::{future, TryStreamExt};
 use sp_core::sr25519;
 use sp_keyring::AccountKeyring;
 use subxt::{tx::PairSigner, utils::AccountId32, PolkadotConfig as DefaultConfig};
@@ -58,13 +57,7 @@ pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
     }
     let result = runner.run(cli.call_count).await?;
 
-    println!();
-    result
-        .try_for_each(|block| {
-            println!("{}", block.stats);
-            future::ready(Ok(()))
-        })
-        .await?;
+    crate::print_block_info(result).await?;
 
     Ok(())
 }
@@ -127,14 +120,26 @@ pub async fn prepare_solidity_contracts(
                     mint.into()
                 };
                 runner
-                    .prepare_contract(path, "BenchERC721", erc721_new, cli.instance_count, erc721_mint)
+                    .prepare_contract(
+                        path,
+                        "BenchERC721",
+                        erc721_new,
+                        cli.instance_count,
+                        erc721_mint,
+                    )
                     .await?;
             }
             Contract::Erc1155 => {
                 let erc1155_new = BenchERC1155::constructors::new();
                 let erc1155_create = || BenchERC1155::messages::create(1_000_000.into()).into();
                 runner
-                    .prepare_contract(path, "BenchERC1155", erc1155_new, cli.instance_count, erc1155_create)
+                    .prepare_contract(
+                        path,
+                        "BenchERC1155",
+                        erc1155_new,
+                        cli.instance_count,
+                        erc1155_create,
+                    )
                     .await?;
             }
             Contract::OddProduct => {

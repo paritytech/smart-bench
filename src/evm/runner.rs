@@ -144,7 +144,11 @@ impl MoonbeamRunner {
                     exit_reason,
                 }) = event.as_event::<Executed>()?
                 {
-                    tracing::debug!("still expecting {:?}, now got {:?}", tx_hashes, transaction_hash);
+                    tracing::debug!(
+                        "still expecting {:?}, now got {:?}",
+                        tx_hashes,
+                        transaction_hash
+                    );
                     // When deploying multiple contracts (--instance-count >1), it may happen that here we are processing
                     // a block related to previous contract's deployment
                     //
