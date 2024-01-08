@@ -11,7 +11,7 @@ IMAGE="${NAME}:${VERSION}"
 ./download-bins.sh
 
 (cd "${THIS_GIT_REPOSITORY_ROOT}" &&
-   DOCKER_BUILDKIT=1 docker build \
+   DOCKER_BUILDKIT=1 docker build --platform linux/amd64 \
      --build-arg DOCKERFILE_DIR="$(realpath --relative-to="${THIS_GIT_REPOSITORY_ROOT}" "${SCRIPT_PATH}")" \
      -f "${SCRIPT_PATH}/smart_bench.Dockerfile" -t "${IMAGE}" .
 )
