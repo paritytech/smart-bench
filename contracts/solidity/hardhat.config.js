@@ -15,13 +15,6 @@ module.exports = {
     },
   },
   solidity: "0.8.1",
-  settings: {
-    metadata: {
-      compiler: {
-        version: "solc-0.8.1", // actual compiler version used in the project
-      },
-    },
-  },
   paths: {
     sources: "./contracts",
     tests: "./test",

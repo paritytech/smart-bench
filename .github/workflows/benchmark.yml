@@ -26,7 +26,7 @@ jobs:
           launch/moonbeam.patch
          sparse-checkout-cone-mode: false
 
-      - name: Download Moonbeam Release 
+      - name: Download Moonbeam Release
         run: |
           API_URL="https://api.github.com/repos/moonbeam-foundation/moonbeam/releases/latest"
           RESPONSE=$(curl -s "${API_URL}")
@@ -40,7 +40,7 @@ jobs:
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
-      
+
       - name: Build
         run: |
           # Rebuild Moonbeam with Dev RPC support
@@ -55,7 +55,7 @@ jobs:
             ./${{ env.MOONBEAM_BIN }}
             ./${{ env.MOONBEAM_DIR }}/${{ env.MOONBEAM_VERSION }}
           retention-days: 1
-  
+
   smart_contract_benchmark:
     strategy:
       matrix:
@@ -76,9 +76,9 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: ${{ env.MOONBEAM_ARTIFACT }}
-          path: ./${{ env.MOONBEAM_DIR }} 
+          path: ./${{ env.MOONBEAM_DIR }}
 
-      - name: Set Moonbeam Release 
+      - name: Set Moonbeam Release
         id: moonbeam_release
         run: |
           mkdir bin
@@ -105,13 +105,13 @@ jobs:
         uses: ./.github/actions/get-contract-language
         with:
           contracts-directory: './contracts/ink'
-        
+
       - name: Get Solang contract language verision
         id: solang_version
         uses: ./.github/actions/get-contract-language
         with:
           contracts-directory: './contracts/solidity/wasm'
-      
+
       - name: Get Solc contract language verision
         id: solc_version
         run: |
@@ -202,4 +202,3 @@ jobs:
           name: ${{ env.BENCHMARK_FILE }}
           path: ./${{ env.BENCHMARK_FILE }}
           retention-days: 14
- 
