@@ -23,7 +23,7 @@ ARGS
  -h, --help           Print this help message
 
 EXAMPLE
-${SCRIPT_NAME} --panel-id 2 --csv-data benchmark-result.csv --output tps.png
+${SCRIPT_NAME} --panel-id=2 --csv-data=benchmark-result.csv --output=tps.png
 EOF
 }
 

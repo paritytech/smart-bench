@@ -27,6 +27,6 @@ ARGS
  -h, --help           Print this help message
 
 EXAMPLE
-./get_graph.sh --panel-id 2 --csv-data benchmark-result.csv --output tps.png
+./get_graph.sh --panel-id=2 --csv-data=benchmark-result.csv --output=tps.png
 ```
 
