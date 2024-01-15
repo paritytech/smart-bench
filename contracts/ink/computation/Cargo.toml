@@ -2,12 +2,12 @@
 
 [package]
 name = "computation"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
 [dependencies]
-ink = { version = "4.2", default-features = false }
+ink = { version = "4.3", default-features = false }
 
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2.5", default-features = false, features = ["derive"], optional = true }
@@ -15,10 +15,6 @@ scale-info = { version = "2.5", default-features = false, features = ["derive"],
 [lib]
 name = "computation"
 path = "lib.rs"
-crate-type = [
-	# Used for normal contract Wasm blobs.
-	"cdylib",
-]
 
 [features]
 default = ["std"]

@@ -26,6 +26,7 @@ fn is_match(stdout: &str, pattern: &str) -> bool {
 }
 
 const SMART_BENCH_STATS_PATTERN: &str = r"[0-9]+: PoV Size=[0-9]+KiB\([0-9]+%\) Weight RefTime=[0-9]+ms\([0-9]+%\) Weight ProofSize=[0-9]+KiB\([0-9]+%\) Witness=[0-9]+KiB Block=[0-9]+KiB NumExtrinsics=[0-9]+";
+const SMART_BENCH_LAST_LINE_PATTERN: &str = r"TPS: \d+(\.\d+)?";
 const CONTRACTS_NODE_WASM: &str = "substrate-contracts-node";
 const CONTRACTS_NODE_EVM: &str = "moonbeam";
 
@@ -175,11 +176,16 @@ async fn test_ink_contract_success() {
         output.status.success(),
         "smart-bench ink-wasm test failed: {stderr}"
     );
-    let lines: Vec<&str> = stdout.lines().collect();
     assert!(
-        is_match(lines.last().unwrap(), SMART_BENCH_STATS_PATTERN),
+        is_match(stdout, SMART_BENCH_STATS_PATTERN),
         "Incorrect output with stats: {stdout}"
     );
+    let last_line: &str = stdout.lines().collect::<Vec<_>>().last().unwrap();
+    assert!(
+        is_match(last_line, SMART_BENCH_LAST_LINE_PATTERN),
+        "Incorrect output last line: {last_line}"
+    );
+
     // prevent the node_process from being dropped and killed
     let _ = node_process;
 }
@@ -215,10 +221,14 @@ async fn test_solidity_wasm_contract_success() {
         output.status.success(),
         "smart-bench sol-wasm test failed: {stderr}"
     );
-    let lines: Vec<&str> = stdout.lines().collect();
     assert!(
-        is_match(lines.last().unwrap(), SMART_BENCH_STATS_PATTERN),
+        is_match(stdout, SMART_BENCH_STATS_PATTERN),
         "Incorrect output with stats: {stdout}"
+    );
+    let last_line: &str = stdout.lines().collect::<Vec<_>>().last().unwrap();
+    assert!(
+        is_match(last_line, SMART_BENCH_LAST_LINE_PATTERN),
+        "Incorrect output last line: {last_line}"
     );
 
     // prevent the node_process from being dropped and killed
@@ -257,10 +267,14 @@ async fn test_solidity_evm_contract_success() {
         output.status.success(),
         "smart-bench evm test failed: {stderr}"
     );
-    let lines: Vec<&str> = stdout.lines().collect();
     assert!(
-        is_match(lines.last().unwrap(), SMART_BENCH_STATS_PATTERN),
+        is_match(stdout, SMART_BENCH_STATS_PATTERN),
         "Incorrect output with stats: {stdout}"
+    );
+    let last_line: &str = stdout.lines().collect::<Vec<_>>().last().unwrap();
+    assert!(
+        is_match(last_line, SMART_BENCH_LAST_LINE_PATTERN),
+        "Incorrect output last line: {last_line}"
     );
 
     // prevent the node_process from being dropped and killed

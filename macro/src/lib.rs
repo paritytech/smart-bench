@@ -32,7 +32,7 @@ pub fn contract(input: TokenStream) -> TokenStream {
 
 fn generate_contract_mod(contract_name: String, metadata: InkProject) -> proc_macro2::TokenStream {
     let crate_path = CratePath::default();
-    let mut type_substitutes = TypeSubstitutes::new(&crate_path);
+    let mut type_substitutes = TypeSubstitutes::with_default_substitutes(&crate_path);
 
     let path_account: syn::Path = syn::parse_quote!(#crate_path::utils::AccountId32);
     let path_u256: syn::Path = syn::parse_quote!(::primitive_types::U256);
@@ -55,7 +55,7 @@ fn generate_contract_mod(contract_name: String, metadata: InkProject) -> proc_ma
         metadata.registry(),
         "contract_types",
         type_substitutes,
-        DerivesRegistry::new(&crate_path),
+        DerivesRegistry::with_default_derives(&crate_path),
         crate_path,
         false,
     );
@@ -259,7 +259,7 @@ mod tests {
                     use super::contract_types;
                     #[derive(:: codec :: Encode)]
                     pub struct Set {
-                        to: ::subxt::utils::AccountId32
+                        to: ::subxt::utils::AccountId32,
                     }
                     impl crate::InkMessage for Set {
                         const SELECTOR: [u8; 4] = [0x00_u8, 0x00_u8, 0x00_u8, 0x00_u8];

@@ -1,5 +1,5 @@
 # Stage 1: builder
-FROM docker.io/paritytech/ci-linux:production as builder
+FROM docker.io/paritytech/ci-unified:bullseye-1.74.0 as builder
 
 COPY . /smart-bench
 WORKDIR /smart-bench
@@ -15,7 +15,7 @@ ARG DOCKERFILE_DIR=launch
 
 RUN apt-get update \
         && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
-	  libssl1.1=1.1.1f-1ubuntu2.19 \
+	  libssl1.1=1.1.1f-1ubuntu2.20 \
 	  netcat=1.206-1ubuntu1 \
         && apt-get clean \
         && rm -rf /var/lib/apt/lists/*

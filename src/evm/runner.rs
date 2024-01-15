@@ -10,7 +10,7 @@ use super::xts::{
 };
 use crate::BlockInfo;
 use color_eyre::{eyre, Section as _};
-use futures::{StreamExt, TryStream};
+use futures::TryStream;
 use impl_serde::serialize::from_hex;
 use secp256k1::SecretKey;
 use subxt::{OnlineClient, PolkadotConfig as DefaultConfig};
@@ -142,6 +142,7 @@ impl MoonbeamRunner {
                     to,
                     transaction_hash,
                     exit_reason,
+                    extra_data: _,
                 }) = event.as_event::<Executed>()?
                 {
                     tracing::debug!(
