@@ -5,11 +5,19 @@ on:
     branches:
       - master
     paths-ignore:
+      - '**/.gitingore'
+      - 'CODEOWNERS'
+      - 'LICENSE'
+      - '**/*.md'
       - 'results/**'
   pull_request:
     branches:
       - master
     paths-ignore:
+      - '.gitingore'
+      - 'CODEOWNERS'
+      - 'LICENSE'
+      - '**/*.md'
       - 'results/**'
 
 env:
