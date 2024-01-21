@@ -200,7 +200,7 @@ impl BenchRunner {
                 for (_name, contract_calls) in &self.calls {
                     if let Some(contract_call) = contract_calls.get(i as usize) {
                         // dry run the call to calculate the gas limit
-                        let gas_limit = {
+                        let mut gas_limit = {
                             let dry_run = self
                                 .api
                                 .call_dry_run(
@@ -213,6 +213,16 @@ impl BenchRunner {
                                 .await?;
                             dry_run.gas_required
                         };
+
+                        // extra 5% of gas limit
+                        // due to "not enough gas" rpc errors
+                        const EXTRA_FACTOR: f64 = 1.05;
+
+                        let ref_time = gas_limit.ref_time_mut();
+                        *ref_time = ((*ref_time as f64) * EXTRA_FACTOR) as u64;
+
+                        let proof_size = gas_limit.proof_size_mut();
+                        *proof_size = ((*proof_size as f64) * EXTRA_FACTOR) as u64;
 
                         let tx_hash = self
                             .api
