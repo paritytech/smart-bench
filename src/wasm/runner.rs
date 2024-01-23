@@ -216,13 +216,7 @@ impl BenchRunner {
 
                         // extra 5% of gas limit
                         // due to "not enough gas" rpc errors
-                        const EXTRA_FACTOR: f64 = 1.05;
-
-                        let ref_time = gas_limit.ref_time_mut();
-                        *ref_time = ((*ref_time as f64) * EXTRA_FACTOR) as u64;
-
-                        let proof_size = gas_limit.proof_size_mut();
-                        *proof_size = ((*proof_size as f64) * EXTRA_FACTOR) as u64;
+                        gas_limit = gas_limit.checked_mul(105).unwrap() / 100;
 
                         let tx_hash = self
                             .api
