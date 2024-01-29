@@ -216,7 +216,7 @@ impl BenchRunner {
 
                         // extra 5% of gas limit
                         // due to "not enough gas" rpc errors
-                        gas_limit = gas_limit.checked_mul(105).unwrap() / 100;
+                        gas_limit = gas_limit.checked_mul(105).expect("Gas limit overflow") / 100;
 
                         let tx_hash = self
                             .api
