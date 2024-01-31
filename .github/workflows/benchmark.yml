@@ -143,7 +143,7 @@ jobs:
       - name: Execute tests
         id: run_smart_bench
         env:
-          TEST_PARAMS: --instance-count 1 --call-count 50
+          TEST_PARAMS: --instance-count 1 --call-count 1000
         run: |
           cd launch
           ./download-bins.sh
@@ -151,7 +151,14 @@ jobs:
           cp ../bin/* ./bin
           ./build.sh
 
-          TPS=$(./run.sh -- ${{ matrix.type }} ${{ matrix.contract }} ${TEST_PARAMS} | grep -o 'TPS: [0-9]*' | awk '{print $2}')
+          STATS=$(./run.sh -- ${{ matrix.type }} ${{ matrix.contract }} ${TEST_PARAMS})
+          BLOCKS=$(echo ${STATS} | grep -o 'Total Blocks: [0-9]*' | awk '{print $3}')
+          EXTRINSICS=$(echo ${STATS} | grep -o 'Total Extrinsics: [0-9]*' | awk '{print $3}')
+          TPS=$(echo ${STATS} | grep -o 'TPS: [0-9]*' | awk '{print $2}')
+          echo "Blocks: ${BLOCKS}"
+          echo "Extrinsics: ${EXTRINSICS}"
+          echo "TPS: ${TPS}"
+
           echo "tps=$(echo ${TPS})" >> $GITHUB_OUTPUT
 
       - name: Extract Ink benchmark stats
@@ -202,11 +209,16 @@ jobs:
         run: |
           cat ${{ env.BENCHMARK_DIR }}/*/*.csv >> ${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }}
 
+      - name: Generate graph
+        run: |
+          cd stats
+          ./get_graph.sh --panel-id=2 --csv-data=../${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }} --output=../${{ env.BENCHMARK_DIR }}/tps.png
+
       - name: Commit benchmark stats
         run: |
           CURRENT_DATE=$(date +"%Y%m%d")
           git config user.email "paritytech-ci@parity.io"
           git config user.name "paritytech-ci"
-          git add ${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }}
+          git add ${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }} ${{ env.BENCHMARK_DIR }}/tps.png
           git commit -m "Add benchmark results on ${CURRENT_DATE}"
           git push
