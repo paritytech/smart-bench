@@ -1,5 +1,5 @@
 # Stage 1: builder
-FROM docker.io/paritytech/ci-linux:production as builder
+FROM docker.io/paritytech/ci-unified:bullseye-1.74.0 as builder
 
 COPY . /smart-bench
 WORKDIR /smart-bench

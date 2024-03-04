@@ -11,7 +11,7 @@ use web3::{
 #[subxt::subxt(
     runtime_metadata_path = "metadata/moonbeam.scale",
     substitute_type(
-        type = "primitive_types::H160",
+        path = "primitive_types::H160",
         with = "::subxt::utils::Static<::sp_core::H160>"
     )
 )]
@@ -73,7 +73,7 @@ impl MoonbeamApi {
             gas: None,
             gas_price: None,
             value: None,
-            data: Some(data.clone().into()),
+            data: Some(data.into()),
             transaction_type: None,
             access_list: None,
             max_fee_per_gas: None,

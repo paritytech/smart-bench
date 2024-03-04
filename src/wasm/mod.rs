@@ -11,6 +11,7 @@ pub type Balance = u128;
 pub type AccountId = <DefaultConfig as subxt::Config>::AccountId;
 pub type Hash = <DefaultConfig as subxt::Config>::Hash;
 pub type Signer = PairSigner<DefaultConfig, sr25519::Pair>;
+pub type EventRecord = ();
 
 /// Trait implemented by [`smart_bench_macro::contract`] for all contract constructors.
 pub trait InkConstructor: codec::Encode {

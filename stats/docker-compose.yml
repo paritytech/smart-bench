@@ -1,0 +1,36 @@
+version: '2'
+services:
+  influxdb:
+    image: influxdb:latest
+    ports:
+      - ${INFLUXDB_PORT}:8086
+    volumes:
+      - influxdb-storage:/var/lib/influxdb
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=adminadmin
+      - DOCKER_INFLUXDB_INIT_ORG=${INFLUXDB_ORG}
+      - DOCKER_INFLUXDB_INIT_BUCKET=${INFLUXDB_BUCKET}
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - ${GRAFANA_PORT}:3000
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana-provisioning/:/etc/grafana/provisioning
+    depends_on:
+      - influxdb
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USERNAME}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_RENDERING_SERVER_URL=http://renderer:${RENDERER_PORT}/render
+      - GF_RENDERING_CALLBACK_URL=http://grafana:${GRAFANA_PORT}
+  renderer:
+    image: grafana/grafana-image-renderer:latest
+    ports:
+      - ${RENDERER_PORT}:8081
+volumes:
+  influxdb-storage:
+  grafana-storage:
