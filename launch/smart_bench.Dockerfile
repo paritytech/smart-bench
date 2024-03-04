@@ -12,13 +12,13 @@ RUN cargo install --root /usr/local/ --locked --path . \
 FROM docker.io/library/ubuntu:20.04
 LABEL description="Multistage Docker image for smart-bench"
 ARG DOCKERFILE_DIR=launch
-
+RUN echo "deb http://security.ubuntu.com/ubuntu focal-security main" | tee /etc/apt/sources.list.d/focal-security.list
 RUN apt-get update \
-        && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
-	  libssl1.1=1.1.1f-1ubuntu2.20 \
-	  netcat=1.206-1ubuntu1 \
-        && apt-get clean \
-        && rm -rf /var/lib/apt/lists/*
+	&& DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
+		libssl1.1 \
+		netcat=1.206-1ubuntu1 \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/bin/smart-bench /usr/local/bin
 
