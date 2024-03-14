@@ -10,8 +10,9 @@ env:
   MOONBEAM_DIR: moonbeam_release
   MOONBEAM_BIN: moonbeam_release/*/target/release/moonbeam
   MOONBEAM_VERSION: version
-  BENCHMARK_DIR: results
+  BENCHMARK_DIR: stats
   TEST_PARAMS: --instance-count 1 --call-count 1000
+  BENCHMARK_URI: https://raw.githubusercontent.com/paritytech/smart-bench/gh-pages
 
 jobs:
   build_dev_moonbeam:
@@ -216,6 +217,7 @@ jobs:
 
       - name: Merge CSV
         run: |
+          curl -L -o ${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }}  ${{ env.BENCHMARK_URI }}/${{ env.BENCHMARK_FILE }}
           cat ${{ env.BENCHMARK_DIR }}/*/*.csv >> ${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }}
 
       - name: Generate graph
@@ -226,8 +228,19 @@ jobs:
       - name: Commit benchmark stats
         run: |
           CURRENT_DATE=$(date +"%Y%m%d")
+          # Set git config
           git config user.email "paritytech-ci@parity.io"
           git config user.name "paritytech-ci"
-          git add ${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }} ${{ env.BENCHMARK_DIR }}/tps.png
-          git commit -m "Add benchmark results on ${CURRENT_DATE}"
-          git push
+          git fetch origin gh-pages
+          # saving stats
+          mkdir /tmp/stats
+          mv ${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }} /tmp/stats
+          mv ${{ env.BENCHMARK_DIR }}/tps.png /tmp/stats
+          git checkout gh-pages
+          mv /tmp/stats/* .
+          # Upload files
+          git add ${{ env.BENCHMARK_FILE }} tps.png --force
+          git status
+          git commit -m "Updated stats in ${CURRENT_DATE} and pushed to gh-pages"
+          git push origin gh-pages --force
+          rm -rf .git/ ./*
