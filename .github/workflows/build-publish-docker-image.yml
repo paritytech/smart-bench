@@ -1,0 +1,99 @@
+name: Build/publish Docker image
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**/.gitingore'
+      - 'CODEOWNERS'
+      - 'LICENSE'
+      - '**/*.md'
+      - 'results/**'
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '.gitingore'
+      - 'CODEOWNERS'
+      - 'LICENSE'
+      - '**/*.md'
+      - 'results/**'
+
+env:
+  IMAGE_NAME: "paritytech/smart-bench"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-docker-image:
+    name: Test Docker image build
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download binaries
+        run: |
+          cd launch
+          bash ./download-bins.sh
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          push: false
+          context: .
+          file: ./launch/smart_bench.Dockerfile
+          build-args: |
+            VCS_REF="${{ github.sha }}"
+            BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          tags: |
+            ${{ env.IMAGE_NAME }}:test
+
+  build-publish-docker-image:
+    name: Build and publish Docker image
+    if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    environment: master
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare Docker environment
+        run: |
+          echo IMAGE_TAG="master-${GITHUB_SHA::7}" >> $GITHUB_ENV
+          echo "Docker image will be published with the tag: ${{ env.IMAGE_TAG }}!"
+
+      - name: Download binaries
+        run: |
+          cd launch
+          bash ./download-bins.sh
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          context: .
+          file: ./launch/smart_bench.Dockerfile
+          build-args: |
+            VCS_REF="${{ github.sha }}"
+            BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.IMAGE_NAME }}:latest
