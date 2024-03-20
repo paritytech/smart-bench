@@ -155,7 +155,7 @@ convert_csv_to_line_protocol() {
      return field
    };
    function escape(field){
-     gsub(/ /,"\ ", field);
+     gsub(/ /,"\\ ", field);
      return field
    }{
    printf "%s,platform=%s,parachain_ver=%s,contract_type=%s,contract_compiler_ver=\"%s\" tx_per_sec=%s %s\n",
