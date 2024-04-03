@@ -124,19 +124,19 @@ wait_for_containers() {
   local retry_interval=1
 
   echo "Waiting for all Docker containers to be running..."
-  retry_command "$max_retries" "$retry_interval" docker-compose -f "$DOCKER_COMPOSE_FILE" \
+  retry_command "$max_retries" "$retry_interval" docker compose -f "$DOCKER_COMPOSE_FILE" \
 	  ps --services --filter "status=running" | grep -qvx " "
 }
 
 start_containers() {
   echo "Starting docker containers"
-  docker-compose -f "$DOCKER_COMPOSE_FILE" up -d
+  docker compose -f "$DOCKER_COMPOSE_FILE" up -d
   wait_for_containers
 }
 
 stop_containers() {
   echo "Stopping docker containers"
-  docker-compose -f "$DOCKER_COMPOSE_FILE" down
+  docker compose -f "$DOCKER_COMPOSE_FILE" down
 }
 
 trim_spaces() {
