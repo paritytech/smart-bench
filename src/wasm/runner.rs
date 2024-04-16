@@ -1,3 +1,5 @@
+use self::xts::api;
+
 use super::*;
 use crate::BlockInfo;
 use codec::Encode;
@@ -179,6 +181,20 @@ impl BenchRunner {
         Ok(hashes)
     }
 
+    async fn get_block_time_stamp(
+        client: OnlineClient<DefaultConfig>,
+        block_hash: sp_core::H256,
+    ) -> color_eyre::Result<u64> {
+        let storage_timestamp_storage_addr = api::storage().timestamp().now();
+        let time_stamp = client
+            .storage()
+            .at(block_hash)
+            .fetch(&storage_timestamp_storage_addr)
+            .await?
+            .unwrap();
+        Ok(time_stamp)
+    }
+
     /// Call each contract instance `call_count` times. Wait for all txs to be included in a block
     /// before returning.
     pub async fn run(
@@ -239,10 +255,18 @@ impl BenchRunner {
 
         let remaining_hashes: std::collections::HashSet<Hash> = tx_hashes.iter().cloned().collect();
 
-        let wait_for_txs = crate::collect_block_stats(block_stats, remaining_hashes, |hash| {
-            let client = self.api.client.clone();
-            Self::get_extrinsics_hashes_in_block(client, hash)
-        });
+        let wait_for_txs = crate::collect_block_stats(
+            block_stats,
+            remaining_hashes,
+            |hash| {
+                let client: OnlineClient<DefaultConfig> = self.api.client.clone();
+                Self::get_extrinsics_hashes_in_block(client, hash)
+            },
+            |hash| {
+                let client: OnlineClient<DefaultConfig> = self.api.client.clone();
+                Self::get_block_time_stamp(client, hash)
+            },
+        );
 
         Ok(wait_for_txs)
     }

@@ -4,20 +4,25 @@ use std::task::Poll;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 pub struct BlockInfo {
+    // block time stamp
+    pub time_stamp: u64,
     pub stats: blockstats::BlockStats,
     // list of hashes to look for
     pub hashes: Vec<sp_core::H256>,
 }
 
 /// Subscribes to block stats. Completes once *all* hashes in `remaining_hashes` have been received.
-pub fn collect_block_stats<F, Fut>(
+pub fn collect_block_stats<F, FH, G, FTS>(
     block_stats: impl TryStream<Ok = blockstats::BlockStats, Error = subxt::Error> + Unpin,
     remaining_hashes: HashSet<sp_core::H256>,
     get_hashes_in_block: F,
+    get_block_time_stamp: G,
 ) -> impl TryStream<Ok = BlockInfo, Error = color_eyre::Report>
 where
-    F: Fn(sp_core::H256) -> Fut + Copy,
-    Fut: Future<Output = color_eyre::Result<Vec<sp_core::H256>>>,
+    F: Fn(sp_core::H256) -> FH + Copy,
+    FH: Future<Output = color_eyre::Result<Vec<sp_core::H256>>>,
+    G: Fn(sp_core::H256) -> FTS + Copy,
+    FTS: Future<Output = color_eyre::Result<u64>>,
 {
     let block_stats_arc = Arc::new(Mutex::new(block_stats));
     let remaining_hashes_arc = Arc::new(Mutex::new(remaining_hashes));
@@ -40,11 +45,17 @@ where
             let stats = block_stats.lock().unwrap().try_next().await?.unwrap();
             tracing::debug!("{stats:?}");
             let hashes = get_hashes_in_block(stats.hash).await?;
+            let time_stamp = get_block_time_stamp(stats.hash).await?;
+
             let mut remaining_hashes = remaining_hashes.lock().unwrap();
             for xt in &hashes {
                 remaining_hashes.remove(xt);
             }
-            Ok(BlockInfo { hashes, stats })
+            Ok(BlockInfo {
+                time_stamp,
+                hashes,
+                stats,
+            })
         }
     })
 }
@@ -55,22 +66,37 @@ pub async fn print_block_info(
 ) -> color_eyre::Result<()> {
     let mut total_extrinsics = 0u64;
     let mut total_blocks = 0u64;
+    let mut time_stamp = None;
+    let mut time_diff = None;
     println!();
     block_info
         .try_for_each(|block| {
             println!("{}", block.stats);
             total_extrinsics += block.stats.num_extrinsics;
             total_blocks += 1;
+            if time_diff.is_none() {
+                if let Some(ts) = time_stamp {
+                    time_diff = Some(block.time_stamp - ts)
+                } else {
+                    time_stamp = Some(block.time_stamp)
+                }
+            }
             future::ready(Ok(()))
         })
         .await?;
     println!("\nSummary:");
     println!("Total Blocks: {total_blocks}");
     println!("Total Extrinsics: {total_extrinsics}");
-    println!("TPS - Transaction execution time per second, assuming a 0.5-second execution time per block");
+    println!("sTPS - Standard Transaction per Second");
+    let diff = time_diff.unwrap_or_else(|| {
+        // block build time in milliseconds
+        let default = 12000;
+        println!("Could not calculate blocks assuming, {default}");
+        default
+    });
     println!(
-        "TPS: {}",
-        total_extrinsics as f64 / (total_blocks as f64 * 0.5)
+        "sTPS: {}",
+        total_extrinsics as f64 / (total_blocks as f64 * diff as f64 / 1000.0)
     );
     Ok(())
 }
