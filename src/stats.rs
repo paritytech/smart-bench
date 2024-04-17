@@ -12,17 +12,14 @@ pub struct BlockInfo {
 }
 
 /// Subscribes to block stats. Completes once *all* hashes in `remaining_hashes` have been received.
-pub fn collect_block_stats<F, FH, G, FTS>(
+pub fn collect_block_stats<F, Fut>(
     block_stats: impl TryStream<Ok = blockstats::BlockStats, Error = subxt::Error> + Unpin,
     remaining_hashes: HashSet<sp_core::H256>,
-    get_hashes_in_block: F,
-    get_block_time_stamp: G,
+    get_block_details: F,
 ) -> impl TryStream<Ok = BlockInfo, Error = color_eyre::Report>
 where
-    F: Fn(sp_core::H256) -> FH + Copy,
-    FH: Future<Output = color_eyre::Result<Vec<sp_core::H256>>>,
-    G: Fn(sp_core::H256) -> FTS + Copy,
-    FTS: Future<Output = color_eyre::Result<u64>>,
+    Fut: Future<Output = color_eyre::Result<(u64, Vec<sp_core::H256>)>>,
+    F: Fn(sp_core::H256) -> Fut + Copy,
 {
     let block_stats_arc = Arc::new(Mutex::new(block_stats));
     let remaining_hashes_arc = Arc::new(Mutex::new(remaining_hashes));
@@ -44,8 +41,7 @@ where
         async move {
             let stats = block_stats.lock().unwrap().try_next().await?.unwrap();
             tracing::debug!("{stats:?}");
-            let hashes = get_hashes_in_block(stats.hash).await?;
-            let time_stamp = get_block_time_stamp(stats.hash).await?;
+            let (time_stamp, hashes) = get_block_details(stats.hash).await?;
 
             let mut remaining_hashes = remaining_hashes.lock().unwrap();
             for xt in &hashes {

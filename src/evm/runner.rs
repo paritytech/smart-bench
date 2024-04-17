@@ -206,10 +206,10 @@ impl MoonbeamRunner {
     ///
     /// for given block, ethereum transaction hash can be retrieved
     /// from events of type ethereum.Executed
-    async fn get_eth_hashes_from_events_in_block(
+    async fn get_block_details(
         client: OnlineClient<DefaultConfig>,
         block_hash: sp_core::H256,
-    ) -> color_eyre::Result<Vec<sp_core::H256>> {
+    ) -> color_eyre::Result<(u64, Vec<sp_core::H256>)> {
         let events = client.events().at(block_hash).await?;
         let mut tx_hashes = Vec::new();
         for event in events.iter() {
@@ -221,13 +221,6 @@ impl MoonbeamRunner {
                 tx_hashes.push(transaction_hash);
             }
         }
-        Ok(tx_hashes)
-    }
-
-    async fn get_block_time_stamp(
-        client: OnlineClient<DefaultConfig>,
-        block_hash: sp_core::H256,
-    ) -> color_eyre::Result<u64> {
         let storage_timestamp_storage_addr = api::storage().timestamp().now();
         let time_stamp = client
             .storage()
@@ -235,7 +228,7 @@ impl MoonbeamRunner {
             .fetch(&storage_timestamp_storage_addr)
             .await?
             .unwrap();
-        Ok(time_stamp)
+        Ok((time_stamp, tx_hashes))
     }
 
     /// Call each contract instance `call_count` times. Wait for all txs to be included in a block
@@ -291,18 +284,10 @@ impl MoonbeamRunner {
             .map(|hash| sp_core::H256::from_slice(hash.as_ref()))
             .collect();
 
-        let wait_for_txs = crate::collect_block_stats(
-            block_stats,
-            remaining_hashes,
-            |hash| {
-                let client = self.api.client.clone();
-                Self::get_eth_hashes_from_events_in_block(client, hash)
-            },
-            |hash| {
-                let client: OnlineClient<DefaultConfig> = self.api.client.clone();
-                Self::get_block_time_stamp(client, hash)
-            },
-        );
+        let wait_for_txs = crate::collect_block_stats(block_stats, remaining_hashes, |hash| {
+            let client = self.api.client.clone();
+            Self::get_block_details(client, hash)
+        });
 
         Ok(wait_for_txs)
     }
