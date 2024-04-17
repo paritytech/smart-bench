@@ -42,7 +42,6 @@ where
             let stats = block_stats.lock().unwrap().try_next().await?.unwrap();
             tracing::debug!("{stats:?}");
             let (time_stamp, hashes) = get_block_details(stats.hash).await?;
-
             let mut remaining_hashes = remaining_hashes.lock().unwrap();
             for xt in &hashes {
                 remaining_hashes.remove(xt);

@@ -249,7 +249,7 @@ impl BenchRunner {
         let remaining_hashes: std::collections::HashSet<Hash> = tx_hashes.iter().cloned().collect();
 
         let wait_for_txs = crate::collect_block_stats(block_stats, remaining_hashes, |hash| {
-            let client: OnlineClient<DefaultConfig> = self.api.client.clone();
+            let client = self.api.client.clone();
             Self::get_block_details(client, hash)
         });
 
