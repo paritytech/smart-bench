@@ -87,7 +87,7 @@ pub async fn print_block_info(
     let diff = time_diff.unwrap_or_else(|| {
         // block build time in milliseconds
         let default = 12000;
-        println!("Could not calculate blocks assuming, {default}");
+        println!("Could not calculate block build time, assuming {default}");
         default
     });
     println!(
