@@ -26,7 +26,7 @@ fn is_match(stdout: &str, pattern: &str) -> bool {
 }
 
 const SMART_BENCH_STATS_PATTERN: &str = r"[0-9]+: PoV Size=[0-9]+KiB\([0-9]+%\) Weight RefTime=[0-9]+ms\([0-9]+%\) Weight ProofSize=[0-9]+KiB\([0-9]+%\) Witness=[0-9]+KiB Block=[0-9]+KiB NumExtrinsics=[0-9]+";
-const SMART_BENCH_LAST_LINE_PATTERN: &str = r"TPS: \d+(\.\d+)?";
+const SMART_BENCH_LAST_LINE_PATTERN: &str = r"sTPS: \d+(\.\d+)?";
 const CONTRACTS_NODE_WASM: &str = "substrate-contracts-node";
 const CONTRACTS_NODE_EVM: &str = "moonbeam";
 

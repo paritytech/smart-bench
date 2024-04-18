@@ -1,3 +1,5 @@
+use self::xts::api;
+
 use super::*;
 use crate::BlockInfo;
 use codec::Encode;
@@ -162,10 +164,10 @@ impl BenchRunner {
         ))
     }
 
-    async fn get_extrinsics_hashes_in_block(
+    async fn get_block_details(
         client: OnlineClient<DefaultConfig>,
         block_hash: sp_core::H256,
-    ) -> color_eyre::Result<Vec<sp_core::H256>> {
+    ) -> color_eyre::Result<(u64, Vec<sp_core::H256>)> {
         let block = client.blocks().at(block_hash).await;
         let hashes = block
             .unwrap_or_else(|_| panic!("block {} not found", block_hash))
@@ -176,7 +178,14 @@ impl BenchRunner {
             .map(|e| e.unwrap_or_else(|_| panic!("extrinsic error at block {}", block_hash)))
             .map(|e| BlakeTwo256::hash_of(&e.bytes()))
             .collect();
-        Ok(hashes)
+        let storage_timestamp_storage_addr = api::storage().timestamp().now();
+        let time_stamp = client
+            .storage()
+            .at(block_hash)
+            .fetch(&storage_timestamp_storage_addr)
+            .await?
+            .unwrap();
+        Ok((time_stamp, hashes))
     }
 
     /// Call each contract instance `call_count` times. Wait for all txs to be included in a block
@@ -241,7 +250,7 @@ impl BenchRunner {
 
         let wait_for_txs = crate::collect_block_stats(block_stats, remaining_hashes, |hash| {
             let client = self.api.client.clone();
-            Self::get_extrinsics_hashes_in_block(client, hash)
+            Self::get_block_details(client, hash)
         });
 
         Ok(wait_for_txs)
