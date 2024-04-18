@@ -4,7 +4,7 @@ set -euo pipefail
 polkadot_sdk_version=1.7.0
 polkadot_sdk_url="https://github.com/paritytech/polkadot-sdk/releases/download/polkadot-v${polkadot_sdk_version}"
 
-zombienet_version=1.3.91
+zombienet_version=1.3.100
 moonbeam_version=13_12_2023
 
 packages_to_download=$(cat << EOF
@@ -37,7 +37,7 @@ packages_to_download=$(cat << EOF
     "target":"zombienet",
     "url": "https://github.com/paritytech/zombienet/releases/download/v$zombienet_version/zombienet-linux-x64",
     "format": "bin",
-    "sha256": "a83caa4dae30d975b3457d409bec7796939e17d4c59a438a56532b6ffeefbac0"
+    "sha256": "7be7d913cbb1f77e309d6a72c3b5342daca1406a0c1c452e3113120bb5feb007"
   },
   {
     "target":"moonbeam",

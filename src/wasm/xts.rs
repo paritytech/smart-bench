@@ -167,6 +167,7 @@ impl ContractsApi {
         storage_deposit_limit: Option<Balance>,
         data: Vec<u8>,
         signer: &Signer,
+        nonce: Option<u64>
     ) -> color_eyre::Result<Hash> {
         let call = subxt::tx::Payload::new(
             "Contracts",
@@ -181,8 +182,13 @@ impl ContractsApi {
         )
         .unvalidated();
 
-        let account_nonce = self.get_account_nonce(signer).await?;
 
+        let account_nonce = if let Some(nonce) = nonce { 
+            nonce 
+        } else { 
+            self.get_account_nonce(signer).await? 
+        };
+        
         let tx_hash = self
             .client
             .tx()
