@@ -103,7 +103,7 @@ if [ -n "${BINARIES_DIR}" ]; then
 fi
 
 # shellcheck disable=SC2086
-(set -x; docker run --rm -it --init \
+(set -x; docker run --platform linux/amd64 --rm -t --init \
   ${volume_args} \
   "${IMAGE}" \
   "${OTHERARGS[@]}"

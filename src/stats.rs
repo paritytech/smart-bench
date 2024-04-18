@@ -4,6 +4,8 @@ use std::task::Poll;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 pub struct BlockInfo {
+    // block time stamp
+    pub time_stamp: u64,
     pub stats: blockstats::BlockStats,
     // list of hashes to look for
     pub contract_call_hashes: Vec<sp_core::H256>,
@@ -13,11 +15,11 @@ pub struct BlockInfo {
 pub fn collect_block_stats<F, Fut>(
     block_stats: impl TryStream<Ok = blockstats::BlockStats, Error = subxt::Error> + Unpin,
     remaining_hashes: HashSet<sp_core::H256>,
-    get_hashes_in_block: F,
+    get_block_details: F,
 ) -> impl TryStream<Ok = BlockInfo, Error = color_eyre::Report>
 where
+    Fut: Future<Output = color_eyre::Result<(u64, Vec<sp_core::H256>)>>,
     F: Fn(sp_core::H256) -> Fut + Copy,
-    Fut: Future<Output = color_eyre::Result<Vec<sp_core::H256>>>,
 {
     let block_stats_arc = Arc::new(Mutex::new(block_stats));
     let remaining_hashes_arc = Arc::new(Mutex::new(remaining_hashes));
@@ -39,12 +41,13 @@ where
         async move {
             let stats = block_stats.lock().unwrap().try_next().await?.unwrap();
             tracing::debug!("{stats:?}");
-            let hashes = get_hashes_in_block(stats.hash).await?;
+            let (time_stamp, hashes) = get_block_details(stats.hash).await?;
             let mut remaining_hashes = remaining_hashes.lock().unwrap();
             for xt in &hashes {
                 remaining_hashes.remove(xt);
             }
             Ok(BlockInfo {
+                time_stamp,
                 contract_call_hashes: hashes,
                 stats,
             })
@@ -68,6 +71,8 @@ pub async fn print_block_info(
 ) -> color_eyre::Result<()> {
     let mut call_extrinsics_per_block: Vec<u64> = Vec::new();
     let mut call_block_expected = false;
+    let mut time_stamp = None;
+    let mut time_diff = None;
     println!();
     block_info
         .try_for_each(|block| {
@@ -81,12 +86,21 @@ pub async fn print_block_info(
             if call_block_expected {
                 call_extrinsics_per_block.push(contract_calls_count);
             }
+
+            if time_diff.is_none() {
+                if let Some(ts) = time_stamp {
+                    time_diff = Some((block.time_stamp - ts) as f64 / 1000.0)
+                } else {
+                    time_stamp = Some(block.time_stamp)
+                }
+            }
             future::ready(Ok(()))
         })
         .await?;
 
-    // Skip last block as its not stressed to its full cabailities since there is very low chance of hitting
-    // that exact amount of transactions (it will contain as much transactions as there are left to execute)
+    // Skip the last block as it's not stressed to its full capabilities, 
+    // since there is a very low chance of hitting that exact amount of transactions 
+    // (it will contain as many transactions as there are left to execute).
     let call_extrinsics_per_block =
         &call_extrinsics_per_block[0..call_extrinsics_per_block.len() - 1];
 
@@ -95,14 +109,21 @@ pub async fn print_block_info(
     println!("\nSummary:");
     println!("Total Blocks: {tps_blocks}");
     println!("Total Extrinsics: {tps_total_extrinsics}");
+    let diff = time_diff.unwrap_or_else(|| {
+        // default block build time
+        let default = 12.0;
+        println!("Warning: Could not calculate block build time, assuming {default}");
+        default
+    });
+    println!("Block Build Time: {diff}");
     if tps_blocks > 0 {
-        println!("TPS - Transaction execution time per second, assuming a 0.5-second execution time per block");
+        println!("sTPS - Standard Transaction Per Second");
         println!(
-            "TPS: {}",
-            tps_total_extrinsics as f64 / (tps_blocks as f64 * 0.5)
+            "sTPS: {}",
+            tps_total_extrinsics as f64 / (tps_blocks as f64 * diff)
         );
     } else {
-        println!("TPS - Error - not enough data to calculate TPS, consider increasing --call-count value")
+        println!("sTPS - Error - not enough data to calculate sTPS, consider increasing --call-count value")
     }
     Ok(())
 }
