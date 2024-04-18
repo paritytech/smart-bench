@@ -71,7 +71,7 @@ pub async fn print_block_info(
             total_blocks += 1;
             if time_diff.is_none() {
                 if let Some(ts) = time_stamp {
-                    time_diff = Some(block.time_stamp - ts)
+                    time_diff = Some((block.time_stamp - ts) as f64 / 1000.0)
                 } else {
                     time_stamp = Some(block.time_stamp)
                 }
@@ -82,16 +82,17 @@ pub async fn print_block_info(
     println!("\nSummary:");
     println!("Total Blocks: {total_blocks}");
     println!("Total Extrinsics: {total_extrinsics}");
-    println!("sTPS - Standard Transaction per Second");
     let diff = time_diff.unwrap_or_else(|| {
-        // block build time in milliseconds
-        let default = 12000;
-        println!("Could not calculate block build time, assuming {default}");
+        // default block build time
+        let default = 12.0;
+        println!("Warning: Could not calculate block build time, assuming {default}");
         default
     });
+    println!("Block Build Time: {diff}");
+    println!("sTPS - Standard Transaction per Second");
     println!(
         "sTPS: {}",
-        total_extrinsics as f64 / (total_blocks as f64 * diff as f64 / 1000.0)
+        total_extrinsics as f64 / (total_blocks as f64 * diff)
     );
     Ok(())
 }
