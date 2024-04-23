@@ -11,7 +11,7 @@ env:
   MOONBEAM_BIN: moonbeam_release/*/target/release/moonbeam
   MOONBEAM_VERSION: version
   BENCHMARK_DIR: stats
-  TEST_PARAMS: --instance-count 1 --call-count 1000
+  TEST_PARAMS: --instance-count 1 --call-count 2000
   BENCHMARK_URI: https://raw.githubusercontent.com/paritytech/smart-bench/gh-pages
 
 jobs:
@@ -70,7 +70,7 @@ jobs:
     strategy:
       matrix:
         type: [ink-wasm, sol-wasm, evm]
-        contract: [erc20]
+        contract: [erc20, trianglenumber, storageread, storagewrite]
     env:
       BENCHMARK_FILE: benchmark-${{ matrix.type }}-${{ matrix.contract }}.csv
     needs: build_dev_moonbeam
@@ -217,13 +217,23 @@ jobs:
 
       - name: Merge CSV
         run: |
-          curl -L -o ${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }}  ${{ env.BENCHMARK_URI }}/${{ env.BENCHMARK_FILE }}
-          cat ${{ env.BENCHMARK_DIR }}/*/*.csv >> ${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }}
+          for file in ${{ env.BENCHMARK_DIR }}/*/*.csv; do
+            # Extract contract name
+            contract_name=$(basename "$file" | sed 's/^.*_\(.*\)\.csv$/\1/')
+            benchmark_file=${contract_name}_bench.csv
+            if [ ! -f ${{ env.BENCHMARK_DIR }}/${benchmark_file} ]; then
+              curl -L -o ${{ env.BENCHMARK_DIR }}/${benchmark_file}  ${{ env.BENCHMARK_URI }}/${benchmark_file}
+            fi
+            cat $file >> ${{ env.BENCHMARK_DIR }}/${benchmark_file}
+          done
 
       - name: Generate graph
         run: |
           cd stats
-          ./get_graph.sh --panel-id=2 --csv-data=../${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }} --output=../${{ env.BENCHMARK_DIR }}/tps.png
+          for file in ${{ env.BENCHMARK_DIR }}/*.csv; do
+            contract_name=$(basename "$file" | sed 's/^.*_\(.*\)\.csv$/\1/')
+            ./get_graph.sh --panel-id=2 --csv-data=../${file} --output=../${{ env.BENCHMARK_DIR }}/${contract_name}_stps.png
+          done
 
       - name: Commit benchmark stats
         run: |
@@ -234,12 +244,12 @@ jobs:
           git fetch origin gh-pages
           # saving stats
           mkdir /tmp/stats
-          mv ${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }} /tmp/stats
-          mv ${{ env.BENCHMARK_DIR }}/tps.png /tmp/stats
+          mv ${{ env.BENCHMARK_DIR }}/*.csv /tmp/stats
+          mv ${{ env.BENCHMARK_DIR }}/*.png /tmp/stats
           git checkout gh-pages
           mv /tmp/stats/* .
           # Upload files
-          git add ${{ env.BENCHMARK_FILE }} tps.png --force
+          git add *.csv *.png --force
           git status
           git commit -m "Updated stats in ${CURRENT_DATE} and pushed to gh-pages"
           git push origin gh-pages --force
