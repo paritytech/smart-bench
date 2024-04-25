@@ -10,8 +10,7 @@ use super::xts::{
 };
 use crate::BlockInfo;
 use color_eyre::{eyre, Section as _};
-use futures::TryStream;
-use futures::future::join_all;
+use futures::{TryStream, StreamExt};
 use impl_serde::serialize::from_hex;
 use secp256k1::SecretKey;
 use subxt::{OnlineClient, PolkadotConfig as DefaultConfig};
@@ -27,11 +26,11 @@ pub struct MoonbeamRunner {
     signer: SecretKey,
     address: Address,
     calls: Vec<(String, Vec<Call>)>,
-    pub call_signers: Vec<SecretKey>
+    pub call_signers: Option<Vec<SecretKey>>,
 }
 
 impl MoonbeamRunner {
-    pub fn new(url: String, signer: SecretKey, api: MoonbeamApi, call_signers: Vec<SecretKey>) -> Self {
+    pub fn new(url: String, signer: SecretKey, api: MoonbeamApi, call_signers: Option<Vec<SecretKey>>) -> Self {
         let address = Key::address(&SecretKeyRef::from(&signer));
         Self {
             url,
@@ -250,9 +249,13 @@ impl MoonbeamRunner {
             for i in 0..max_instance_count {
                 for (_name, contract_calls) in &self.calls {
 
-                    let signer = &self.call_signers[counter];
-                    counter += 1;
-
+                    let signer = if let Some(signers) = &self.call_signers {
+                        counter+=1;
+                        &signers[counter-1]
+                    } else {
+                        &self.signer
+                    };
+                    
                     if let Some(contract_call) = contract_calls.get(i as usize) {
                         tracing::debug!(
                             "Calling {}, address {}, gas_limit {}",
@@ -279,7 +282,9 @@ impl MoonbeamRunner {
             }
         }
 
-        let tx_hashes = join_all(futures).await;
+        const MAX_PARALLEL_RPC_CONN: usize = 100;
+        let stream = futures::stream::iter(futures).buffer_unordered(MAX_PARALLEL_RPC_CONN);
+        let tx_hashes = stream.collect::<Vec<_>>().await;
         println!("Submitted {} total contract calls", tx_hashes.len());
 
         let remaining_hashes: std::collections::HashSet<sp_core::H256> = tx_hashes.into_iter().collect::<Result<Vec<_>, _>>()?.into_iter().collect();

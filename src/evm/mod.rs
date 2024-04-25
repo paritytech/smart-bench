@@ -10,10 +10,13 @@ use web3::{contract::tokens::Tokenize, signing::Key, types::U256};
 
 pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     let api = MoonbeamApi::new(&cli.url).await?;
+    let mut call_signers = None;
 
-    let mut call_signers = vec![];
-    for i in 1..(cli.call_count * cli.instance_count)+1 {
-        call_signers.push(keyring::generate_signer(i));
+    if !cli.single_signer {
+        call_signers = Some(vec![]);
+        for i in 1..(cli.call_count * cli.instance_count * cli.contracts.len() as u32) + 1 {
+            call_signers.as_mut().unwrap().push(keyring::generate_signer(i));
+        }
     }
 
     let mut runner = MoonbeamRunner::new(cli.url.to_string(), keyring::balthazar(), api, call_signers);

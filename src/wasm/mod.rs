@@ -50,10 +50,13 @@ mod ink_contracts {
 pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
     let alice = PairSigner::new(AccountKeyring::Alice.pair());
     let bob: AccountId32 = AccountKeyring::Bob.to_account_id().into();
-    let mut call_signers = vec![];
+    let mut call_signers = None;
 
-    for i in 0..(cli.call_count * cli.instance_count) {
-        call_signers.push(generate_signer(i));
+    if !cli.single_signer {
+        call_signers = Some(vec![]);
+        for i in 0..(cli.call_count * cli.instance_count * cli.contracts.len() as u32) {
+            call_signers.as_mut().unwrap().push(generate_signer(i));
+        }
     }
 
     let mut runner = runner::BenchRunner::new(alice, &cli.url, call_signers).await?;
