@@ -119,7 +119,7 @@ pub async fn print_block_info(
     if tps_blocks > 0 {
         println!("sTPS - Standard Transaction Per Second");
         println!(
-            "sTPS: {}",
+            "sTPS: {:.2}",
             tps_total_extrinsics as f64 / (tps_blocks as f64 * diff)
         );
     } else {
