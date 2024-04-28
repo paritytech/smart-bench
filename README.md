@@ -117,3 +117,20 @@ Before running tests, smart-bench needs to be build using `cargo build` command.
 Integration tests requires two types of nodes to be installed and available on `PATH`.
 - [`moonbeam`](https://github.com/PureStake/moonbeam/) with enabled [`dev RPC`](https://github.com/paritytech/substrate-contracts-node/blob/539cf0271090f406cb3337e4d97680a6a63bcd2f/node/src/rpc.rs#L60) for Solidity/EVM contracts
 - [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) for Ink! and Solang (Solidity/Wasm) contracts
+
+### Benchmarks
+
+## Erc20
+![Erc20](https://github.com/paritytech/smart-bench/blob/gh-pages/stps_erc20.png?raw=true)
+
+## Flipper
+![Flipper](https://github.com/paritytech/smart-bench/blob/gh-pages/stps_flipper.png?raw=true)
+
+## Storage Read
+![Storage Read](https://github.com/paritytech/smart-bench/blob/gh-pages/stps_storage-read.png?raw=true)
+
+## Storage Write
+![Storage Write](https://github.com/paritytech/smart-bench/blob/gh-pages/stps_storage-write.png?raw=true)
+
+## Triangle Number
+![Triangle Number](https://github.com/paritytech/smart-bench/blob/gh-pages/stps_triangle-number.png?raw=true)

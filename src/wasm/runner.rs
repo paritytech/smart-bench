@@ -9,13 +9,17 @@ use sp_runtime::traits::{BlakeTwo256, Hash as _};
 use std::time::{SystemTime, UNIX_EPOCH};
 use subxt::{backend::rpc::RpcClient, OnlineClient, PolkadotConfig as DefaultConfig};
 
+use xts::api::{
+    contracts::calls::types::Call, contracts::events::Instantiated, system::events::ExtrinsicFailed,
+};
+
 pub const DEFAULT_STORAGE_DEPOSIT_LIMIT: Option<Balance> = None;
 
 pub struct BenchRunner {
     url: String,
     api: ContractsApi,
     signer: Signer,
-    calls: Vec<(String, Vec<Call>)>,
+    calls: Vec<(String, Vec<RunnerCall>)>,
 }
 
 impl BenchRunner {
@@ -70,7 +74,7 @@ impl BenchRunner {
             .iter()
             .map(|contract| {
                 let message = create_message();
-                Call {
+                RunnerCall {
                     contract_account: contract.clone(),
                     call_data: message,
                 }
@@ -136,17 +140,12 @@ impl BenchRunner {
             let events = block.events().await?;
             for event in events.iter() {
                 let event = event?;
-                if let Some(instantiated) =
-                    event.as_event::<xts::api::contracts::events::Instantiated>()?
-                {
+                if let Some(instantiated) = event.as_event::<Instantiated>()? {
                     accounts.push(instantiated.contract);
                     if accounts.len() == count as usize {
                         return Ok(accounts);
                     }
-                } else if event
-                    .as_event::<xts::api::system::events::ExtrinsicFailed>()?
-                    .is_some()
-                {
+                } else if event.as_event::<ExtrinsicFailed>()?.is_some() {
                     let metadata = self.api.client.metadata();
                     let dispatch_error =
                         subxt::error::DispatchError::decode_from(event.field_bytes(), metadata);
@@ -168,16 +167,19 @@ impl BenchRunner {
         client: OnlineClient<DefaultConfig>,
         block_hash: sp_core::H256,
     ) -> color_eyre::Result<(u64, Vec<sp_core::H256>)> {
-        let block = client.blocks().at(block_hash).await;
-        let hashes = block
-            .unwrap_or_else(|_| panic!("block {} not found", block_hash))
+        let block = client.blocks().at(block_hash).await?;
+        let mut tx_hashes = Vec::new();
+        let extrinsics_details = block
             .extrinsics()
-            .await
-            .unwrap_or_else(|_| panic!("extrinsics at block {} not found", block_hash))
+            .await?
             .iter()
-            .map(|e| e.unwrap_or_else(|_| panic!("extrinsic error at block {}", block_hash)))
-            .map(|e| BlakeTwo256::hash_of(&e.bytes()))
-            .collect();
+            .collect::<Result<Vec<_>, _>>()?;
+
+        for extrinsic_detail in extrinsics_details {
+            if let Some(Call { .. }) = extrinsic_detail.as_extrinsic::<Call>()? {
+                tx_hashes.push(BlakeTwo256::hash_of(&extrinsic_detail.bytes()));
+            }
+        }
         let storage_timestamp_storage_addr = api::storage().timestamp().now();
         let time_stamp = client
             .storage()
@@ -185,7 +187,7 @@ impl BenchRunner {
             .fetch(&storage_timestamp_storage_addr)
             .await?
             .unwrap();
-        Ok((time_stamp, hashes))
+        Ok((time_stamp, tx_hashes))
     }
 
     /// Call each contract instance `call_count` times. Wait for all txs to be included in a block
@@ -286,7 +288,7 @@ where
 }
 
 #[derive(Clone)]
-pub struct Call {
+pub struct RunnerCall {
     contract_account: AccountId,
     call_data: EncodedMessage,
 }
