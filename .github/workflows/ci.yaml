@@ -74,5 +74,5 @@ jobs:
         run: |
           git clone --verbose --depth 1 https://github.com/paritytech/ink.git
           mv Cargo.toml _Cargo.toml
-          ./scripts/ci/build-contract.sh ./ink/integration-tests/erc20
+          ./scripts/ci/build-contract.sh ./ink/integration-tests/public/erc20
           mv _Cargo.toml Cargo.toml

@@ -3,7 +3,9 @@ use std::collections::HashSet;
 use super::xts::{
     api::{
         self,
+        ethereum::calls::types::Transact,
         ethereum::events::Executed,
+        runtime_types::ethereum::transaction::{TransactionAction, TransactionV2},
         runtime_types::evm_core::error::{ExitReason, ExitSucceed},
     },
     MoonbeamApi,
@@ -25,7 +27,7 @@ pub struct MoonbeamRunner {
     pub api: MoonbeamApi,
     signer: SecretKey,
     address: Address,
-    calls: Vec<(String, Vec<Call>)>,
+    calls: Vec<(String, Vec<RunnerCall>)>,
     pub call_signers: Option<Vec<SecretKey>>,
 }
 
@@ -95,7 +97,7 @@ impl MoonbeamRunner {
                 .estimate_gas(self.address, Some(contract), &data)
                 .await
                 .note("Error estimating gas")?;
-            calls.push(Call {
+            calls.push(RunnerCall {
                 name: name.to_string(),
                 contract,
                 data,
@@ -208,22 +210,44 @@ impl MoonbeamRunner {
     ///
     /// for given block, ethereum transaction hash can be retrieved
     /// from events of type ethereum.Executed
-    async fn get_eth_hashes_from_events_in_block(
+    async fn get_block_details(
         client: OnlineClient<DefaultConfig>,
         block_hash: sp_core::H256,
-    ) -> color_eyre::Result<Vec<sp_core::H256>> {
-        let events = client.events().at(block_hash).await?;
+    ) -> color_eyre::Result<(u64, Vec<sp_core::H256>)> {
+        let block = client.blocks().at(block_hash).await?;
         let mut tx_hashes = Vec::new();
-        for event in events.iter() {
-            let event = event?;
-            if let Some(Executed {
-                transaction_hash, ..
-            }) = event.as_event::<Executed>()?
-            {
-                tx_hashes.push(transaction_hash);
+        let extrinsics_details = block
+            .extrinsics()
+            .await?
+            .iter()
+            .collect::<Result<Vec<_>, _>>()?;
+
+        for extrinsic_detail in extrinsics_details {
+            if let Some(Transact { transaction }) = extrinsic_detail.as_extrinsic::<Transact>()? {
+                if let TransactionV2::Legacy(tx) = transaction {
+                    if let TransactionAction::Call(_) = tx.action {
+                        let events = extrinsic_detail.events().await?;
+                        for event in events.iter() {
+                            let event = event?;
+                            if let Some(Executed {
+                                transaction_hash, ..
+                            }) = event.as_event::<Executed>()?
+                            {
+                                tx_hashes.push(transaction_hash);
+                            }
+                        }
+                    }
+                }
             }
         }
-        Ok(tx_hashes)
+        let storage_timestamp_storage_addr = api::storage().timestamp().now();
+        let time_stamp = client
+            .storage()
+            .at(block_hash)
+            .fetch(&storage_timestamp_storage_addr)
+            .await?
+            .unwrap();
+        Ok((time_stamp, tx_hashes))
     }
 
     /// Call each contract instance `call_count` times. Wait for all txs to be included in a block
@@ -292,14 +316,14 @@ impl MoonbeamRunner {
 
         let wait_for_txs = crate::collect_block_stats(block_stats, remaining_hashes, |hash| {
             let client = self.api.client.clone();
-            Self::get_eth_hashes_from_events_in_block(client, hash)
+            Self::get_block_details(client, hash)
         });
 
         Ok(wait_for_txs)
     }
 }
 
-struct Call {
+struct RunnerCall {
     name: String,
     contract: Address,
     data: Vec<u8>,

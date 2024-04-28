@@ -1,4 +1,4 @@
-name: Schedule based benchmark of pallet-contracts and pallet-evm
+name: Benchmark of pallet-contracts and pallet-evm
 
 on:
   schedule:
@@ -10,8 +10,9 @@ env:
   MOONBEAM_DIR: moonbeam_release
   MOONBEAM_BIN: moonbeam_release/*/target/release/moonbeam
   MOONBEAM_VERSION: version
-  BENCHMARK_DIR: results
-  TEST_PARAMS: --instance-count 1 --call-count 1000
+  BENCHMARK_DIR: stats
+  TEST_PARAMS: --instance-count 1 --call-count 2000
+  BENCHMARK_URI: https://raw.githubusercontent.com/paritytech/smart-bench/gh-pages
 
 jobs:
   build_dev_moonbeam:
@@ -69,9 +70,9 @@ jobs:
     strategy:
       matrix:
         type: [ink-wasm, sol-wasm, evm]
-        contract: [erc20]
+        contract: [erc20, flipper, triangle-number, storage-read, storage-write]
     env:
-      BENCHMARK_FILE: benchmark-${{ matrix.type }}-${{ matrix.contract }}.csv
+      BENCHMARK_FILE: benchmark_${{ matrix.type }}_${{ matrix.contract }}.csv
     needs: build_dev_moonbeam
     runs-on: ubuntu-latest
     steps:
@@ -160,7 +161,7 @@ jobs:
           STATS=$(./run.sh -- ${{ matrix.type }} ${{ matrix.contract }} ${TEST_PARAMS})
           BLOCKS=$(echo ${STATS} | grep -o 'Total Blocks: [0-9]*' | awk '{print $3}')
           EXTRINSICS=$(echo ${STATS} | grep -o 'Total Extrinsics: [0-9]*' | awk '{print $3}')
-          TPS=$(echo ${STATS} | grep -o 'TPS: [0-9]*' | awk '{print $2}')
+          TPS=$(echo ${STATS} | grep -o 'sTPS: [0-9]*' | awk '{print $2}')
           echo "Blocks: ${BLOCKS}"
           echo "Extrinsics: ${EXTRINSICS}"
           echo "TPS: ${TPS}"
@@ -203,8 +204,6 @@ jobs:
   collect:
     runs-on: ubuntu-latest
     needs: [smart_contract_benchmark]
-    env:
-      BENCHMARK_FILE: benchmark-results.csv
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -216,18 +215,41 @@ jobs:
 
       - name: Merge CSV
         run: |
-          cat ${{ env.BENCHMARK_DIR }}/*/*.csv >> ${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }}
+          for file in ${{ env.BENCHMARK_DIR }}/*/*.csv; do
+            # Extract contract name
+            contract_name=$(basename "$file" | sed 's/^.*_\(.*\)\.csv$/\1/')
+            benchmark_file=bench_${contract_name}.csv
+            if [ ! -f ${{ env.BENCHMARK_DIR }}/${benchmark_file} ]; then
+              curl -L -o ${{ env.BENCHMARK_DIR }}/${benchmark_file}  ${{ env.BENCHMARK_URI }}/${benchmark_file} || exit 1
+            fi
+            cat $file >> ${{ env.BENCHMARK_DIR }}/${benchmark_file}
+          done
 
       - name: Generate graph
         run: |
-          cd stats
-          ./get_graph.sh --panel-id=2 --csv-data=../${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }} --output=../${{ env.BENCHMARK_DIR }}/tps.png
+          for file in ${{ env.BENCHMARK_DIR }}/bench_*.csv; do
+            contract_name=$(basename "$file" | sed 's/^.*_\(.*\)\.csv$/\1/')
+            pushd stats
+            ./get_graph.sh --panel-id=2 --csv-data=../${file} --output=../${{ env.BENCHMARK_DIR }}/stps_${contract_name}.png
+            popd
+          done
 
       - name: Commit benchmark stats
         run: |
           CURRENT_DATE=$(date +"%Y%m%d")
+          # Set git config
           git config user.email "paritytech-ci@parity.io"
           git config user.name "paritytech-ci"
-          git add ${{ env.BENCHMARK_DIR }}/${{ env.BENCHMARK_FILE }} ${{ env.BENCHMARK_DIR }}/tps.png
-          git commit -m "Add benchmark results on ${CURRENT_DATE}"
-          git push
+          git fetch origin gh-pages
+          # saving stats
+          mkdir /tmp/stats
+          mv ${{ env.BENCHMARK_DIR }}/bench_*.csv /tmp/stats
+          mv ${{ env.BENCHMARK_DIR }}/stps_*.png /tmp/stats
+          git checkout gh-pages
+          mv /tmp/stats/* .
+          # Upload files
+          git add *.csv *.png --force
+          git status
+          git commit -m "Updated stats in ${CURRENT_DATE} and pushed to gh-pages"
+          git push origin gh-pages --force
+          rm -rf .git/ ./*

@@ -26,7 +26,7 @@ fn is_match(stdout: &str, pattern: &str) -> bool {
 }
 
 const SMART_BENCH_STATS_PATTERN: &str = r"[0-9]+: PoV Size=[0-9]+KiB\([0-9]+%\) Weight RefTime=[0-9]+ms\([0-9]+%\) Weight ProofSize=[0-9]+KiB\([0-9]+%\) Witness=[0-9]+KiB Block=[0-9]+KiB NumExtrinsics=[0-9]+";
-const SMART_BENCH_LAST_LINE_PATTERN: &str = r"TPS: \d+(\.\d+)?";
+const SMART_BENCH_LAST_LINE_PATTERN: &str = r"sTPS: \d+(\.\d+)?";
 const CONTRACTS_NODE_WASM: &str = "substrate-contracts-node";
 const CONTRACTS_NODE_EVM: &str = "moonbeam";
 
@@ -164,7 +164,7 @@ async fn test_ink_contract_success() {
         .arg("ink-wasm")
         .arg("flipper")
         .args(["--instance-count", "1"])
-        .args(["--call-count", "1"])
+        .args(["--call-count", "10"])
         .args(["--url", "ws://localhost:9944"])
         .arg("--single-signer")
         .timeout(std::time::Duration::from_secs(5))
@@ -210,7 +210,7 @@ async fn test_solidity_wasm_contract_success() {
         .arg("sol-wasm")
         .arg("flipper")
         .args(["--instance-count", "1"])
-        .args(["--call-count", "1"])
+        .args(["--call-count", "10"])
         .args(["--url", "ws://localhost:9944"])
         .arg("--single-signer")
         .timeout(std::time::Duration::from_secs(5))
@@ -257,7 +257,7 @@ async fn test_solidity_evm_contract_success() {
         .arg("evm")
         .arg("flipper")
         .args(["--instance-count", "1"])
-        .args(["--call-count", "1"])
+        .args(["--call-count", "10"])
         .args(["--url", "ws://localhost:9944"])
         .arg("--single-signer")
         .timeout(std::time::Duration::from_secs(5))
