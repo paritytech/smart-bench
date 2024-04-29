@@ -56,7 +56,7 @@ jobs:
           patch -p1 < ../../launch/moonbeam.patch
 
       - name: Build
-        uses: docker://paritytech/ci-unified:bullseye-1.73.0
+        uses: docker://paritytech/ci-unified:bullseye-1.77.0
         with:
           args: /bin/bash -c "cd moonbeam_release/*/ && cargo build --release"
 
