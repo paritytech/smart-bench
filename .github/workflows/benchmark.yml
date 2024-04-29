@@ -13,6 +13,7 @@ env:
   BENCHMARK_DIR: stats
   TEST_PARAMS: --instance-count 1 --call-count 2000
   BENCHMARK_URI: https://raw.githubusercontent.com/paritytech/smart-bench/gh-pages
+  VERSION: 1.7.0
 
 jobs:
   build_dev_moonbeam:
@@ -36,7 +37,7 @@ jobs:
 
       - name: Download Moonbeam Release
         run: |
-          API_URL="https://api.github.com/repos/moonbeam-foundation/moonbeam/releases/131808906"
+          API_URL="https://api.github.com/repos/moonbeam-foundation/moonbeam/releases/latest"
           RESPONSE=$(curl -s "${API_URL}")
           # Remove control characters causing error while parsing
           RESPONSE=$(echo $RESPONSE |  tr -cd '[:print:]')
@@ -99,7 +100,7 @@ jobs:
       - name: Download Polkadot-Parachain Release
         id: polkadot_parachain_release
         run: |
-          API_URL="https://api.github.com/repos/paritytech/cumulus/releases/latest"
+          API_URL="https://api.github.com/repos/paritytech/polkadot-sdk/releases/140232936" # v1.7.0
           RESPONSE=$(curl -s "${API_URL}")
 
           # Get the download URL of the release binary from Repo
@@ -220,7 +221,7 @@ jobs:
             contract_name=$(basename "$file" | sed 's/^.*_\(.*\)\.csv$/\1/')
             benchmark_file=bench_${contract_name}.csv
             if [ ! -f ${{ env.BENCHMARK_DIR }}/${benchmark_file} ]; then
-              curl -L -o ${{ env.BENCHMARK_DIR }}/${benchmark_file}  ${{ env.BENCHMARK_URI }}/${benchmark_file} || exit 1
+              curl -L -o ${{ env.BENCHMARK_DIR }}/${benchmark_file}  ${{ env.BENCHMARK_URI }}/${{ env.VERSION }}/${benchmark_file} || exit 1
             fi
             cat $file >> ${{ env.BENCHMARK_DIR }}/${benchmark_file}
           done
@@ -246,10 +247,10 @@ jobs:
           mv ${{ env.BENCHMARK_DIR }}/bench_*.csv /tmp/stats
           mv ${{ env.BENCHMARK_DIR }}/stps_*.png /tmp/stats
           git checkout gh-pages
-          mv /tmp/stats/* .
+          mv /tmp/stats/* ${{ env.VERSION }}/
           # Upload files
-          git add *.csv *.png --force
+          git add ${{ env.VERSION }}/*.csv ${{ env.VERSION }}/*.png --force
           git status
-          git commit -m "Updated stats in ${CURRENT_DATE} and pushed to gh-pages"
+          git commit -m "Updated stats in ${{ env.VERSION }} version on ${CURRENT_DATE} and pushed to gh-pages"
           git push origin gh-pages --force
           rm -rf .git/ ./*
