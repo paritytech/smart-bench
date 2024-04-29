@@ -13,7 +13,7 @@ env:
   BENCHMARK_DIR: stats
   TEST_PARAMS: --instance-count 1 --call-count 2000
   BENCHMARK_URI: https://raw.githubusercontent.com/paritytech/smart-bench/gh-pages
-  VERSION: 1.7.0
+  VERSION: v1.7.0
 
 jobs:
   build_dev_moonbeam:
