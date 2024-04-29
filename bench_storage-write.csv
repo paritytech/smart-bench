@@ -1,0 +1,3 @@
+1714354392, evm, v0.34.1, storage-write, 22, solc 0.8.1, --instance-count 1 --call-count 2000
+1714354482, ink-wasm, v1.0.0, storage-write, 7, ink! 4.3.0, --instance-count 1 --call-count 2000
+1714354482, sol-wasm, v1.0.0, storage-write, 8, Solidity 0.3.2, --instance-count 1 --call-count 2000
