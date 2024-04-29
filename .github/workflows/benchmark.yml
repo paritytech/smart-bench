@@ -38,7 +38,7 @@ jobs:
 
       - name: Download Moonbeam Release
         run: |
-          API_URL="https://api.github.com/repos/moonbeam-foundation/moonbeam/releases/latest"
+          API_URL="https://api.github.com/repos/moonbeam-foundation/moonbeam/releases/131808906" # 0.34.1
           RESPONSE=$(curl -s "${API_URL}")
           # Remove control characters causing error while parsing
           RESPONSE=$(echo $RESPONSE |  tr -cd '[:print:]')
@@ -56,7 +56,7 @@ jobs:
           patch -p1 < ../../launch/moonbeam.patch
 
       - name: Build
-        uses: docker://paritytech/ci-unified:bullseye-1.77.0
+        uses: docker://paritytech/ci-unified:bullseye-1.74.0
         with:
           args: /bin/bash -c "cd moonbeam_release/*/ && cargo build --release"
 
