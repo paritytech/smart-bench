@@ -1,6 +1,5 @@
 use std::{
-    cell::RefCell,
-    collections::{hash_map::Entry, HashMap},
+    collections::{HashMap}, sync::{RwLock, Arc, Mutex},
 };
 
 use super::*;
@@ -23,7 +22,7 @@ pub mod api {}
 pub struct ContractsApi {
     pub client: OnlineClient<DefaultConfig>,
     pub rpc: LegacyRpcMethods<DefaultConfig>,
-    nonces_cache: RefCell<HashMap<<sp_core::sr25519::Pair as sp_core::Pair>::Public, u64>>,
+    nonces_cache: Arc<RwLock<HashMap<<sp_core::sr25519::Pair as sp_core::Pair>::Public, Mutex<u64>>>>
 }
 
 impl ContractsApi {
@@ -131,31 +130,37 @@ impl ContractsApi {
     }
 
     async fn get_account_nonce(&self, signer: &Signer) -> core::result::Result<u64, subxt::Error> {
-        let mut map = self.nonces_cache.borrow_mut();
+        let map = self.nonces_cache.read().expect("RwLock poisoned");
 
-        match (*map).entry(signer.signer().public()) {
-            Entry::Occupied(mut o) => {
-                *o.get_mut() += 1;
-                Ok(*o.get())
-            }
-            Entry::Vacant(v) => {
-                let best_block = self
-                    .rpc
-                    .chain_get_block_hash(None)
-                    .await?
-                    .ok_or(subxt::Error::Other("Best block not found".into()))?;
+        if let Some(element) = map.get(&signer.signer().public()) {
+            let mut element = element.lock().expect("Mutex poisoned");
 
-                let account_nonce = self
-                    .client
-                    .blocks()
-                    .at(best_block)
-                    .await?
-                    .account_nonce(signer.account_id())
-                    .await?;
-                v.insert(account_nonce);
-                Ok(account_nonce)
-            }
+            *element += 1;
+
+            return Ok(*element);
         }
+
+        drop(map);
+
+        let best_block = self
+            .rpc
+            .chain_get_block_hash(None)
+            .await?
+            .ok_or(subxt::Error::Other("Best block not found".into()))?;
+
+        let account_nonce = self
+            .client
+            .blocks()
+            .at(best_block)
+            .await?
+            .account_nonce(signer.account_id())
+            .await?;
+
+        let mut map = self.nonces_cache.write().expect("RwLock poisoned");
+
+        map.entry(signer.signer().public()).or_insert_with(|| Mutex::new(account_nonce));
+
+        Ok(account_nonce)
     }
 
     /// Submit extrinsic to call a contract.
@@ -166,7 +171,7 @@ impl ContractsApi {
         gas_limit: Weight,
         storage_deposit_limit: Option<Balance>,
         data: Vec<u8>,
-        signer: &Signer,
+        signer: &Signer
     ) -> color_eyre::Result<Hash> {
         let call = subxt::tx::Payload::new(
             "Contracts",
@@ -182,7 +187,7 @@ impl ContractsApi {
         .unvalidated();
 
         let account_nonce = self.get_account_nonce(signer).await?;
-
+        
         let tx_hash = self
             .client
             .tx()

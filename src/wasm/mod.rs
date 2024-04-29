@@ -13,6 +13,8 @@ pub type Hash = <DefaultConfig as subxt::Config>::Hash;
 pub type Signer = PairSigner<DefaultConfig, sr25519::Pair>;
 pub type EventRecord = ();
 
+pub const DERIVATION: &str = "//Sender/";
+
 /// Trait implemented by [`smart_bench_macro::contract`] for all contract constructors.
 pub trait InkConstructor: codec::Encode {
     const SELECTOR: [u8; 4];
@@ -48,8 +50,16 @@ mod ink_contracts {
 pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
     let alice = PairSigner::new(AccountKeyring::Alice.pair());
     let bob: AccountId32 = AccountKeyring::Bob.to_account_id().into();
+    let mut call_signers = None;
 
-    let mut runner = runner::BenchRunner::new(alice, &cli.url).await?;
+    if !cli.single_signer {
+        call_signers = Some(vec![]);
+        for i in 0..(cli.call_count * cli.instance_count * cli.contracts.len() as u32) {
+            call_signers.as_mut().unwrap().push(generate_signer(i));
+        }
+    }
+
+    let mut runner = runner::BenchRunner::new(alice, &cli.url, call_signers).await?;
 
     match cli.chain {
         TargetPlatform::SolWasm => prepare_solidity_contracts(&cli, &mut runner, bob).await?,
@@ -61,6 +71,12 @@ pub async fn exec(cli: Cli) -> color_eyre::Result<()> {
     crate::print_block_info(result).await?;
 
     Ok(())
+}
+
+pub fn generate_signer(i: u32) -> Signer {
+    let pair: sr25519::Pair = <sr25519::Pair as sp_core::Pair>::from_string(format!("{}{}", DERIVATION, i).as_str(), None).unwrap();
+    let signer: Signer = PairSigner::new(pair);
+    signer
 }
 
 pub async fn prepare_solidity_contracts(
@@ -225,7 +241,7 @@ pub async fn prepare_ink_contracts(
         match contract {
             Contract::Erc20 => {
                 let erc20_new = erc20::constructors::new(1_000_000);
-                let erc20_transfer = || erc20::messages::transfer(bob.clone(), 1000).into();
+                let erc20_transfer = || erc20::messages::transfer(bob.clone(), 1).into();
                 runner
                     .prepare_contract(
                         path,

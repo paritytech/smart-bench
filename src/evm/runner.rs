@@ -12,7 +12,7 @@ use super::xts::{
 };
 use crate::BlockInfo;
 use color_eyre::{eyre, Section as _};
-use futures::TryStream;
+use futures::{TryStream, StreamExt};
 use impl_serde::serialize::from_hex;
 use secp256k1::SecretKey;
 use subxt::{OnlineClient, PolkadotConfig as DefaultConfig};
@@ -28,10 +28,11 @@ pub struct MoonbeamRunner {
     signer: SecretKey,
     address: Address,
     calls: Vec<(String, Vec<RunnerCall>)>,
+    pub call_signers: Option<Vec<SecretKey>>,
 }
 
 impl MoonbeamRunner {
-    pub fn new(url: String, signer: SecretKey, api: MoonbeamApi) -> Self {
+    pub fn new(url: String, signer: SecretKey, api: MoonbeamApi, call_signers: Option<Vec<SecretKey>>) -> Self {
         let address = Key::address(&SecretKeyRef::from(&signer));
         Self {
             url,
@@ -39,6 +40,7 @@ impl MoonbeamRunner {
             api,
             address,
             calls: Vec::new(),
+            call_signers
         }
     }
 
@@ -256,19 +258,28 @@ impl MoonbeamRunner {
     ) -> color_eyre::Result<impl TryStream<Ok = BlockInfo, Error = color_eyre::Report> + '_> {
         let block_stats = blockstats::subscribe_stats(&self.url).await?;
 
-        let mut tx_hashes = Vec::new();
         let max_instance_count = self
             .calls
             .iter()
             .map(|(_, calls)| calls.len())
             .max()
             .ok_or_else(|| eyre::eyre!("No prepared contracts for benchmarking."))?;
-        let mut nonce = self.api.fetch_nonce(self.address).await?;
-        let gas_price = self.api.get_gas_price().await.note("Error getting gas")?;
 
+        let gas_price = self.api.get_gas_price().await.note("Error getting gas")?;
+        let mut counter = 0;
+    
+        let mut futures = vec![];
         for _ in 0..call_count {
             for i in 0..max_instance_count {
                 for (_name, contract_calls) in &self.calls {
+
+                    let signer = if let Some(signers) = &self.call_signers {
+                        counter+=1;
+                        &signers[counter-1]
+                    } else {
+                        &self.signer
+                    };
+                    
                     if let Some(contract_call) = contract_calls.get(i as usize) {
                         tracing::debug!(
                             "Calling {}, address {}, gas_limit {}",
@@ -276,30 +287,32 @@ impl MoonbeamRunner {
                             contract_call.contract,
                             contract_call.gas_limit
                         );
+                        let nonce = self.api.fetch_nonce(Key::address(&SecretKeyRef::from(signer))).await?;
+
                         let tx_hash = self
                             .api
                             .call(
                                 contract_call.contract,
                                 &contract_call.data,
-                                &self.signer,
+                                signer,
                                 nonce,
                                 contract_call.gas_limit,
                                 gas_price,
-                            )
-                            .await?;
-                        nonce += 1.into();
-                        tx_hashes.push(tx_hash)
+                            );
+
+                        futures.push(tx_hash);
                     }
                 }
             }
         }
 
+        const MAX_PARALLEL_RPC_CONN: usize = 100;
+        let stream = futures::stream::iter(futures).buffer_unordered(MAX_PARALLEL_RPC_CONN);
+        let tx_hashes = stream.collect::<Vec<_>>().await;
         println!("Submitted {} total contract calls", tx_hashes.len());
 
-        let remaining_hashes: std::collections::HashSet<sp_core::H256> = tx_hashes
-            .iter()
-            .map(|hash| sp_core::H256::from_slice(hash.as_ref()))
-            .collect();
+        let remaining_hashes: std::collections::HashSet<sp_core::H256> = tx_hashes.into_iter().collect::<Result<Vec<_>, _>>()?.into_iter().collect();
+        
 
         let wait_for_txs = crate::collect_block_stats(block_stats, remaining_hashes, |hash| {
             let client = self.api.client.clone();

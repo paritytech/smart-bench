@@ -28,6 +28,9 @@ pub struct Cli {
     /// the number of calls to make to each contract.
     #[clap(long, short)]
     call_count: u32,
+    /// should use single signer or different signer per call
+    #[clap(long, short, action)]
+    single_signer: bool,
 }
 
 #[derive(clap::ArgEnum, Debug, Clone)]
