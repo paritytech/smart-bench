@@ -121,16 +121,16 @@ Integration tests requires two types of nodes to be installed and available on `
 ### Benchmarks
 
 ## Erc20
-![Erc20](https://github.com/paritytech/smart-bench/blob/gh-pages/stps_erc20.png?raw=true)
+![Erc20](https://github.com/paritytech/smart-bench/blob/gh-pages/v1.7.0/stps_erc20.png?raw=true)
 
 ## Flipper
-![Flipper](https://github.com/paritytech/smart-bench/blob/gh-pages/stps_flipper.png?raw=true)
+![Flipper](https://github.com/paritytech/smart-bench/blob/gh-pages/v1.7.0/stps_flipper.png?raw=true)
 
 ## Storage Read
-![Storage Read](https://github.com/paritytech/smart-bench/blob/gh-pages/stps_storage-read.png?raw=true)
+![Storage Read](https://github.com/paritytech/smart-bench/blob/gh-pages/v1.7.0/stps_storage-read.png?raw=true)
 
 ## Storage Write
-![Storage Write](https://github.com/paritytech/smart-bench/blob/gh-pages/stps_storage-write.png?raw=true)
+![Storage Write](https://github.com/paritytech/smart-bench/blob/gh-pages/v1.7.0/stps_storage-write.png?raw=true)
 
 ## Triangle Number
-![Triangle Number](https://github.com/paritytech/smart-bench/blob/gh-pages/stps_triangle-number.png?raw=true)
+![Triangle Number](https://github.com/paritytech/smart-bench/blob/gh-pages/v1.7.0/stps_triangle-number.png?raw=true)
