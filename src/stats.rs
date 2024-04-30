@@ -71,8 +71,8 @@ pub async fn print_block_info(
 ) -> color_eyre::Result<()> {
     let mut call_extrinsics_per_block: Vec<u64> = Vec::new();
     let mut call_block_expected = false;
-    let mut time_stamp = None;
-    let mut time_diff = None;
+    let mut time_stamp_first = None;
+    let mut time_stamp_last = None;
     println!();
     block_info
         .try_for_each(|block| {
@@ -84,16 +84,14 @@ pub async fn print_block_info(
                 call_block_expected = true;
             }
             if call_block_expected {
+                time_stamp_last = Some(block.time_stamp);
+                if time_stamp_first.is_none() {
+                    time_stamp_first = time_stamp_last;
+                }
+
                 call_extrinsics_per_block.push(contract_calls_count);
             }
 
-            if time_diff.is_none() {
-                if let Some(ts) = time_stamp {
-                    time_diff = Some((block.time_stamp - ts) as f64 / 1000.0)
-                } else {
-                    time_stamp = Some(block.time_stamp)
-                }
-            }
             future::ready(Ok(()))
         })
         .await?;
@@ -106,21 +104,22 @@ pub async fn print_block_info(
 
     let tps_blocks = call_extrinsics_per_block.len();
     let tps_total_extrinsics = call_extrinsics_per_block.iter().sum::<u64>();
+    let time_diff = time_stamp_first.and_then(|first| {
+        if let Some(last) = time_stamp_last {
+            return Some(last - first)
+        }
+        None
+    }).filter(|&d| d == 0).map(|d| d as f64 / (tps_blocks - 1) as f64 / 1000.0 ).unwrap_or(12.0);
+
     println!("\nSummary:");
     println!("Total Blocks: {tps_blocks}");
     println!("Total Extrinsics: {tps_total_extrinsics}");
-    let diff = time_diff.unwrap_or_else(|| {
-        // default block build time
-        let default = 12.0;
-        println!("Warning: Could not calculate block build time, assuming {default}");
-        default
-    });
-    println!("Block Build Time: {diff}");
+    println!("Block Build Time: {time_diff}");
     if tps_blocks > 0 {
         println!("sTPS - Standard Transaction Per Second");
         println!(
             "sTPS: {:.2}",
-            tps_total_extrinsics as f64 / (tps_blocks as f64 * diff)
+            tps_total_extrinsics as f64 / (tps_blocks as f64 * time_diff)
         );
     } else {
         println!("sTPS - Error - not enough data to calculate sTPS, consider increasing --call-count value")
