@@ -4,10 +4,10 @@ This directory contains docker related scripts and configurations to compile and
 
 The environment is created as Docker Image (by default named and tagged as `smart-bench:latest`) which leverages multi-stage Docker builds. Helper scripts available in this directory streamline operations to build ([build.sh](./build.sh)) and run ([run.sh](./run.sh)) of the image.
 
-At the first stage of docker build, based upon `docker.io/paritytech/ci-linux:production` as rust enabled compilation env, smart-bench software is being compiled from current sources (this git repository). Resulting binary is copied into second stage / final docker image based on `ubuntu:20.04` image where also other dependencies are configured and installed.
+At the first stage of docker build, based upon `docker.io/paritytech/ci-unified:bullseye-1.74.0` as rust enabled compilation env, smart-bench software is being compiled from current sources (this git repository). Resulting binary is copied into second stage / final docker image based on `ubuntu:20.04` image where also other dependencies are configured and installed.
 
 Final image consists of few pieces that are integrated into it: 
-- `polkadot`, `zombienet` and `polkadot-parachain` pre-compiled binaries taken from offical releases
+- `polkadot`, `polkadot-parachain`, `polkadot-execute-worker`, `polkadot-prepare-worker` and `zombienet` pre-compiled binaries taken from offical releases
 - `moonbeam` binary provided by custom release created on [this fork](https://github.com/karolk91/moonbeam) (custom fork was required to enable dev rpc module which is not supported by offical releases)
 - pre-compiled smart contracts available within this repository at [contracts](../contracts/) dir
 - [entrypoint.sh](./entrypoint.sh) script that orchestrates running of the above to eventually receive benchmarking results from `smart-bench` itself. The script accepts set of parameters to be passed as-is to `smart-bench` app. It runs zombienet as a background job and starts smart-bench while providing it with correct parameters to reach to zombienet nodes.
@@ -17,7 +17,7 @@ Please refer to the [download-bin.sh](./download-bin.sh) script for detailed inf
 It is possible to run `smart-bench:latest` using raw `docker run` command with options (see examples below) but usage of `run.sh` can abstract away some of the internals of the image and also result in better compatibility with future image versions. The `run.sh` currently helps with following usage scenarios:
 1. use `smart-bench:latest` image as is, composed of specific versions of nodes and contracts
 1. use `smart-bench:latest` for what it consists of but provide custom set of pre-compiled contracts
-1. use `smart-bench:latest` but provide custom set of node binaries (`polkadot`, `zombienet` `polkadot-parachain`, `moonbeam`)
+1. use `smart-bench:latest` but provide custom set of node binaries (`polkadot`, `zombienet` `polkadot-parachain`, `polkadot-execute-worker`, `polkadot-prepare-worker`, `moonbeam`)
 1. use `smart-bench:latest` but provide custom zombienet config
 
 Usage scenarios above are possible by providing volume mounts arguments to `docker run`, to override specific locations within the resulting container filesystem. And this is exactly what `run.sh` is doing under the hood for you when providing optional parameters (see usage below) to the script.
@@ -28,7 +28,7 @@ Usage scenarios above are possible by providing volume mounts arguments to `dock
 
 a) downloads dependencies
 ```
-./downloads-bins.sh
+./download-bins.sh
 ```
 
 b) build smart-bench:latest image
@@ -43,7 +43,7 @@ VERSION=1.0 ./build.sh
 
 
 ### Step 2. Run image
-## `run.sh` help screen:
+#### `run.sh` help screen:
 ```
 Usage: ./run.sh OPTION -- ARGUMENTS_TO_SMART_BENCH
 
@@ -130,17 +130,40 @@ docker run --rm -it --init -v $PWD/configs:/usr/local/smart-bench/config smart-b
 ---
 
 ## Miscellaneous
+
+### Generate list of pre-funded accounts
+Following are optional steps that can be used to re-generate list of pre-funded accounts used for benchmarking
+
+create python environment
+```
+make setup
+```
+
+make sure to activate python env
+```
+source venv/bin/activate
+```
+
+use scripts to generate json list of balances
+```
+# moonbeam / evm
+python eth_addr_generator.py > configs/funded-accounts-evm.json
+
+# substrate / wasm
+python substrate_addr_generator.py > configs/funded-accounts-wasm.json
+```
+
 ### Moonbeam with Dev RPC module enabled build recipe
 
 Following is an example recipe how to build moonbeam binary with Dev RPC module enabled
 ```
 git clone https://github.com/PureStake/moonbeam.git
 cd moonbeam && git fetch https://github.com/karolk91/moonbeam master && git cherry-pick decd877
-docker run -it --rm -v $PWD:/moonbeam docker.io/paritytech/ci-linux:production /bin/bash
+docker run -it --rm -v $PWD:/moonbeam docker.io/paritytech/ci-unified:bullseye-1.74.0 /bin/bash
 cd /moonbeam
-rustup toolchain install 1.69
-rustup default 1.69
-rustup override set 1.69
-rustup target add wasm32-unknown-unknown --toolchain 1.69
+rustup toolchain install 1.74
+rustup default 1.74
+rustup override set 1.74
+rustup target add wasm32-unknown-unknown --toolchain 1.74
 cargo build --release
 ```
