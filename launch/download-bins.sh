@@ -1,30 +1,43 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cumulus_version=1.0.0
-polkadot_version=1.0.0
-zombienet_version=1.3.58
+polkadot_sdk_version=1.7.0
+polkadot_sdk_url="https://github.com/paritytech/polkadot-sdk/releases/download/polkadot-v${polkadot_sdk_version}"
+
+zombienet_version=1.3.100
 moonbeam_version=13_12_2023
 
 packages_to_download=$(cat << EOF
 [
   {
     "target":"polkadot-parachain",
-    "url": "https://github.com/paritytech/cumulus/releases/download/v${cumulus_version}/polkadot-parachain",
+    "url": "${polkadot_sdk_url}/polkadot-parachain",
     "format": "bin",
-    "sha256": "https://github.com/paritytech/cumulus/releases/download/v${cumulus_version}/polkadot-parachain.sha256"
+    "sha256": "${polkadot_sdk_url}/polkadot-parachain.sha256"
+  },
+  {
+    "target":"polkadot-execute-worker",
+    "url": "${polkadot_sdk_url}/polkadot-execute-worker",
+    "format": "bin",
+    "sha256": "${polkadot_sdk_url}/polkadot-execute-worker.sha256"
+  },
+  {
+    "target":"polkadot-prepare-worker",
+    "url": "${polkadot_sdk_url}/polkadot-prepare-worker",
+    "format": "bin",
+    "sha256": "${polkadot_sdk_url}/polkadot-prepare-worker.sha256"
   },
   {
     "target":"polkadot",
-    "url": "https://github.com/paritytech/polkadot/releases/download/v$polkadot_version/polkadot",
+    "url": "${polkadot_sdk_url}/polkadot",
     "format": "bin", 
-    "sha256": "https://github.com/paritytech/polkadot/releases/download/v$polkadot_version/polkadot.sha256"
+    "sha256": "${polkadot_sdk_url}/polkadot.sha256"
   },
   {
     "target":"zombienet",
     "url": "https://github.com/paritytech/zombienet/releases/download/v$zombienet_version/zombienet-linux-x64",
     "format": "bin",
-    "sha256": "e49b6f15c8aa304e38ad8819c853d721f2f580f3906e6e03601b6824de6964fc"
+    "sha256": "7be7d913cbb1f77e309d6a72c3b5342daca1406a0c1c452e3113120bb5feb007"
   },
   {
     "target":"moonbeam",

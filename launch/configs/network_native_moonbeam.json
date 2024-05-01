@@ -1,0 +1,35 @@
+{
+  "settings": {
+    "timeout": 1000
+  },
+  "relaychain": {
+    "chain": "rococo-local",
+    "command": "polkadot",
+    "nodes": [
+      {
+        "name": "alice"
+      },
+      {
+        "name": "bob"
+      }
+    ]
+  },
+  "parachains": [
+    {
+      "chain": "moonbase-local",
+      "id": 1281,
+      "genesis": {
+        "runtime": {
+          "balances": {
+            "balances": {% include "./funded-accounts-evm.json" %}
+          }
+        }
+      },
+      "collator": {
+        "command": "moonbeam",
+        "name": "alith",
+        "ws_port": 9988
+      }
+    }
+  ]
+}

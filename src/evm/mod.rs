@@ -10,15 +10,23 @@ use web3::{contract::tokens::Tokenize, signing::Key, types::U256};
 
 pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
     let api = MoonbeamApi::new(&cli.url).await?;
+    let mut call_signers = None;
 
-    let mut runner = MoonbeamRunner::new(cli.url.to_string(), keyring::alith(), api);
+    if !cli.single_signer {
+        call_signers = Some(vec![]);
+        for i in 1..(cli.call_count * cli.instance_count * cli.contracts.len() as u32) + 1 {
+            call_signers.as_mut().unwrap().push(keyring::generate_signer(i));
+        }
+    }
+
+    let mut runner = MoonbeamRunner::new(cli.url.to_string(), keyring::balthazar(), api, call_signers);
 
     for contract in &cli.contracts {
         match contract {
             Contract::Erc20 => {
-                let transfer_to = (&keyring::balthazar()).address();
+                let transfer_to = (&keyring::alith()).address();
                 let ctor_params = (1_000_000u32,).into_tokens();
-                let transfer_params = || (transfer_to, 1000u32).into_tokens();
+                let transfer_params = || (transfer_to, 1u32).into_tokens();
                 runner
                     .prepare_contract(
                         "BenchERC20",
@@ -113,7 +121,7 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
                     .await?;
             }
             Contract::StorageRead => {
-                let address = (&keyring::balthazar()).address();
+                let address = (&keyring::alith()).address();
                 let ctor_params = ().into_tokens();
                 let call_params = || (address, 10).into_tokens();
                 runner
@@ -127,7 +135,7 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
                     .await?;
             }
             Contract::StorageWrite => {
-                let address = (&keyring::balthazar()).address();
+                let address = (&keyring::alith()).address();
                 let ctor_params = ().into_tokens();
                 let call_params = || (address, 10).into_tokens();
                 runner
@@ -141,7 +149,7 @@ pub async fn exec(cli: &Cli) -> color_eyre::Result<()> {
                     .await?;
             }
             Contract::StorageReadWrite => {
-                let address = (&keyring::balthazar()).address();
+                let address = (&keyring::alith()).address();
                 let ctor_params = ().into_tokens();
                 let call_params = || (address, 10).into_tokens();
                 runner
@@ -176,4 +184,8 @@ mod keyring {
         SecretKey::from_str("8075991ce870b93a8870eca0c0f91913d12f47948ca0fd25b49c6fa7cdbeee8b")
             .unwrap()
     }
+
+    pub fn generate_signer(i: u32) -> SecretKey {
+        SecretKey::from_str(&format!("{:064}", i)).unwrap()
+    }    
 }

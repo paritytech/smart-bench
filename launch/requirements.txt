@@ -1,0 +1,4 @@
+mypy
+click
+web3
+substrate-interface

@@ -166,6 +166,7 @@ async fn test_ink_contract_success() {
         .args(["--instance-count", "1"])
         .args(["--call-count", "10"])
         .args(["--url", "ws://localhost:9944"])
+        .arg("--single-signer")
         .timeout(std::time::Duration::from_secs(5))
         .output()
         .expect("failed to execute process");
@@ -211,6 +212,7 @@ async fn test_solidity_wasm_contract_success() {
         .args(["--instance-count", "1"])
         .args(["--call-count", "10"])
         .args(["--url", "ws://localhost:9944"])
+        .arg("--single-signer")
         .timeout(std::time::Duration::from_secs(5))
         .output()
         .expect("failed to execute process");
@@ -257,6 +259,7 @@ async fn test_solidity_evm_contract_success() {
         .args(["--instance-count", "1"])
         .args(["--call-count", "10"])
         .args(["--url", "ws://localhost:9944"])
+        .arg("--single-signer")
         .timeout(std::time::Duration::from_secs(5))
         .output()
         .expect("failed to execute process");

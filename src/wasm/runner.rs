@@ -4,7 +4,7 @@ use super::*;
 use crate::BlockInfo;
 use codec::Encode;
 use color_eyre::eyre;
-use futures::TryStream;
+use futures::{TryStream, StreamExt};
 use sp_runtime::traits::{BlakeTwo256, Hash as _};
 use std::time::{SystemTime, UNIX_EPOCH};
 use subxt::{backend::rpc::RpcClient, OnlineClient, PolkadotConfig as DefaultConfig};
@@ -20,10 +20,11 @@ pub struct BenchRunner {
     api: ContractsApi,
     signer: Signer,
     calls: Vec<(String, Vec<RunnerCall>)>,
+    pub call_signers: Option<Vec<Signer>>,
 }
 
 impl BenchRunner {
-    pub async fn new(signer: Signer, url: &str) -> color_eyre::Result<Self> {
+    pub async fn new(signer: Signer, url: &str, call_signers: Option<Vec<Signer>>) -> color_eyre::Result<Self> {
         let client = RpcClient::from_url(url).await?;
 
         let api = ContractsApi::new(client).await?;
@@ -33,6 +34,7 @@ impl BenchRunner {
             api,
             signer,
             calls: Vec::new(),
+            call_signers
         };
         Ok(runner)
     }
@@ -198,7 +200,6 @@ impl BenchRunner {
     ) -> color_eyre::Result<impl TryStream<Ok = BlockInfo, Error = color_eyre::Report> + '_> {
         let block_stats = blockstats::subscribe_stats(&self.url).await?;
 
-        let mut tx_hashes = Vec::new();
         let max_instance_count = self
             .calls
             .iter()
@@ -206,9 +207,20 @@ impl BenchRunner {
             .max()
             .ok_or_else(|| eyre::eyre!("No prepared contracts for benchmarking."))?;
 
+        println!("Start benchmark calls");
+        let mut counter = 0;
+        let mut futures = vec![];
         for _ in 0..call_count {
             for i in 0..max_instance_count {
                 for (_name, contract_calls) in &self.calls {
+
+                    let signer = if let Some(signers) = &self.call_signers {
+                        counter+=1;
+                        &signers[counter-1]
+                    } else {
+                        &self.signer
+                    };
+                    
                     if let Some(contract_call) = contract_calls.get(i as usize) {
                         // dry run the call to calculate the gas limit
                         let mut gas_limit = {
@@ -219,7 +231,7 @@ impl BenchRunner {
                                     0,
                                     DEFAULT_STORAGE_DEPOSIT_LIMIT,
                                     contract_call.call_data.0.clone(),
-                                    &self.signer,
+                                    &signer,
                                 )
                                 .await?;
                             dry_run.gas_required
@@ -237,18 +249,21 @@ impl BenchRunner {
                                 gas_limit.into(),
                                 DEFAULT_STORAGE_DEPOSIT_LIMIT,
                                 contract_call.call_data.0.clone(),
-                                &self.signer,
-                            )
-                            .await?;
-                        tx_hashes.push(tx_hash)
+                                &signer
+                            );
+                        futures.push(tx_hash);
                     }
                 }
             }
         }
 
+        const MAX_PARALLEL_RPC_CONN: usize = 100;
+        let stream = futures::stream::iter(futures).buffer_unordered(MAX_PARALLEL_RPC_CONN);
+        let tx_hashes = stream.collect::<Vec<_>>().await;
         println!("Submitted {} total contract calls", tx_hashes.len());
 
-        let remaining_hashes: std::collections::HashSet<Hash> = tx_hashes.iter().cloned().collect();
+        let remaining_hashes: std::collections::HashSet<Hash> = tx_hashes.into_iter().collect::<Result<Vec<_>, _>>()?.into_iter().collect();
+        println!("remaining_hashes {} ", remaining_hashes.len());
 
         let wait_for_txs = crate::collect_block_stats(block_stats, remaining_hashes, |hash| {
             let client = self.api.client.clone();
