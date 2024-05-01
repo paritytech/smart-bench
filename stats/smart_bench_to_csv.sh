@@ -7,12 +7,6 @@ SCRIPT_PATH=$(dirname "$(realpath -s "${BASH_SOURCE[0]}")")
 TIMESTAMP=$(date +%s)
 
 if [ -p /dev/stdin ]; then
-  PROCESS_LIST=$(ps -u)
-  CONTRACT_TYPE=$(echo "${PROCESS_LIST}" | grep -v grep | grep -oE "erc20|flipper|incrementer|erc721|erc1155|odd-product|triangle-number|storage-read|storage-write|storage-read-write")
-  PLATFORM=$(echo "${PROCESS_LIST}" | grep -v grep | grep -oE "ink-wasm|sol-wasm|evm")
-
-  echo "${CONTRACT_TYPE}"
-  echo "${PLATFORM}"
   STATS=$(</dev/stdin)
 else
   echo "No input was found on stdin, skipping!"
@@ -74,8 +68,8 @@ function parse_args {
 parse_args "$@"
 
 
-blocks=$(echo ${STATS} | grep -o 'Total Blocks: [0-9]*' | awk '{print $3}')
-extrinsics=$(echo ${STATS} | grep -o 'Total Extrinsics: [0-9]*' | awk '{print $3}')
+platform=$(echo ${STATS} | grep -o 'Platform: [a-z0-9-]*' | awk '{print $2}')
+contract_types=$(echo ${STATS} | grep -o 'Contracts: [+a-z0-9-]*' | awk '{print $2}')
 tps=$(echo ${STATS} | grep -o 'sTPS: [0-9]*' | awk '{print $2}')
 
-echo "${TIMESTAMP}, ${PLATFORM}, not-supp, ${CONTRACT_TYPE}, ${tps}, not-supp, not-supp" >> "${CSV_OUTPUT}"
+echo "${TIMESTAMP}, ${platform}, n/a, ${contract_types}, ${tps}, n/a, n/a" >> "${CSV_OUTPUT}"

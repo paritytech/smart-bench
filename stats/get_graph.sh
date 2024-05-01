@@ -8,6 +8,19 @@ DOCKER_COMPOSE_FILE="docker-compose.yml"
 HOST="localhost"
 GRAFANA_DASHBOARD_JSON="grafana-provisioning/dashboards/tps.json"
 
+check_command() {
+    command -v "$1" >/dev/null 2>&1 && { $1 --version >/dev/null 2>&1; }
+}
+
+if check_command "docker compose"; then
+    DOCKER_COMPOSE="docker compose"
+elif check_command "docker-compose"; then
+    DOCKER_COMPOSE="docker-compose"
+else
+    echo "Neither 'docker compose' nor 'docker-compose' could be found or are functional on your system."
+    exit 1
+fi
+
 function echoerr() { echo "$@" 1>&2; }
 
 function usage {
@@ -125,24 +138,24 @@ wait_for_containers() {
   local retry_interval=1
 
   echo "Waiting for all Docker containers to be running..."
-  retry_command "$max_retries" "$retry_interval" docker compose -f "$DOCKER_COMPOSE_FILE" \
+  retry_command "$max_retries" "$retry_interval" ${DOCKER_COMPOSE} -f "$DOCKER_COMPOSE_FILE" \
 	  ps --services --filter "status=running" | grep -qvx " "
 }
 
 start_containers() {
   echo "Starting docker containers"
-  docker compose -f "$DOCKER_COMPOSE_FILE" up -d
+  ${DOCKER_COMPOSE} -f "$DOCKER_COMPOSE_FILE" up -d
   wait_for_containers
 }
 
 stop_containers() {
   echo "Stopping docker containers"
-  docker compose -f "$DOCKER_COMPOSE_FILE" down
+  ${DOCKER_COMPOSE} -f "$DOCKER_COMPOSE_FILE" down
 }
 
 print_containers_logs() {
   echo "Container logs -- START"
-  docker-compose -f "$DOCKER_COMPOSE_FILE" logs
+  ${DOCKER_COMPOSE} -f "$DOCKER_COMPOSE_FILE" logs
   echo "Container logs -- END"
 }
 
@@ -158,7 +171,7 @@ convert_csv_to_line_protocol() {
      gsub(/ /,"\\ ", field);
      return field
    }{
-   printf "%s,platform=%s,parachain_ver=%s,contract_type=%s,contract_compiler_ver=\"%s\" tx_per_sec=%s %s\n",
+   printf "%s,platform=\"%s\",parachain_ver=\"%s\",contract_type=\"%s\",contract_compiler_ver=\"%s\" tx_per_sec=%s %s\n",
      "tps",
      trim($2),
      trim($3),

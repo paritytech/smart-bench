@@ -5,6 +5,8 @@ mod integration_tests;
 mod stats;
 mod wasm;
 
+use std::fmt::Display;
+
 // export for use by contract! macro
 use clap::Parser;
 pub use stats::{collect_block_stats, print_block_info, BlockInfo};
@@ -51,11 +53,27 @@ pub enum Contract {
     StorageReadWrite,
 }
 
+impl Display for TargetPlatform {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", clap::ArgEnum::to_possible_value(self).unwrap_or("unknown".into()).get_name())
+    }
+}
+
+impl Display for Contract {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", clap::ArgEnum::to_possible_value(self).unwrap_or("unknown".into()).get_name())
+    }
+}
+
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let cli = Cli::parse();
     tracing_subscriber::fmt::init();
+
+    println!("Smart-bench run parameters:");
+    println!("Platform: {}", cli.chain);
+    println!("Contracts: {}", cli.contracts.iter().map(|arg| arg.to_string()).collect::<Vec<_>>().join("+"));
 
     match cli.chain {
         TargetPlatform::InkWasm => wasm::exec(cli).await,
