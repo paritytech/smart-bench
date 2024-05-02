@@ -17,7 +17,7 @@ Solution is based upon Grafana and InfluxDB software.
         above will create `benchmark-result.csv` file with all `3` results appended
     
     1. or get existing csv results from [gh-pages branch](https://github.com/
-    paritytech/smart-bench/blob/gh-pages/benchmark-results.csv)
+    paritytech/smart-bench/tree/gh-pages)
 1. make use of `get_graph.sh` to generate graph as PNG image  
     1. script is spinning up ephemeral environemnt with Grafana, Grafana Renderer and InfluxDB services running by utilizing docker-compose.yml configuration
     1. translates benchmarking data provided in CSV format into Line Protocol format supported by InfluxDB, then uploads it to the InfluxDB service
