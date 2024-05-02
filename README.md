@@ -59,11 +59,11 @@ Following are example steps to start the network from scratch using `zombienet` 
 2. Launch the local network ***(consider changing `PATH` accordingly for any custom usage scenarios)***
   - Wasm contracts with pallet-contracts: 
     ```
-    PATH="launch/bin:$PATH" zombienet -p native spawn launch/configs/network_native_wasm.toml
+    PATH="launch/bin:$PATH" zombienet -p native spawn launch/configs/network_native_wasm.json
     ```
   - EVM contracts on a moonbeam node:
     ```
-    PATH="launch/bin:$PATH" zombienet -p native spawn launch/configs/network_native_moonbeam.toml
+    PATH="launch/bin:$PATH" zombienet -p native spawn launch/configs/network_native_moonbeam.json
     ```
 3. Wait for `Network launched 🚀🚀` message
 4. Node is now available at `ws://localhost:9988` (TCP port numer is defined as part of config file)
