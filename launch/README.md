@@ -7,7 +7,7 @@ The environment is created as Docker Image (by default named and tagged as `smar
 At the first stage of docker build, based upon `docker.io/paritytech/ci-unified:bullseye-1.74.0` as rust enabled compilation env, smart-bench software is being compiled from current sources (this git repository). Resulting binary is copied into second stage / final docker image based on `ubuntu:20.04` image where also other dependencies are configured and installed.
 
 Final image consists of few pieces that are integrated into it: 
-- `polkadot`, `polkadot-parachain`, `polkadot-execute-worker`, `polkadot-prepare-worker` and `zombienet` pre-compiled binaries taken from offical releases
+- `polkadot`, `polkadot-parachain` and `zombienet` pre-compiled binaries taken from offical releases
 - `moonbeam` binary provided by custom release created on [this fork](https://github.com/karolk91/moonbeam) (custom fork was required to enable dev rpc module which is not supported by offical releases)
 - pre-compiled smart contracts available within this repository at [contracts](../contracts/) dir
 - [entrypoint.sh](./entrypoint.sh) script that orchestrates running of the above to eventually receive benchmarking results from `smart-bench` itself. The script accepts set of parameters to be passed as-is to `smart-bench` app. It runs zombienet as a background job and starts smart-bench while providing it with correct parameters to reach to zombienet nodes.
@@ -17,7 +17,7 @@ Please refer to the [download-bin.sh](./download-bin.sh) script for detailed inf
 It is possible to run `smart-bench:latest` using raw `docker run` command with options (see examples below) but usage of `run.sh` can abstract away some of the internals of the image and also result in better compatibility with future image versions. The `run.sh` currently helps with following usage scenarios:
 1. use `smart-bench:latest` image as is, composed of specific versions of nodes and contracts
 1. use `smart-bench:latest` for what it consists of but provide custom set of pre-compiled contracts
-1. use `smart-bench:latest` but provide custom set of node binaries (`polkadot`, `zombienet` `polkadot-parachain`, `polkadot-execute-worker`, `polkadot-prepare-worker`, `moonbeam`)
+1. use `smart-bench:latest` but provide custom set of node binaries (`polkadot`, `zombienet` `polkadot-parachain`, `moonbeam`)
 1. use `smart-bench:latest` but provide custom zombienet config
 
 Usage scenarios above are possible by providing volume mounts arguments to `docker run`, to override specific locations within the resulting container filesystem. And this is exactly what `run.sh` is doing under the hood for you when providing optional parameters (see usage below) to the script.
