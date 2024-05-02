@@ -4,9 +4,11 @@ This folder contains utilities to create visual graphs based on smart-bench meas
 
 Solution is based upon Grafana and InfluxDB software. 
 
-### Theory of operation:
+### Theory of operation
+
 1. Gather smart-bench benchmarking results in CSV format  
-    1. make use of an utility script `smart_bench_to_csv.sh`. Run it against smart-bench software multiple times to gather statistics data. Make sure to use meaningful timestamps. For example (any method to run smart-bench):  
+     Make use of an utility script `smart_bench_to_csv.sh`. Run it against smart-bench software multiple times to gather statistics data. Make sure to use meaningful timestamps. For example (any method to run smart-bench):
+
         ```
         cargo run --release -- evm flipper --instance-count 1 --call-count 1500 --url ws://localhost:9988 | ./smart_bench_to_csv.sh --csv-output=benchmark-result.csv --timestamp=1714515934
 
@@ -14,14 +16,24 @@ Solution is based upon Grafana and InfluxDB software.
 
         cargo run --release -- sol-wasm flipper --instance-count 1 --call-count 1500 --url ws://localhost:9988 | ./smart_bench_to_csv.sh --csv-output=benchmark-result.csv --timestamp=1714515934
         ```
+
+        or
+
+        ```
+        ../launch/run.sh -- evm flipper --instance-count 1 --call-count 1500 --url ws://localhost:9988 | ./smart_bench_to_csv.sh --csv-output=benchmark-result.csv --timestamp=1714515934
+
+        ../launch/run.sh -- ink-wasm flipper --instance-count 1 --call-count 1500 --url ws://localhost:9988 | ./smart_bench_to_csv.sh --csv-output=benchmark-result.csv --timestamp=1714515934
+
+        ../launch/run.sh -- sol-wasm flipper --instance-count 1 --call-count 1500 --url ws://localhost:9988 | ./smart_bench_to_csv.sh --csv-output=benchmark-result.csv --timestamp=1714515934
+        ```
+
         above will create `benchmark-result.csv` file with all `3` results appended
-    
-    1. or get existing csv results from [gh-pages branch](https://github.com/
-    paritytech/smart-bench/blob/gh-pages/benchmark-results.csv)
-1. make use of `get_graph.sh` to generate graph as PNG image  
-    1. script is spinning up ephemeral environemnt with Grafana, Grafana Renderer and InfluxDB services running by utilizing docker-compose.yml configuration
-    1. translates benchmarking data provided in CSV format into Line Protocol format supported by InfluxDB, then uploads it to the InfluxDB service
-    1. script is downloading given Grafana panel id (see supported ids beloew) as PNG image by utlizing Grafana plugin pre-configured in the environemnt
+
+    or get existing csv results from [gh-pages branch](https://github.com/paritytech/smart-bench/tree/gh-pages)
+2. Make use of `get_graph.sh` to generate graph as PNG image
+    - script is spinning up ephemeral environemnt with Grafana, Grafana Renderer and InfluxDB services running by utilizing docker-compose.yml configuration
+    - translates benchmarking data provided in CSV format into Line Protocol format supported by InfluxDB, then uploads it to the InfluxDB service
+    - script is downloading given Grafana panel id (see supported ids beloew) as PNG image by utlizing Grafana plugin pre-configured in the environemnt
 
 ### Currently supported panel ids with examples:
 - `--panel-id=2` - panel to display transactions per seconds (TPS) measurements per platform, per contract type
