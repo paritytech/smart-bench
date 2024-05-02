@@ -20,11 +20,11 @@ Solution is based upon Grafana and InfluxDB software.
         or
 
         ```
-        ../launch/run.sh -- evm flipper --instance-count 1 --call-count 1500 --url ws://localhost:9988 | ./smart_bench_to_csv.sh --csv-output=benchmark-result.csv --timestamp=1714515934
+        ../launch/run.sh -- evm flipper --instance-count 1 --call-count 1500 | ./smart_bench_to_csv.sh --csv-output=benchmark-result.csv --timestamp=1714515934
 
-        ../launch/run.sh -- ink-wasm flipper --instance-count 1 --call-count 1500 --url ws://localhost:9988 | ./smart_bench_to_csv.sh --csv-output=benchmark-result.csv --timestamp=1714515934
+        ../launch/run.sh -- ink-wasm flipper --instance-count 1 --call-count 1500 | ./smart_bench_to_csv.sh --csv-output=benchmark-result.csv --timestamp=1714515934
 
-        ../launch/run.sh -- sol-wasm flipper --instance-count 1 --call-count 1500 --url ws://localhost:9988 | ./smart_bench_to_csv.sh --csv-output=benchmark-result.csv --timestamp=1714515934
+        ../launch/run.sh -- sol-wasm flipper --instance-count 1 --call-count 1500 | ./smart_bench_to_csv.sh --csv-output=benchmark-result.csv --timestamp=1714515934
         ```
 
         above will create `benchmark-result.csv` file with all `3` results appended
