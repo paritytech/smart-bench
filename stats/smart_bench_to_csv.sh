@@ -70,6 +70,6 @@ parse_args "$@"
 
 platform=$(echo ${STATS} | grep -o 'Platform: [a-z0-9-]*' | awk '{print $2}')
 contract_types=$(echo ${STATS} | grep -o 'Contracts: [+a-z0-9-]*' | awk '{print $2}')
-tps=$(echo ${STATS} | grep -o 'sTPS: [0-9]*' | awk '{print $2}')
+tps=$(echo ${STATS} | grep -o 'sTPS: [0-9]\+\.[0-9]\{2\}' | awk '{print $2}')
 
 echo "${TIMESTAMP}, ${platform}, n/a, ${contract_types}, ${tps}, n/a, n/a" >> "${CSV_OUTPUT}"
