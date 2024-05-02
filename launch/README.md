@@ -131,28 +131,6 @@ docker run --rm -it --init -v $PWD/configs:/usr/local/smart-bench/config smart-b
 
 ## Miscellaneous
 
-### Generate list of pre-funded accounts
-Following are optional steps that can be used to re-generate list of pre-funded accounts used for benchmarking
-
-create python environment
-```
-make setup
-```
-
-make sure to activate python env
-```
-source venv/bin/activate
-```
-
-use scripts to generate json list of balances
-```
-# moonbeam / evm
-python eth_addr_generator.py > configs/funded-accounts-evm.json
-
-# substrate / wasm
-python substrate_addr_generator.py > configs/funded-accounts-wasm.json
-```
-
 ### Moonbeam with Dev RPC module enabled build recipe
 
 Following is an example recipe how to build moonbeam binary with Dev RPC module enabled
