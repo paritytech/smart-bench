@@ -13,6 +13,7 @@ env:
   BENCHMARK_DIR: stats
   TEST_PARAMS: --instance-count 1 --call-count 2000
   BENCHMARK_URI: https://raw.githubusercontent.com/paritytech/smart-bench/gh-pages
+  VERSION: v1.0.0
 
 jobs:
   build_dev_moonbeam:
@@ -30,6 +31,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
+         ref: ${{ env.VERSION }}
          sparse-checkout: |
           launch/moonbeam.patch
          sparse-checkout-cone-mode: false
@@ -78,6 +80,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.VERSION }}
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
@@ -161,7 +165,7 @@ jobs:
           STATS=$(./run.sh -- ${{ matrix.type }} ${{ matrix.contract }} ${TEST_PARAMS})
           BLOCKS=$(echo ${STATS} | grep -o 'Total Blocks: [0-9]*' | awk '{print $3}')
           EXTRINSICS=$(echo ${STATS} | grep -o 'Total Extrinsics: [0-9]*' | awk '{print $3}')
-          TPS=$(echo ${STATS} | grep -o '[0-9]\+\.[0-9]\{2\}' | awk '{print $2}')
+          TPS=$(echo ${STATS} | grep -o 'sTPS: [0-9]\+\.[0-9]\{2\}' | awk '{print $2}')
           echo "Blocks: ${BLOCKS}"
           echo "Extrinsics: ${EXTRINSICS}"
           echo "TPS: ${TPS}"
@@ -207,6 +211,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.VERSION }}
 
       - name: Download artifact
         uses: actions/download-artifact@v3
@@ -220,7 +226,7 @@ jobs:
             contract_name=$(basename "$file" | sed 's/^.*_\(.*\)\.csv$/\1/')
             benchmark_file=bench_${contract_name}.csv
             if [ ! -f ${{ env.BENCHMARK_DIR }}/${benchmark_file} ]; then
-              curl -L -o ${{ env.BENCHMARK_DIR }}/${benchmark_file}  ${{ env.BENCHMARK_URI }}/${benchmark_file} || exit 1
+              curl -L -o ${{ env.BENCHMARK_DIR }}/${benchmark_file}  ${{ env.BENCHMARK_URI }}/${{ env.VERSION }}/${benchmark_file} || exit 1
             fi
             cat $file >> ${{ env.BENCHMARK_DIR }}/${benchmark_file}
           done
@@ -246,10 +252,10 @@ jobs:
           mv ${{ env.BENCHMARK_DIR }}/bench_*.csv /tmp/stats
           mv ${{ env.BENCHMARK_DIR }}/stps_*.png /tmp/stats
           git checkout gh-pages
-          mv /tmp/stats/* .
+          mv /tmp/stats/* ${{ env.VERSION }}/
           # Upload files
-          git add *.csv *.png --force
+          git add ${{ env.VERSION }}/*.csv ${{ env.VERSION }}/*.png --force
           git status
-          git commit -m "Updated stats in ${CURRENT_DATE} and pushed to gh-pages"
+          git commit -m "Updated stats in ${{ env.VERSION }} version on ${CURRENT_DATE} and pushed to gh-pages"
           git push origin gh-pages --force
           rm -rf .git/ ./*
