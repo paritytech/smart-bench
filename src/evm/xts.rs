@@ -1,3 +1,7 @@
+use std::{
+    collections::{HashMap}, sync::{RwLock, Arc, Mutex},
+};
+
 use super::transaction::Transaction;
 use impl_serde::serialize::to_hex;
 use subxt::{OnlineClient, PolkadotConfig as DefaultConfig};
@@ -21,6 +25,7 @@ pub struct MoonbeamApi {
     web3: Web3<ws::WebSocket>,
     pub client: OnlineClient<DefaultConfig>,
     chain_id: U256,
+    nonces_cache: Arc<RwLock<HashMap<Address, Mutex<U256>>>>
 }
 
 impl MoonbeamApi {
@@ -33,6 +38,7 @@ impl MoonbeamApi {
             web3,
             client,
             chain_id,
+            nonces_cache: Default::default(),
         })
     }
 
@@ -41,11 +47,30 @@ impl MoonbeamApi {
     }
 
     pub async fn fetch_nonce(&self, address: Address) -> color_eyre::Result<U256> {
-        self.web3
+        let map = self.nonces_cache.read().expect("RwLock poisoned");
+
+        if let Some(element) = map.get(&address) {
+            let mut element = element.lock().expect("Mutex poisoned");
+
+            *element += 1.into();
+
+            return Ok(*element);
+        }
+
+        drop(map);
+
+        let account_nonce = self.web3
             .eth()
             .transaction_count(address, None)
-            .await
-            .map_err(Into::into)
+            .await?;
+
+        let mut map = self.nonces_cache.write().expect("RwLock poisoned");
+
+        map.entry(address).or_insert_with(|| Mutex::new(account_nonce));
+
+        Ok(account_nonce)
+
+
     }
 
     /// Estimate gas price for transaction

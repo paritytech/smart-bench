@@ -257,7 +257,7 @@ async fn test_solidity_evm_contract_success() {
         .arg("evm")
         .arg("flipper")
         .args(["--instance-count", "1"])
-        .args(["--call-count", "10"])
+        .args(["--call-count", "300"])
         .args(["--url", "ws://localhost:9944"])
         .arg("--single-signer")
         .timeout(std::time::Duration::from_secs(5))
