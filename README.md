@@ -6,3 +6,5 @@ It can also be run manually from the link below; just click 'Run workflow'
 
 The workflow output consists of the updated files with statistics 
 and the generated graphs.
+Benchmark output from master (v1.0.0) is kept in the root directory and output from v1.7.0 branch is kept in v1.7.0 directory.
+
