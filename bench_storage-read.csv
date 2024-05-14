@@ -37,3 +37,6 @@
 1715650356, evm, v0.34.1, storage-read, 24.85, solc 0.8.1, --instance-count 1 --call-count 2000
 1715650374, ink-wasm, v1.0.0, storage-read, 17.42, ink! 4.3.0, --instance-count 1 --call-count 2000
 1715650332, sol-wasm, v1.0.0, storage-read, 20.68, Solidity 0.3.2, --instance-count 1 --call-count 2000
+1715697318, evm, v0.34.1, storage-read, 25.12, solc 0.8.1, --instance-count 1 --call-count 2000
+1715697324, ink-wasm, v1.0.0, storage-read, 17.42, ink! 4.3.0, --instance-count 1 --call-count 2000
+1715697318, sol-wasm, v1.0.0, storage-read, 19.77, Solidity 0.3.2, --instance-count 1 --call-count 2000
