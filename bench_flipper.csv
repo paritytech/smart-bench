@@ -52,3 +52,6 @@
 1715995866, evm, v0.34.1, flipper, 27.69, solc 0.8.1, --instance-count 1 --call-count 2000
 1715995830, ink-wasm, v1.0.0, flipper, 23.42, ink! 4.3.0, --instance-count 1 --call-count 2000
 1715995830, sol-wasm, v1.0.0, flipper, 22.12, Solidity 0.3.2, --instance-count 1 --call-count 2000
+1716082387, evm, v0.34.1, flipper, 28.48, solc 0.8.1, --instance-count 1 --call-count 2000
+1716082386, ink-wasm, v1.0.0, flipper, 23.42, ink! 4.3.0, --instance-count 1 --call-count 2000
+1716082428, sol-wasm, v1.0.0, flipper, 22.04, Solidity 0.3.2, --instance-count 1 --call-count 2000
