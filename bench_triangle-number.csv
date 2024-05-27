@@ -76,3 +76,6 @@
 1716687720, evm, v0.34.1, triangle-number, 4.97, solc 0.8.1, --instance-count 1 --call-count 2000
 1716687132, ink-wasm, v1.0.0, triangle-number, 29.25, ink! 4.3.0, --instance-count 1 --call-count 2000
 1716687180, sol-wasm, v1.0.0, triangle-number, 20.16, Solidity 0.3.2, --instance-count 1 --call-count 2000
+1716774066, evm, v0.34.1, triangle-number, 4.97, solc 0.8.1, --instance-count 1 --call-count 2000
+1716773514, ink-wasm, v1.0.0, triangle-number, 28.62, ink! 4.3.0, --instance-count 1 --call-count 2000
+1716773526, sol-wasm, v1.0.0, triangle-number, 21.73, Solidity 0.3.2, --instance-count 1 --call-count 2000
